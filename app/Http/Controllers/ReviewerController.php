@@ -147,11 +147,8 @@ public function index()
                     $pdf = new \setasign\Fpdi\Fpdi();
                     $pageCount = $pdf->setSourceFile($parsePath);
                     
-                    // Ambil seluruh persetujuan yang bertatus 'approved' (termasuk yang baru saja di-update statusnya di baris 100)
-                    $allApproved = \App\Models\DocumentApproval::where('document_id', $document->id)
-                        ->where('status', 'approved')
-                        ->orderBy('sequence', 'asc')
-                        ->get();
+                    // Only draw the current reviewer's stamp during approval (estafet-chain and updateRevision take care of others)
+                    $allApproved = collect([$currentApproval]);
 
                     $stampsToDraw = [];
                     foreach ($allApproved as $appItem) {
