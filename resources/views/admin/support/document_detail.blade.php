@@ -208,6 +208,33 @@
                 </div>
             </div>
 
+            {{-- Card Oper Kendali Mutu (Estafet Manual) --}}
+            <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100 relative overflow-hidden group">
+                <div class="flex items-center space-x-2.5 mb-4 border-b border-gray-100 pb-3">
+                    <div class="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-sm shadow-inner">
+                        <i class="fa-solid fa-shuffle"></i>
+                    </div>
+                    <h4 class="text-[10px] font-black uppercase tracking-wider text-[#1e293b]">Oper Kendali (Estafet Manual)</h4>
+                </div>
+
+                <form action="{{ route('admin.support.updateReviewer', $document->id) }}" method="POST" class="space-y-3">
+                    @csrf
+                    @method('PUT')
+                    <div>
+                        <label class="block text-[8px] font-bold uppercase text-gray-400 mb-1.5 tracking-wider">Pilih Peninjau Target Baru:</label>
+                        <select name="new_reviewer_id" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-[#1e293b] focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer">
+                            @foreach($reviewers as $rev)
+                                <option value="{{ $rev->id }}">{{ $rev->username }} ({{ $rev->role }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="w-full py-3 bg-[#1e293b] text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all duration-300 shadow-sm hover:shadow-blue-100">
+                        <i class="fa-solid fa-paper-plane mr-1"></i> Transfer Kendali Dokumen
+                    </button>
+                </form>
+            </div>
+
             {{-- Tombol Khusus Penanganan Perbaikan Berkas Revisi --}}
             @if($document->status === 'need_revision')
                 <div class="p-5 bg-red-50 border border-red-100 rounded-2xl flex flex-col gap-2 shadow-sm">

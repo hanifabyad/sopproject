@@ -37,99 +37,217 @@ class LpGeneratorService
         $companyHeader = $data['company_header'] ?? 'pkm';
         $totalPages = $data['total_pages'] ?? 2;
 
-        // Draw Outer Border
-        $pdf->SetDrawColor(30, 41, 59); // Slate-800
-        $pdf->SetLineWidth(0.4);
+        // ---------------------------------------------------------
+        // GLOBAL STYLE: Formal black borders throughout
+        // ---------------------------------------------------------
+        $BLACK = [0, 0, 0];
+        $GRAY_LIGHT = [245, 245, 245]; // very light gray for section headers
+        $GRAY_TEXT  = [80, 80, 80];    // dark gray for section label text
+
+        // Uniform border constants
+        $LINE_OUTER = 0.5;  // outer page border
+        $LINE_TABLE = 0.35; // all internal table lines
+
+        // Draw Outer Border — black, slightly thick
+        $pdf->SetDrawColor(...$BLACK);
+        $pdf->SetLineWidth($LINE_OUTER);
         $pdf->Rect(15, 15, 180, 267);
 
         // ---------------------------------------------------------
-        // 1. HEADER SECTION (Y: 15 to 35)
+        // 1. HEADER SECTION (Y: 15 to 42) — height = 27mm
+        //    Allows a 24mm logo with 1.5mm margin top & bottom.
         // ---------------------------------------------------------
-        $pdf->Line(15, 35, 195, 35);
-        $pdf->Line(60, 15, 60, 35); // Split column
+        $pdf->SetDrawColor(...$BLACK);
+        $pdf->SetLineWidth($LINE_TABLE);
+        $pdf->Line(15, 42, 195, 42);  // Bottom of header
+        $pdf->Line(60, 15, 60, 42);   // Logo | Company text split
 
-        // Draw Logo
+        // --- LOGO (centered inside left cell: X=15..60, Y=15..42) ---
+        // Cell dimensions: width=45mm, height=27mm
+        // Logo rendered at 24mm × 24mm, centered with 1.5mm margin each side.
+        $logoCellX = 15.0;
+        $logoCellY = 15.0;
+        $logoCellW = 45.0;
+        $logoCellH = 27.0;
+
         $pdf->SetTextColor(30, 41, 59);
         if ($companyHeader === 'sck') {
-            // Draw beautiful vector text logo for SCK
-            $pdf->SetDrawColor(30, 64, 175); // Blue
-            $pdf->SetLineWidth(0.6);
-            $pdf->Rect(22.5, 17.5, 30, 15);
-            $pdf->SetFont('Arial', 'B', 14);
+            // SCK: vector text logo — blue box centered in cell
+            $logoW = 24.0; $logoH = 12.0;
+            $logoX = $logoCellX + ($logoCellW - $logoW) / 2.0;
+            $logoY = $logoCellY + ($logoCellH - $logoH) / 2.0;
+            $pdf->SetDrawColor(30, 64, 175);
+            $pdf->SetLineWidth(0.5);
+            $pdf->Rect($logoX, $logoY, $logoW, $logoH);
+            $pdf->SetFont('Arial', 'B', 13);
             $pdf->SetTextColor(30, 64, 175);
-            $pdf->SetXY(22.5, 17.5);
-            $pdf->Cell(30, 15, 'SCK', 0, 0, 'C');
+            $pdf->SetXY($logoX, $logoY);
+            $pdf->Cell($logoW, $logoH, 'SCK', 0, 0, 'C');
+            $pdf->SetDrawColor(...$BLACK);
         } else {
-            // PKM, LBS, CPT use PKM logo image
+            // PKM / LBS / CPT: use PKM logo image, centered
             $logoPath = public_path('img/logopkm.png');
             if (file_exists($logoPath)) {
-                $pdf->Image($logoPath, 22.5, 17.5, 30);
+                // logopkm.png is 200x200px (square). Render at 24mm × 24mm.
+                // Cell is 45mm wide × 27mm tall → margin: (45-24)/2=10.5mm H, (27-24)/2=1.5mm V
+                $logoW = 24.0;
+                $logoH = 24.0;
+                $logoX = $logoCellX + ($logoCellW - $logoW) / 2.0; // 26.5mm from left edge
+                $logoY = $logoCellY + ($logoCellH - $logoH) / 2.0; // 16.5mm from top edge
+                $pdf->Image($logoPath, $logoX, $logoY, $logoW, $logoH);
             } else {
-                // Fallback text logo if image missing
-                $pdf->SetDrawColor(16, 185, 129); // Emerald
-                $pdf->SetLineWidth(0.6);
-                $pdf->Rect(22.5, 17.5, 30, 15);
-                $pdf->SetFont('Arial', 'B', 14);
+                // Fallback text logo
+                $logoW = 24.0; $logoH = 12.0;
+                $logoX = $logoCellX + ($logoCellW - $logoW) / 2.0;
+                $logoY = $logoCellY + ($logoCellH - $logoH) / 2.0;
+                $pdf->SetDrawColor(16, 185, 129);
+                $pdf->SetLineWidth(0.5);
+                $pdf->Rect($logoX, $logoY, $logoW, $logoH);
+                $pdf->SetFont('Arial', 'B', 13);
                 $pdf->SetTextColor(16, 185, 129);
-                $pdf->SetXY(22.5, 17.5);
-                $pdf->Cell(30, 15, 'PKM', 0, 0, 'C');
+                $pdf->SetXY($logoX, $logoY);
+                $pdf->Cell($logoW, $logoH, 'PKM', 0, 0, 'C');
+                $pdf->SetDrawColor(...$BLACK);
             }
         }
 
-        // Company text
+        // --- Company name & address, vertically centered in right cell ---
         $companyName = 'PT PUTRA KELANA MAKMUR (PKM) GROUP';
         $companyAddress = 'Jl. Budi Kemuliaan No. 3 Seraya, Batam';
         if ($companyHeader === 'sck') {
             $companyName = 'PT SATRIA CITRA KENCANA';
-            $companyAddress = 'Jl. Budi Kemuliaan No. 3 Seraya, Batam';
         } elseif ($companyHeader === 'lbs') {
             $companyName = 'PT LINTAS BINTAN SAMUDERA';
         } elseif ($companyHeader === 'cpt') {
             $companyName = 'PT CAHAYA PERDANA TRANSALAM';
         }
 
-        $pdf->SetXY(60, 19);
+        // Right cell: X=60..195, Y=15..42
+        // Vertically center company name and address in 27mm cell
+        $pdf->SetXY(60, 24.0);
         $pdf->SetFont('Arial', 'B', 11);
         $pdf->SetTextColor(30, 41, 59);
         $pdf->Cell(135, 6, $companyName, 0, 1, 'C');
-        
-        $pdf->SetXY(60, 25);
+
+        $pdf->SetXY(60, 31.0);
         $pdf->SetFont('Arial', '', 8);
-        $pdf->SetTextColor(100, 116, 139); // Slate-500
+        $pdf->SetTextColor(80, 80, 80);
         $pdf->Cell(135, 4, $companyAddress, 0, 1, 'C');
 
         // ---------------------------------------------------------
-        // 2. TITLE & METADATA SECTION (Y: 35 to 60)
+        // 2. TITLE & METADATA SECTION (Y: 42 to 67) — height 25mm
         // ---------------------------------------------------------
-        $pdf->Line(15, 60, 195, 60);
-        $pdf->Line(135, 35, 135, 60); // Column split
+        $pdf->SetDrawColor(...$BLACK);
+        $pdf->SetLineWidth($LINE_TABLE);
+        $pdf->Line(15, 67, 195, 67);
+        $pdf->Line(135, 42, 135, 67); // Title | Meta split
 
-        // Document Title
-        $pdf->SetXY(16, 38);
-        $pdf->SetFont('Arial', 'B', 10);
+        // Document Title — auto-shrink so text stays within Y=42..67 (25mm area)
+        // -----------------------------------------------------------------------
+        // Area constants
+        $titleX      = 16.0;          // left start (1mm inside outer border)
+        $titleAreaY  = 42.0;          // top of Title+Meta section
+        $titleAreaH  = 25.0;          // total cell height (Y=42..67)
+        $titleW      = 116.0;         // usable width (118 - 1mm margin each side)
+        $titlePadV   = 2.0;           // vertical padding: 2mm top + 2mm bottom
+        $maxContentH = $titleAreaH - ($titlePadV * 2); // 21mm usable
+        $titleText   = strtoupper(trim($title));
+
+        // Map: font size → line height (mm) — proportional to font size
+        $fontSteps = [
+            13 => 6.5,
+            12 => 6.0,
+            11 => 5.5,
+            10 => 5.0,
+             9 => 4.5,
+        ];
+
+        // Word-wrap helper: splits $text into lines that fit in $width at current font
+        $wrapLines = function (string $text, float $width) use ($pdf): array {
+            $words   = preg_split('/\s+/', $text);
+            $lines   = [];
+            $current = '';
+            foreach ($words as $word) {
+                $test = $current === '' ? $word : $current . ' ' . $word;
+                if ($pdf->GetStringWidth($test) <= $width) {
+                    $current = $test;
+                } else {
+                    if ($current !== '') $lines[] = $current;
+                    $current = $word;
+                }
+            }
+            if ($current !== '') $lines[] = $current;
+            return $lines;
+        };
+
+        // Find largest font that fits all lines inside maxContentH
+        $chosenSize  = 9;
+        $chosenLineH = 4.5;
+        $chosenLines = [];
+
+        foreach ($fontSteps as $fs => $lh) {
+            $pdf->SetFont('Arial', 'B', $fs);
+            $lines  = $wrapLines($titleText, $titleW);
+            $totalH = count($lines) * $lh;
+            if ($totalH <= $maxContentH) {
+                $chosenSize  = $fs;
+                $chosenLineH = $lh;
+                $chosenLines = $lines;
+                break; // largest fitting size found — stop
+            }
+            // Store lines at this size in case we need the minimum fallback
+            if ($fs === 9) {
+                $chosenLines = $lines;
+            }
+        }
+
+        // Safety: if even 9pt overflows, hard-truncate to max safe line count
+        $maxLines = (int) floor($maxContentH / $chosenLineH);
+        if (count($chosenLines) > $maxLines) {
+            // Truncate and append ellipsis to last visible line
+            $chosenLines = array_slice($chosenLines, 0, $maxLines);
+            $last = end($chosenLines);
+            // Trim last line until ellipsis fits
+            $pdf->SetFont('Arial', 'B', $chosenSize);
+            while ($pdf->GetStringWidth($last . '...') > $titleW && strlen($last) > 0) {
+                $last = rtrim(substr($last, 0, -1));
+            }
+            $chosenLines[count($chosenLines) - 1] = $last . '...';
+        }
+
+        // Render: vertically center the text block inside the 25mm area
+        $totalTextH = count($chosenLines) * $chosenLineH;
+        $startY     = $titleAreaY + ($titleAreaH - $totalTextH) / 2.0;
+
+        $pdf->SetFont('Arial', 'B', $chosenSize);
         $pdf->SetTextColor(30, 41, 59);
-        $pdf->MultiCell(118, 5, strtoupper($title), 0, 'C');
+        foreach ($chosenLines as $line) {
+            $pdf->SetXY($titleX, $startY);
+            $pdf->Cell($titleW, $chosenLineH, $line, 0, 0, 'C');
+            $startY += $chosenLineH;
+        }
 
-        // Sub-table grids
-        $pdf->SetLineWidth(0.2);
-        $pdf->SetDrawColor(203, 213, 225); // Slate-300
-        $pdf->Line(135, 41.25, 195, 41.25);
-        $pdf->Line(135, 47.5, 195, 47.5);
-        $pdf->Line(135, 53.75, 195, 53.75);
-        $pdf->Line(155, 35, 155, 60); // Label-value split
+        // Metadata sub-grid lines — uniform 0.35mm black
+        // 4 rows over 25mm → each 6.25mm; starts at Y=42
+        $pdf->SetLineWidth($LINE_TABLE);
+        $pdf->SetDrawColor(...$BLACK);
+        $pdf->Line(135, 48.25, 195, 48.25);
+        $pdf->Line(135, 54.5,  195, 54.5);
+        $pdf->Line(135, 60.75, 195, 60.75);
+        $pdf->Line(155, 42,    155, 67);    // Label | Value split
 
         $metadata = [
-            ['No Dok', $docNumber],
-            ['Revisi', $revision],
+            ['No Dok',  $docNumber],
+            ['Revisi',  $revision],
             ['Tanggal', $docDate],
             ['Halaman', '2 dari ' . $totalPages],
         ];
 
-        $yMeta = 35.0;
-        foreach ($metadata as $idx => $meta) {
+        $yMeta = 42.0; // starts at top of Title+Meta section
+        foreach ($metadata as $meta) {
             $pdf->SetXY(136, $yMeta + 1.2);
             $pdf->SetFont('Arial', '', 8);
-            $pdf->SetTextColor(100, 116, 139);
+            $pdf->SetTextColor(80, 80, 80);
             $pdf->Cell(18, 4, $meta[0], 0, 0, 'L');
 
             $pdf->SetXY(156, $yMeta + 1.2);
@@ -141,33 +259,35 @@ class LpGeneratorService
         }
 
         // ---------------------------------------------------------
-        // 3. LEMBAR TINJAUAN TITLE (Y: 60 to 70)
+        // 3. LEMBAR TINJAUAN TITLE BAND (Y: 67 to 77) — height 10mm
         // ---------------------------------------------------------
-        $pdf->SetLineWidth(0.4);
-        $pdf->SetDrawColor(30, 41, 59);
-        $pdf->Line(15, 70, 195, 70);
-        $pdf->SetXY(15, 63);
-        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->SetDrawColor(...$BLACK);
+        $pdf->SetLineWidth($LINE_TABLE);
+        $pdf->Line(15, 77, 195, 77);
+        // Vertically center 11pt text in 10mm band (Y=67..77)
+        $pdf->SetXY(15, 69.5);
+        $pdf->SetFont('Arial', 'B', 11);
         $pdf->SetTextColor(30, 41, 59);
-        $pdf->Cell(180, 4, 'LEMBAR TINJAUAN DAN PENGESAHAN DOKUMEN', 0, 1, 'C');
+        $pdf->Cell(180, 5, 'LEMBAR TINJAUAN DAN PENGESAHAN DOKUMEN', 0, 1, 'C');
 
         // ---------------------------------------------------------
-        // 4. TABLE HEADER (Y: 70 to 78)
+        // 4. TABLE COLUMN HEADER ROW (Y: 77 to 85) — height 8mm
         // ---------------------------------------------------------
-        $pdf->Line(15, 78, 195, 78);
-        $pdf->Line(80, 70, 80, 78);
-        $pdf->Line(125, 70, 125, 78);
-        $pdf->Line(165, 70, 165, 78);
+        $pdf->SetLineWidth($LINE_TABLE);
+        $pdf->SetDrawColor(...$BLACK);
+        $pdf->Line(15, 85, 195, 85);
+        $pdf->Line(80,  77, 80,  85);
+        $pdf->Line(125, 77, 125, 85);
+        $pdf->Line(165, 77, 165, 85);
 
-        $headers = [
-            [15, 65, 'Jabatan'],
-            [80, 45, 'Kode Nama'],
+        $colHeaders = [
+            [15,  65, 'Jabatan'],
+            [80,  45, 'Kode Nama'],
             [125, 40, 'Tanda Tangan'],
-            [165, 30, 'Tanggal']
+            [165, 30, 'Tanggal'],
         ];
-
-        foreach ($headers as $h) {
-            $pdf->SetXY($h[0], 72);
+        foreach ($colHeaders as $h) {
+            $pdf->SetXY($h[0], 79.0); // vertical center within 8mm band
             $pdf->SetFont('Arial', 'B', 9);
             $pdf->SetTextColor(30, 41, 59);
             $pdf->Cell($h[1], 4, $h[2], 0, 0, 'C');
@@ -176,7 +296,7 @@ class LpGeneratorService
         // ---------------------------------------------------------
         // 5. TABLE BODY ROWS
         // ---------------------------------------------------------
-        $currentY = 78.0;
+        $currentY = 85.0; // body starts immediately below col-header row (Y=85)
         $coordinates = [];
 
         $numReviewers = count($reviewers);
@@ -189,24 +309,24 @@ class LpGeneratorService
             $headerHeight = max(4.5, 6.0 - ($numReviewers - 5) * 0.4);
         }
 
-        // Helper to draw a row section
-        $drawSectionHeader = function ($label) use ($pdf, &$currentY, $headerHeight) {
-            $pdf->SetFillColor(241, 245, 249); // Slate-100
+        // Helper to draw a section header row (light gray fill, black border, black text)
+        $drawSectionHeader = function ($label) use ($pdf, &$currentY, $headerHeight, $LINE_TABLE, $BLACK) {
+            $pdf->SetFillColor(245, 245, 245); // very light gray
             $pdf->Rect(15, $currentY, 180, $headerHeight, 'F');
-            $pdf->SetLineWidth(0.2);
-            $pdf->SetDrawColor(203, 213, 225);
+            $pdf->SetLineWidth($LINE_TABLE);
+            $pdf->SetDrawColor(...$BLACK);
             $pdf->Line(15, $currentY + $headerHeight, 195, $currentY + $headerHeight);
 
             $pdf->SetXY(17, $currentY + ($headerHeight - 4.0) / 2.0);
             $pdf->SetFont('Arial', 'B', 8);
-            $pdf->SetTextColor(71, 85, 105); // Slate-600
+            $pdf->SetTextColor(0, 0, 0);
             $pdf->Cell(176, 4, $label, 0, 1, 'L');
             $currentY += $headerHeight;
         };
 
-        $drawSignerRow = function (User $user) use ($pdf, &$currentY, &$coordinates, $rowHeight) {
-            $pdf->SetLineWidth(0.2);
-            $pdf->SetDrawColor(203, 213, 225);
+        $drawSignerRow = function (User $user) use ($pdf, &$currentY, &$coordinates, $rowHeight, $LINE_TABLE, $BLACK) {
+            $pdf->SetLineWidth($LINE_TABLE);
+            $pdf->SetDrawColor(...$BLACK);
             $pdf->Line(15, $currentY + $rowHeight, 195, $currentY + $rowHeight);
             $pdf->Line(80, $currentY, 80, $currentY + $rowHeight);
             $pdf->Line(125, $currentY, 125, $currentY + $rowHeight);
@@ -253,12 +373,14 @@ class LpGeneratorService
         $drawSignerRow($finalApprover);
 
         // ---------------------------------------------------------
-        // 6. FOOTER NOTES (Y: 272)
+        // 6. FOOTER NOTES — always visible, dark gray, italic, left-aligned
+        // Anchored at Y=270 (5mm above the outer border at Y=282) so it
+        // never overlaps the MASTER DOCUMENT stamp or falls outside page.
         // ---------------------------------------------------------
-        $pdf->SetXY(15, 272);
+        $pdf->SetXY(17, 270);
         $pdf->SetFont('Arial', 'I', 7);
-        $pdf->SetTextColor(148, 163, 184); // Slate-400
-        $pdf->Cell(180, 4, 'Keterangan: NA (Not Applicable), apabila tidak diperlukan pemeriksaan dan persetujuan dari Pejabat terkait', 0, 1, 'L');
+        $pdf->SetTextColor(80, 80, 80); // dark gray — clearly legible
+        $pdf->Cell(160, 4, 'Keterangan: NA (Not Applicable), apabila tidak diperlukan pemeriksaan dan persetujuan dari Pejabat terkait', 0, 1, 'L');
 
         // Output and save PDF to public storage
         $fileName = 'generated_lp_' . time() . '_' . uniqid() . '.pdf';

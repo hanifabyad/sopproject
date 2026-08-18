@@ -20,13 +20,16 @@ Route::get('/magic-login', [LoginController::class, 'magicLogin'])->name('login.
 // ==========================================
 // 🛡️ ADMIN GROUP (NAVY-WHITE DASHBOARD)
 // ==========================================
-Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
+Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->group(function () {
     
     // Dashboard Utama & Statistik Terpisah (Support vs BU)
     Route::get('/dashboard', [AdminController::class, 'index'])->name('dashboard');
     
     // Kelola Pegawai (CRUD User dengan Role Lengkap)
     Route::resource('users', UserController::class)->except(['show']);
+
+    // Hapus dokumen E-Library secara permanen
+    Route::delete('/library/{id}', [LibraryController::class, 'destroy'])->name('library.destroy');
 
     // ------------------------------------------
     // 🏢 MANAJEMEN SOP DEPARTEMEN SUPPORT
@@ -96,7 +99,4 @@ Route::middleware('auth')->group(function () {
     // Jalur utama menu E-Library
     Route::get('/library', [LibraryController::class, 'index'])->name('library.index');
     Route::post('/library/store-manual', [LibraryController::class, 'storeManual'])->name('library.store_manual');
-    
-    // 🔐 JALUR KHUSUS TONG SAMPAH GLOBAL (SINKRON DENGAN CONTROLLER)
-    Route::delete('/admin/library/{id}', [LibraryController::class, 'destroy'])->name('admin.library.destroy');
 });

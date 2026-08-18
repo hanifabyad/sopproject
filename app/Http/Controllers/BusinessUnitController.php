@@ -720,7 +720,15 @@ class BusinessUnitController extends Controller
                                     $dLine1 = $carbonDate->format('d/m/Y');
                                     $dLine2 = $carbonDate->format('H:i \W\I\B');
 
-                                    $this->drawDigitalStampInController($pdfStamper, $stamp['x'], $stamp['y'], $stamp['username']);
+                                    // Hitung rowHeight dinamis berdasarkan jumlah reviewer
+                                    $numReviewers = DocumentApproval::where('document_id', $document->id)
+                                        ->where('stage', 'reviewer')
+                                        ->count();
+                                    $rowHeight = 12.0;
+                                    if ($numReviewers > 5) {
+                                        $rowHeight = max(8.0, 12.0 - ($numReviewers - 5) * 1.2);
+                                    }
+                                    $this->drawDigitalStampInController($pdfStamper, $stamp['x'], $stamp['y'], $stamp['username'], $rowHeight);
                                     $this->drawDateStampInController($pdfStamper, $size['width'], $stamp['y'], $dLine1, $dLine2);
                                 }
                             }
@@ -861,7 +869,7 @@ class BusinessUnitController extends Controller
             }
 
             return redirect()->route('admin.BU.detail', $document->id)
-                ->with('success', 'File revisi berhasil digabungkan dan dialirkan langsung ke ' . ($reviewerUserObj->username ?? 'Peninjau'));
+                ->with('success', 'File revisi berhasil digabungkan dan dialirkan langsung ke ' . ($firstTarget->user->username ?? 'Peninjau'));
 
         } catch (\Throwable $e) {
             \Log::error("e-QMS Revision Error: " . $e->getMessage());
@@ -884,8 +892,8 @@ class BusinessUnitController extends Controller
             $pdfCheck->setSourceFile($absolutePath);
             return $absolutePath;
         } catch (\Throwable $e) {
-            $qpdfBin = 'C:\\Program Files\\qpdf 12.4.0\\bin\\qpdf.exe';
-            if (!file_exists($qpdfBin)) {
+            $qpdfBin = config('app.qpdf_path', 'qpdf');
+            if ((str_starts_with($qpdfBin, '/') || preg_match('/^[a-zA-Z]:\\\\/', $qpdfBin)) && !file_exists($qpdfBin)) {
                 return $absolutePath;
             }
 
@@ -912,57 +920,123 @@ class BusinessUnitController extends Controller
         }
     }
 
-    private function drawDigitalStampInController($pdf, $x, $y, $name) 
+    private function drawDigitalStampInController($pdf, $x, $y, $name, $rowHeight = null) 
     {
-        $w = 25.0; 
-        $h = 5.2;  
+        if ($rowHeight === null) {
+            $rowHeight = 12.0;
+            try {
+                $user = \App\Models\User::where('username', $name)->first();
+                if ($user) {
+                    $app = \App\Models\DocumentApproval::where('user_id', $user->id)
+                        ->whereBetween('signature_y', [$y - 0.1, $y + 0.1])
+                        ->first();
+                    if ($app) {
+                        $numReviewers = \App\Models\DocumentApproval::where('document_id', $app->document_id)
+                            ->where('stage', 'reviewer')
+                            ->count();
+                        if ($numReviewers > 5) {
+                            $rowHeight = max(8.0, 12.0 - ($numReviewers - 5) * 1.2);
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                $rowHeight = 12.0;
+            }
+        }
 
-        // Center X alignment: offset X by +7.2mm to center the compact stamp in the Tanda Tangan column
-        $x = $x + 7.2;
+        // Tanda Tangan cell width is always 40mm. We want stamp to be as large as possible with safe margins.
+        $w = 34.0;
+        $h = $rowHeight - 3.0; // Margin 1.5mm top and bottom
 
-        // Center Y alignment: offset Y slightly to maintain vertical center inside cell row
-        $y = $y + 0.9;
+        // Center X and Y inside the cell
+        // Cell starts at X=125, width=40. Center is 145.
+        $drawX = 145.0 - ($w / 2.0);
+        // DB signature Y is calculated based on cell center: cellCenterY = y + 3.5
+        $cellCenterY = $y + 3.5;
+        $drawY = $cellCenterY - ($h / 2.0);
 
-        // 1. Latar Belakang Putih
+        // 1. Draw outer white background and border
         $pdf->SetFillColor(255, 255, 255);
-        $pdf->Rect($x, $y, $w, $h, 'F');
+        $pdf->Rect($drawX, $drawY, $w, $h, 'F');
         $pdf->SetDrawColor(30, 41, 59);
         $pdf->SetLineWidth(0.2);
-        $pdf->Rect($x, $y, $w, $h);
+        $pdf->Rect($drawX, $drawY, $w, $h);
 
-        // 2. Kotak Label Samping (Warna Slate)
-        $labelW = 4.0;
-        $pdf->SetFillColor(30, 41, 59);
-        $pdf->Rect($x, $y, $labelW, $h, 'F'); 
+        // 2. Kotak Label Samping (Green)
+        $labelW = 5.0;
+        $pdf->SetFillColor(16, 124, 65);
+        $pdf->Rect($drawX, $drawY, $labelW, $h, 'F');
 
-        // 3. Tulisan Label (QMS)
+        // 3. Label QMS (Centered horizontally & vertically in the label box)
         $pdf->SetTextColor(255, 255, 255);
-        $pdf->SetFont('Arial', 'B', 4.2); 
-        $pdf->SetXY($x, $y + 1.6);
+        $pdf->SetFont('Arial', 'B', 4.5);
+        $pdf->SetXY($drawX, $drawY + ($h - 2.0) / 2.0);
         $pdf->Cell($labelW, 2.0, 'QMS', 0, 0, 'C');
 
-        // 4. Informasi Persetujuan
-        $pdf->SetTextColor(30, 41, 59);
-        $pdf->SetFont('Arial', 'B', 4.0);
-        $pdf->SetXY($x + 4.8, $y + 1.0);
-        $pdf->Cell(19.5, 1.5, 'DIGITALLY APPROVED', 0, 0, 'L');
+        // 4 & 5. Dynamically calculate largest approved font size and vertical alignment
+        $userText = 'User: ' . strtoupper($name);
+        
+        // Base username font size (scaled to stamp height)
+        $userFontSize = max(2.5, min(4.5, $h * 0.45));
+        
+        // Apply adaptive scaling to username if it's long
+        if (strlen($userText) > 24) {
+            $userFontSize *= 0.85;
+        }
+        if (strlen($userText) > 30) {
+            $userFontSize *= 0.70;
+        }
 
-        $pdf->SetFont('Arial', '', 3.6);
-        $pdf->SetXY($x + 4.8, $y + 2.7);
-        $pdf->Cell(19.5, 1.5, 'User: ' . strtoupper($name), 0, 0, 'L');
+        // Loop to find largest approved font size
+        $approvedFontSize = 6.0;
+        $maxTextW = $w - $labelW - 3.0; // 26mm max width with margins
+        $userHText = $userFontSize * 0.3528;
+        $maxTextH = $h - $userHText - 1.2; // vertical height limit for APPROVED
+        
+        for ($fs = 6.0; $fs <= 24.0; $fs += 0.5) {
+            $pdf->SetFont('Arial', 'B', $fs);
+            $wText = $pdf->GetStringWidth('APPROVED');
+            $hText = $fs * 0.3528;
+            if ($wText <= $maxTextW && $hText <= $maxTextH) {
+                $approvedFontSize = $fs;
+            } else {
+                break;
+            }
+        }
+
+        // Terapkan penyesuaian visual: kurangi 4pt dari hasil adaptive terbesar
+        $approvedFontSize = max(5.0, $approvedFontSize - 4.0);
+
+        $approvedH = $approvedFontSize * 0.3528;
+        $userH = $userFontSize * 0.3528;
+        $middleGap = 0.3;
+        $totalTextH = $approvedH + $userH + $middleGap;
+        $topPadding = ($h - $totalTextH) / 2.0;
+
+        // Draw APPROVED
+        $pdf->SetTextColor(16, 124, 65);
+        $pdf->SetFont('Arial', 'B', $approvedFontSize);
+        $pdf->SetXY($drawX + $labelW + 1.2, $drawY + $topPadding);
+        $pdf->Cell($w - $labelW - 2.0, $approvedH, 'APPROVED', 0, 0, 'L');
+
+        // Draw Username
+        $pdf->SetTextColor(30, 41, 59);
+        $pdf->SetFont('Arial', '', $userFontSize);
+        $pdf->SetXY($drawX + $labelW + 1.2, $drawY + $topPadding + $approvedH + $middleGap);
+        $pdf->Cell($w - $labelW - 2.0, $userH, $userText, 0, 0, 'L');
     }
 
     private function drawDateStampInController($pdf, $pageWidthMm, $signatureY, $dateLine1, $dateLine2)
     {
-        $dateColumnCenterX = $pageWidthMm * 0.845;
+        $dateColumnCenterX = $pageWidthMm - 30.0;
         $pdf->SetTextColor(30, 41, 59);
         
         $pdf->SetFont('Arial', 'B', 5.8);
-        $pdf->SetXY($dateColumnCenterX - 15.0, $signatureY - 0.3);
-        $pdf->Cell(30.0, 2.5, $dateLine1, 0, 0, 'C');
+        $pdf->SetXY($dateColumnCenterX - 15.0, $signatureY + 1.2);
+        $pdf->Cell(30.0, 2.0, $dateLine1, 0, 0, 'C');
         
         $pdf->SetFont('Arial', '', 4.2);
-        $pdf->SetXY($dateColumnCenterX - 15.0, $signatureY + 2.6);
+        $pdf->SetXY($dateColumnCenterX - 15.0, $signatureY + 3.6);
         $pdf->Cell(30.0, 2.0, $dateLine2, 0, 0, 'C');
     }
 }

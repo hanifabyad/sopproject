@@ -63,6 +63,10 @@ class LibraryController extends Controller
 
     public function storeManual(Request $request)
     {
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Unauthorized action.');
+        }
+
         $request->validate([
             'title' => 'required|string|max:255',
             'file' => 'required|mimes:pdf|max:10240',
@@ -100,8 +104,12 @@ class LibraryController extends Controller
         return back()->with('error', 'Gagal mengupload file.');
     }
 
-        public function destroy($id)
+    public function destroy($id)
     {
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Unauthorized action.');
+        }
+
         // 1. CARI TARGET PADA MODEL LIBRARY (Bukan Document!)
         $libraryCard = Library::findOrFail($id);
 

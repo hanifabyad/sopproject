@@ -12,7 +12,7 @@
         <div class="bg-white rounded-3xl shadow-xl border border-gray-100 p-8">
             
             <div class="mb-8 border-b border-gray-100 pb-6">
-                <a href="{{ route('admin.BU.show', $document->id) }}" class="text-sm text-blue-900 font-semibold hover:underline">← Kembali ke Detail Dokumen</a>
+                <a href="{{ route('admin.BU.detail', $document->id) }}" class="text-sm text-blue-900 font-semibold hover:underline">← Kembali ke Detail Dokumen</a>
                 <h1 class="text-3xl font-black text-gray-800 mt-3 uppercase tracking-tight">Perbaiki Dokumen SOP</h1>
                 <p class="text-sm text-gray-500 mt-1">Isi kolom file di bawah ini <span class="text-red-600 font-bold">hanya pada file PDF yang ingin diubah/direvisi saja</span>. Kolom yang dikosongkan akan otomatis menggunakan file lama.</p>
             </div>

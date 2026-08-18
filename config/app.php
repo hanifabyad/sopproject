@@ -123,4 +123,16 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | QPDF Binary Path
+    |--------------------------------------------------------------------------
+    |
+    | The absolute path to the QPDF executable on the system, used to
+    | decompress modern PDF streams so FPDI can parse them successfully.
+    |
+    */
+    'qpdf_path' => env('QPDF_BINARY_PATH', 'qpdf'),
+
 ];
+
