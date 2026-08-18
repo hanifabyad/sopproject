@@ -23,7 +23,12 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
                 <label class="block text-[10px] font-black uppercase text-gray-400 mb-3 ml-1">Nama Lengkap</label>
-                <input type="text" name="username" value="{{ $user->username }}" class="w-full p-4 bg-gray-50 rounded-2xl border-none font-bold text-sm" required>
+                <input type="text" name="full_name" value="{{ old('full_name', $user->full_name) }}" class="w-full p-4 bg-gray-50 rounded-2xl border-none font-bold text-sm" required>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-black uppercase text-gray-400 mb-3 ml-1">Username (ID Login)</label>
+                <input type="text" name="username" value="{{ old('username', $user->username) }}" class="w-full p-4 bg-gray-50 rounded-2xl border-none font-bold text-sm" required>
             </div>
 
             <div>

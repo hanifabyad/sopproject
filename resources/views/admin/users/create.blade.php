@@ -41,10 +41,16 @@
         <input type="hidden" name="status" value="1">
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {{-- Username --}}
+            {{-- Nama Lengkap --}}
             <div>
                 <label class="block text-[10px] font-black uppercase text-gray-400 mb-3 ml-1">Nama Lengkap</label>
-                <input type="text" name="username" value="{{ old('username') }}" class="w-full p-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#1e293b] focus:bg-white transition-all font-bold text-sm" placeholder="Contoh: Baim Wong" required>
+                <input type="text" name="full_name" value="{{ old('full_name') }}" class="w-full p-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#1e293b] focus:bg-white transition-all font-bold text-sm" placeholder="Contoh: Tri Minarni" required>
+            </div>
+
+            {{-- Username --}}
+            <div>
+                <label class="block text-[10px] font-black uppercase text-gray-400 mb-3 ml-1">Username (ID Login)</label>
+                <input type="text" name="username" value="{{ old('username') }}" class="w-full p-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#1e293b] focus:bg-white transition-all font-bold text-sm" placeholder="Contoh: triminami" required>
             </div>
 
             {{-- Email --}}

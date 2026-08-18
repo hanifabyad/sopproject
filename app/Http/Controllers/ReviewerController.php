@@ -41,231 +41,407 @@ public function index()
     }
 
     public function approve(Request $request, $id)
-{
-    $document = Document::findOrFail($id);
-    $user = Auth::user();
+    {
+        $statusMsg = 'Dokumen berhasil diproses.';
+        $usersToNotify = [];
+        $documentId = $id;
 
-    // 1. TENTUKAN SUMBER FILE (LOGIKA ESTAFET)
-    // Selalu ambil dari file_preview karena di sana tersimpan hasil ttd orang sebelumnya
-    $sourcePath = storage_path('app/public/' . ($document->file_preview ?? $document->file_lp));
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($request, $id, &$statusMsg, &$usersToNotify) {
+                $document = Document::where('id', $id)->lockForUpdate()->firstOrFail();
+                $user = Auth::user();
+                \Log::info("e-QMS DEBUG USER INSIDE CONTROLLER: ID=" . ($user ? $user->id : 'NULL') . ", username=" . ($user ? $user->username : 'NULL'));
 
-    // 2. TENTUKAN TEKS JANGKAR BERDASARKAN ROLE
-    $anchorMap = [
-        //PT LBS
-        'KA.DEPT.QMS'         => '[sig01]',
-        'Chief of Staff'      => '[sig02]',
-        'Ka. BU Gas & SPBE'   => '[sig03]',
-        'Chief F&A'           => '[sig04]',
-        'Ka. Div Retail'      => '[sig05]',
-        'Wa. Ka. Div Retail'  => '[sig06]',
-        'Ka. Div F&A'         => '[sig07]',
-        'Dept. Internal Audit'=> '[sig08]',
-        'Direktur Utama'      => '[sig09]',
-        
+                // 1. TENTUKAN SUMBER FILE (LOGIKA ESTAFET)
+                // Selalu ambil dari file_preview karena di sana tersimpan hasil ttd orang sebelumnya
+                $sourcePath = storage_path('app/public/' . ($document->file_preview ?? $document->file_lp));
 
-        //
-    ];
-    $targetText = $anchorMap[$user->role] ?? '[sig01]';
+                // 2. TENTUKAN TEKS JANGKAR DARI DOCUMENT APPROVAL SIGNATURE_SLOT
+                $currentApproval = \App\Models\DocumentApproval::where('document_id', $document->id)
+                    ->where('user_id', $user->id)
+                    ->where('status', 'current')
+                    ->lockForUpdate()
+                    ->first();
 
-    // 3. PROSES PENCARIAN KOORDINAT OTOMATIS & FALLBACK QPDF
-    $tempFileToClean = null;
-    $parsePath = $sourcePath;
-
-    // Cek kompatibilitas FPDI terlebih dahulu. Jika gagal (misal unsupported compression), jalankan QPDF fallback.
-    try {
-        $pdfCheck = new \setasign\Fpdi\Fpdi();
-        $pdfCheck->setSourceFile($sourcePath);
-    } catch (\Throwable $e) {
-        $tempFileToClean = $this->normalizePdfWithQpdf($sourcePath);
-        if ($tempFileToClean) {
-            $parsePath = $tempFileToClean;
-        } else {
-            return back()->withErrors(['msg' => 'Gagal memproses PDF: Format kompresi PDF tidak didukung dan QPDF gagal menormalisasi file.']);
-        }
-    }
-
-    try {
-        $parser = new \Smalot\PdfParser\Parser();
-        $pdfParsed = $parser->parseFile($parsePath);
-        $coordinates = $this->findTextCoordinates($pdfParsed, $targetText);
-
-        // 4. PROSES PENEMPELAN STEMPEL (FPDI)
-        $pdf = new \setasign\Fpdi\Fpdi();
-        $pageCount = $pdf->setSourceFile($parsePath);
-        
-        for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
-            $templateId = $pdf->importPage($pageNo);
-            $size = $pdf->getTemplateSize($templateId);
-            $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
-            $pdf->useTemplate($templateId);
-
-            // Stempel diletakkan di halaman 2 (Lembar Pengesahan) jika gabungan, atau hal 1 jika tunggal
-            if ($pageCount > 1) {
-                if ($pageNo == 2) {
-                    $this->drawDigitalStamp($pdf, $coordinates['x'], $coordinates['y'] + 9, $user->username);
+                if (!$currentApproval) {
+                    throw new \Exception('Data antrean approval untuk dokumen ini tidak ditemukan atau sudah diproses.');
                 }
-            } else {
-                if ($pageNo == 1) {
-                    $this->drawDigitalStamp($pdf, $coordinates['x'], $coordinates['y'] + 9, $user->username);
+
+                $slotTag = $currentApproval->signature_slot ?? null;
+
+                if (!$slotTag) {
+                    $slotMeta = \App\Models\DocumentApproval::getSlotAndStageForUser($user);
+                    $slotTag = $slotMeta['signature_slot'];
                 }
-            }
-        }
 
-        // 5. SIMPAN FILE HASIL TANDA TANGAN
-        $fileName = 'ESTAFET_' . time() . '_' . $user->username . '.pdf';
-        $finalPath = 'documents/final/' . $fileName;
-        
-        if (!file_exists(storage_path('app/public/documents/final'))) {
-            mkdir(storage_path('app/public/documents/final'), 0777, true);
-        }
-        
-        $pdf->Output('F', storage_path('app/public/' . $finalPath));
-    } finally {
-        if ($tempFileToClean && file_exists($tempFileToClean)) {
-            @unlink($tempFileToClean);
-        }
-    }
+                $targetText = str_starts_with($slotTag, '[') ? $slotTag : '[' . $slotTag . ']';
 
-    // ================================================================
-    // 6. LOGIKA ANTREAN OTOMATIS (THE MAGIC)
-    // ================================================================
+                // 3. PROSES PENCARIAN KOORDINAT OTOMATIS & FALLBACK QPDF
+                $tempFileToClean = null;
+                $parsePath = $sourcePath;
 
-    // A. Update status antrean user saat ini menjadi 'approved'
-    $currentApproval = \App\Models\DocumentApproval::where('document_id', $document->id)
-        ->where('user_id', $user->id)
-        ->where('status', 'current')
-        ->first();
-    
-    if ($currentApproval) {
-        $currentApproval->update([
-            'status' => 'approved',
-            // Menangkap isi inputan dari textarea Keputusan Reviewer
-            'notes' => $request->notes ?? 'Setuju tanpa catatan.', 
-            'processed_at' => now()
-        ]);
-    }
+                // Cek kompatibilitas FPDI terlebih dahulu. Jika gagal (misal unsupported compression), jalankan QPDF fallback.
+                try {
+                    $pdfCheck = new \setasign\Fpdi\Fpdi();
+                    $pdfCheck->setSourceFile($sourcePath);
+                } catch (\Throwable $e) {
+                    $tempFileToClean = $this->normalizePdfWithQpdf($sourcePath);
+                    if ($tempFileToClean) {
+                        $parsePath = $tempFileToClean;
+                    } else {
+                        throw new \Exception('Gagal memproses PDF: Format kompresi PDF tidak didukung dan QPDF gagal menormalisasi file.');
+                    }
+                }
 
-    // ================================================================
-    // B. Cari apakah ada urutan berikutnya (sequence + 1)?
-    // ================================================================
-    $nextApproval = null;
+                // First, update current approval record in DB to record single-source-of-truth processed_at timestamp
+                $nowTime = now();
+                if ($currentApproval) {
+                    $currentApproval->update([
+                        'status'       => 'approved',
+                        'notes'        => $request->notes ?? 'Setuju tanpa catatan.',
+                        'processed_at' => $nowTime
+                    ]);
+                }
 
-    // KUNCI PENGAMAN: Cek dulu apakah data antrean saat ini ditemukan
-    if ($currentApproval) {
-        $nextApproval = \App\Models\DocumentApproval::where('document_id', $document->id)
-            ->where('sequence', $currentApproval->sequence + 1)
-            ->first();
-            
-        if ($nextApproval) {
-            // --- SKENARIO 1: ADA PENINJAU BERIKUTNYA ---
-            $nextApproval->update(['status' => 'current']);
+                $processedAtTime = $currentApproval->processed_at ?? $nowTime;
+                $carbonDate = \Carbon\Carbon::parse($processedAtTime)->timezone('Asia/Jakarta');
+                $dateLine1 = $carbonDate->format('d/m/Y');
+                $dateLine2 = $carbonDate->format('H:i \W\I\B');
+                $masterDateStr = strtoupper($carbonDate->locale('en')->format('d M Y'));
 
-            // Update dokumen agar menunjuk ke reviewer berikutnya
-            $document->update([
-                'reviewer_id' => $nextApproval->user_id,
-                'file_preview' => $finalPath, // File yang sudah ada ttd dikirim ke orang berikutnya
-                'status' => 'waiting'
-            ]);
+                $isFinalStage = ($currentApproval && ($currentApproval->stage === 'final'));
 
-            $statusMsg = 'Dokumen berhasil disetujui dan diteruskan ke ' . $nextApproval->user->username;
+                try {
+                    $hasDynamicCoords = ($currentApproval && 
+                                         $currentApproval->signature_page !== null && 
+                                         $currentApproval->signature_x !== null && 
+                                         $currentApproval->signature_y !== null);
 
-        } else {
-            // --- SKENARIO 2: SUDAH ORANG TERAKHIR ---
-            $document->update([
-                'file_final' => $finalPath,
-                'file_preview' => $finalPath,
-                'status' => 'active',
-            ]);
+                    if ($hasDynamicCoords) {
+                        $coordinates = [
+                            'x' => (float)$currentApproval->signature_x,
+                            'y' => (float)$currentApproval->signature_y
+                        ];
+                    } else {
+                        // Legacy fallback for historical documents that have [sigXX] markers in the LP
+                        $parser = new \Smalot\PdfParser\Parser();
+                        $pdfParsed = $parser->parseFile($parsePath);
+                        $coordinates = $this->findTextCoordinates($pdfParsed, $targetText);
 
-            // 🔥 TENTUKAN KATEGORI & NAMA DIVISI BERDASARKAN DEPARTEMEN/UNIT
-            $bu = $document->department;
-            $supportDepts = ['HC', 'IT', 'QMS', 'HSE', 'INTERNAL AUDIT', 'LOGISTIC', 'OPS', 'FINANCE', 'LEGAL'];
+                        if ($coordinates === null) {
+                            \Log::warning("e-QMS Legacy Stamp: marker '{$targetText}' not found in LP. Doc ID {$document->id}, User ID {$user->id}. Approval rejected.");
+                            throw new \Exception('Posisi tanda tangan pada Lembar Pengesahan tidak dapat ditemukan. Dokumen tidak diproses.');
+                        }
 
-            if (in_array(strtoupper($bu), $supportDepts)) {
-                $category     = 'support';
-                $divisionName = 'Support';
-                $companyName  = 'PT. CAHAYA PERDANA TRANSALAM';
-            } else {
-                $category = 'divisi';
-                if (in_array($bu, ['SPBU', 'LPG PSO', 'LPG NPSO', 'PKSP', 'TRP', 'INMAR (CNGM)'])) {
-                    $divisionName = 'RETAIL';
-                } elseif (in_array($bu, ['CPT & MHM', 'SBS', 'GVI'])) {
-                    $divisionName = 'COMMERCIAL';
-                } elseif (in_array($bu, ['PROCUREMENT', 'WAREHOUSE', 'ASET', 'GA'])) {
-                    $divisionName = 'SCM';
-                } elseif (in_array($bu, ['KEUANGAN & ACCOUNTING'])) {
-                    $divisionName = 'FA';
+                        // 🔥 SAVE THE RESOLVED COORDINATES TO THE DATABASE FOR THE SINGLE-SOURCE-OF-TRUTH!
+                        if ($currentApproval) {
+                            $currentApproval->update([
+                                'signature_page' => $currentApproval->signature_page ?? 1,
+                                'signature_x'    => $coordinates['x'],
+                                'signature_y'    => $coordinates['y']
+                            ]);
+                        }
+                    }
+
+                    // 4. PROSES PENEMPELAN STEMPEL (FPDI)
+                    $pdf = new \setasign\Fpdi\Fpdi();
+                    $pageCount = $pdf->setSourceFile($parsePath);
+                    
+                    // Ambil seluruh persetujuan yang bertatus 'approved' (termasuk yang baru saja di-update statusnya di baris 100)
+                    $allApproved = \App\Models\DocumentApproval::where('document_id', $document->id)
+                        ->where('status', 'approved')
+                        ->orderBy('sequence', 'asc')
+                        ->get();
+
+                    $stampsToDraw = [];
+                    foreach ($allApproved as $appItem) {
+                        $itemHasCoords = ($appItem->signature_page !== null && 
+                                          $appItem->signature_x !== null && 
+                                          $appItem->signature_y !== null);
+
+                        $x = null;
+                        $y = null;
+                        $page = $appItem->signature_page ?? 1;
+
+                        if ($itemHasCoords) {
+                            $x = (float)$appItem->signature_x;
+                            $y = (float)$appItem->signature_y;
+                        } else {
+                            // Coba resolve dinamis jika marker masih bisa terbaca (fallback legacy)
+                            try {
+                                $slotT = $appItem->signature_slot ?? 'sig01';
+                                $tText = str_starts_with($slotT, '[') ? $slotT : '[' . $slotT . ']';
+                                
+                                $parserObj = new \Smalot\PdfParser\Parser();
+                                $pdfParsedObj = $parserObj->parseFile($parsePath);
+                                $coords = $this->findTextCoordinates($pdfParsedObj, $tText);
+                                
+                                if ($coords !== null) {
+                                    $x = $coords['x'];
+                                    $y = $coords['y'];
+                                    
+                                    // Simpan hasil resolusi koordinat ke DB agar tersimpan permanen
+                                    $appItem->update([
+                                        'signature_page' => $page,
+                                        'signature_x'    => $x,
+                                        'signature_y'    => $y
+                                    ]);
+                                }
+                            } catch (\Throwable $ex) {
+                                \Log::warning("e-QMS Dynamic Redraw: Gagal mendeteksi marker untuk User ID {$appItem->user_id} di Doc ID {$document->id}: " . $ex->getMessage());
+                            }
+                        }
+
+                        if ($x !== null && $y !== null) {
+                            $stampsToDraw[] = [
+                                'x'            => $x,
+                                'y'            => $y,
+                                'page'         => $page,
+                                'username'     => $appItem->user->username ?? 'user',
+                                'processed_at' => $appItem->processed_at ?? $nowTime,
+                                'stage'        => $appItem->stage
+                            ];
+                        }
+                    }
+
+                    for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+                        $templateId = $pdf->importPage($pageNo);
+                        $size = $pdf->getTemplateSize($templateId);
+                        $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+                        $pdf->useTemplate($templateId);
+
+                        foreach ($stampsToDraw as $stamp) {
+                            $stampTargetPage = ($pageCount > 1) ? ($stamp['page'] + 1) : $stamp['page'];
+                            if ($pageNo == $stampTargetPage) {
+                                $carbonDate = \Carbon\Carbon::parse($stamp['processed_at'])->timezone('Asia/Jakarta');
+                                $dLine1 = $carbonDate->format('d/m/Y');
+                                $dLine2 = $carbonDate->format('H:i \W\I\B');
+                                
+                                $this->drawDigitalStamp($pdf, $stamp['x'], $stamp['y'], $stamp['username']);
+                                $this->drawDateStamp($pdf, $size['width'], $stamp['y'], $dLine1, $dLine2);
+                                
+                                if ($stamp['stage'] === 'final') {
+                                    $noteAnchorY = null;
+                                    try {
+                                        $anchorParser = new \Smalot\PdfParser\Parser();
+                                        $anchorFile = storage_path('app/public/' . ($document->file_lp ?? ''));
+                                        if (!file_exists($anchorFile)) {
+                                            $anchorFile = $parsePath;
+                                        }
+                                        $pdfParsedForAnchor = $anchorParser->parseFile($anchorFile);
+                                        $noteAnchorY = $this->findKeteranganAnchorY($pdfParsedForAnchor, $size['height'] ?? 297.0);
+                                    } catch (\Throwable $e) {
+                                        $noteAnchorY = null;
+                                    }
+                                    $masterDateStr = strtoupper($carbonDate->locale('en')->format('d M Y'));
+                                    $this->drawMasterDocumentStamp($pdf, $size['width'], $size['height'], $stamp['y'], $masterDateStr, $noteAnchorY);
+                                }
+                            }
+                        }
+                    }
+
+                    // 5. SIMPAN FILE HASIL TANDA TANGAN
+                    $fileName = 'ESTAFET_' . time() . '_' . $user->username . '.pdf';
+                    $finalPath = 'documents/final/' . $fileName;
+                    
+                    if (!file_exists(storage_path('app/public/documents/final'))) {
+                        mkdir(storage_path('app/public/documents/final'), 0777, true);
+                    }
+                    
+                    $pdf->Output('F', storage_path('app/public/' . $finalPath));
+                } finally {
+                    if ($tempFileToClean && file_exists($tempFileToClean)) {
+                        @unlink($tempFileToClean);
+                    }
+                }
+
+                // ================================================================
+                // 6. LOGIKA TRANSISI 3 STAGE APPROVAL (CREATOR -> REVIEWERS -> FINAL)
+                // ================================================================
+                if ($currentApproval) {
+                    $stage = $currentApproval->stage ?? 'reviewer';
+
+                    if ($stage === 'creator') {
+                        // STAGE 1: Creator approved -> Aktifkan SEMUA reviewer secara paralel (status = 'current')
+                        $pendingReviewerApprovals = \App\Models\DocumentApproval::where('document_id', $document->id)
+                            ->where('stage', 'reviewer')
+                            ->where('status', 'pending')
+                            ->with('user')
+                            ->get();
+
+                        if ($pendingReviewerApprovals->count() > 0) {
+                            foreach ($pendingReviewerApprovals as $appItem) {
+                                if ($appItem->user) {
+                                    $usersToNotify[] = $appItem->user;
+                                }
+                            }
+
+                            \App\Models\DocumentApproval::where('document_id', $document->id)
+                                ->where('stage', 'reviewer')
+                                ->where('status', 'pending')
+                                ->update(['status' => 'current']);
+
+                            $document->update([
+                                'file_preview' => $finalPath,
+                                'status'       => 'waiting'
+                            ]);
+
+                            $statusMsg = 'Dokumen berhasil disetujui Pembuat Dokumen dan diteruskan ke seluruh Reviewer.';
+                        } else {
+                            // Jika tidak ada reviewer, langsung aktifkan stage final
+                            $pendingFinalApprovals = \App\Models\DocumentApproval::where('document_id', $document->id)
+                                ->where('stage', 'final')
+                                ->where('status', 'pending')
+                                ->with('user')
+                                ->get();
+
+                            foreach ($pendingFinalApprovals as $appItem) {
+                                if ($appItem->user) {
+                                    $usersToNotify[] = $appItem->user;
+                                }
+                            }
+
+                            \App\Models\DocumentApproval::where('document_id', $document->id)
+                                ->where('stage', 'final')
+                                ->where('status', 'pending')
+                                ->update(['status' => 'current']);
+
+                            $document->update([
+                                'file_preview' => $finalPath,
+                                'status'       => 'waiting'
+                            ]);
+
+                            $statusMsg = 'Dokumen berhasil disetujui Pembuat Dokumen dan diteruskan ke Penandatangan Final.';
+                        }
+                    } elseif ($stage === 'reviewer') {
+                        // STAGE 2: Reviewer approved -> Cek apakah SEMUA reviewer di dokumen ini sudah 'approved'
+                        $pendingReviewers = \App\Models\DocumentApproval::where('document_id', $document->id)
+                            ->where('stage', 'reviewer')
+                            ->where('status', '!=', 'approved')
+                            ->count();
+
+                        if ($pendingReviewers === 0) {
+                            // Semua reviewer yang ada di dokumen ini sudah 'approved' -> Transisikan Final Approver ke 'current'
+                            $pendingFinalApprovals = \App\Models\DocumentApproval::where('document_id', $document->id)
+                                ->where('stage', 'final')
+                                ->where('status', 'pending')
+                                ->with('user')
+                                ->get();
+
+                            foreach ($pendingFinalApprovals as $appItem) {
+                                if ($appItem->user) {
+                                    $usersToNotify[] = $appItem->user;
+                                }
+                            }
+
+                            \App\Models\DocumentApproval::where('document_id', $document->id)
+                                ->where('stage', 'final')
+                                ->where('status', 'pending')
+                                ->update(['status' => 'current']);
+
+                            $document->update([
+                                'file_preview' => $finalPath,
+                                'status'       => 'waiting'
+                            ]);
+
+                            $statusMsg = 'Seluruh Reviewer telah menyetujui dokumen. Dokumen diteruskan ke Penandatangan Final.';
+                        } else {
+                            // Masih ada reviewer lain yang belum selesai
+                            $document->update([
+                                'file_preview' => $finalPath,
+                                'status'       => 'waiting'
+                            ]);
+
+                            $statusMsg = 'Dokumen berhasil disetujui. Menunggu persetujuan Reviewer lainnya.';
+                        }
+                    } elseif ($stage === 'final') {
+                        // STAGE 3: Final Approver approved -> Dokumen ACTIVE & Masuk E-Library
+                        $document->update([
+                            'file_final'   => $finalPath,
+                            'file_preview' => $finalPath,
+                            'status'       => 'active',
+                        ]);
+
+                        $bu = $document->department;
+                        $supportDepts = ['HC', 'IT', 'QMS', 'HSE', 'INTERNAL AUDIT', 'LOGISTIC', 'OPS', 'FINANCE', 'LEGAL'];
+
+                        if (in_array(strtoupper($bu), $supportDepts)) {
+                            $category     = 'support';
+                            $divisionName = 'Support';
+                            $companyName  = 'PT. CAHAYA PERDANA TRANSALAM';
+                        } else {
+                            $category = 'divisi';
+                            if (in_array($bu, ['SPBU', 'LPG PSO', 'LPG NPSO', 'PKSP', 'TRP', 'INMAR (CNGM)'])) {
+                                $divisionName = 'RETAIL';
+                            } elseif (in_array($bu, ['CPT & MHM', 'SBS', 'GVI'])) {
+                                $divisionName = 'COMMERCIAL';
+                            } elseif (in_array($bu, ['PROCUREMENT', 'WAREHOUSE', 'ASET', 'GA'])) {
+                                $divisionName = 'SCM';
+                            } elseif (in_array($bu, ['KEUANGAN & ACCOUNTING'])) {
+                                $divisionName = 'FA';
+                            } else {
+                                $divisionName = 'SCM';
+                            }
+
+                            $companyName = 'PT. CAHAYA PERDANA TRANSALAM';
+                            if (in_array($bu, ['SPBU', 'LPG PSO', 'LPG NPSO'])) {
+                                $companyName = 'PT. LINTAS BINTAN SAMUDERA';
+                            }
+                        }
+
+                        \App\Models\Library::create([
+                            'title'         => $document->title,
+                            'category'      => $category,
+                            'division_name' => $divisionName,
+                            'business_unit' => $bu,
+                            'company_name'  => $companyName,
+                            'file_path'     => $finalPath,
+                            'uploaded_by'   => auth()->id(),
+                        ]);
+
+                        $statusMsg = 'Dokumen telah disetujui final oleh semua pihak dan resmi masuk E-Library!';
+                    }
                 } else {
-                    $divisionName = 'SCM';
+                    throw new \Exception('Data antrean approval untuk dokumen ini tidak ditemukan atau sudah diproses.');
                 }
 
-                $companyName = 'PT. CAHAYA PERDANA TRANSALAM';
-                if (in_array($bu, ['SPBU', 'LPG PSO', 'LPG NPSO'])) {
-                    $companyName = 'PT. LINTAS BINTAN SAMUDERA';
+                // C. Catat Log ke Timeline
+                $document->logs()->create([
+                    'user_id' => $user->id,
+                    'action'  => 'active',
+                    'notes'   => 'Disetujui oleh ' . $user->username . '. Catatan: ' . ($request->notes ?? '-'), 
+                ]);
+            });
+
+            // OUTSIDE DB TRANSACTION: Dispatch Email Notifications to Newly Activated Current Signers
+            foreach ($usersToNotify as $notifyUser) {
+                if (!empty(trim($notifyUser->email ?? ''))) {
+                    try {
+                        $magicLoginUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                            'login.magic',
+                            now()->addHours(24),
+                            [
+                                'user_id' => $notifyUser->id,
+                                'document_id' => $documentId
+                            ]
+                        );
+
+                        Mail::to($notifyUser->email)->send(
+                            new \App\Mail\NewDocumentReviewMail(\App\Models\Document::find($documentId), $notifyUser, $magicLoginUrl)
+                        );
+                    } catch (\Throwable $e) {
+                        \Log::error("e-QMS Reviewer Stage Transition Email Error for User ID {$notifyUser->id}: " . $e->getMessage());
+                    }
                 }
             }
-
-            // 🔥 TOMBOL OTOMATIS: Salin data SOP ini langsung ke dalam tabel Library!
-            \App\Models\Library::create([
-                'title'         => $document->title,
-                'category'      => $category,
-                'division_name' => $divisionName,
-                'business_unit' => $bu,
-                'company_name'  => $companyName,
-                'file_path'     => $finalPath, // Membawa file hasil tanda tangan final semua orang!
-                'uploaded_by'   => auth()->id(),
-            ]);
-
-            $statusMsg = 'Dokumen telah disetujui final oleh semua pihak dan resmi masuk E-Library!';
+        } catch (\Throwable $e) {
+            \Log::error("e-QMS Approval Error: " . $e->getMessage());
+            return redirect()->route('reviewer.dashboard')
+                ->with('error', 'Dokumen gagal diproses. Silakan coba kembali atau hubungi administrator.');
         }
-    } else {
-        // Fallback darurat: Jika data antrean 'current' tidak ditemukan di database
-        return redirect()->route('reviewer.dashboard')
-            ->with('error', 'Waduh, data antrean approval untuk dokumen ini tidak ditemukan atau sudah diproses.');
+
+        return redirect()->route('reviewer.dashboard')->with('success', $statusMsg);
     }
-
-    // C. Catat Log ke Timeline
-   $document->logs()->create([
-        'user_id' => $user->id,
-        'action'  => 'active', // atau 'approved' sesuai enum kamu
-        // Menyimpan catatan pimpinan ke log agar bisa dibaca admin nanti
-        'notes'   => 'Disetujui oleh ' . $user->username . '. Catatan: ' . ($request->notes ?? '-'), 
-    ]);
-
-    // D. Kirim Email Notifikasi dengan Magic Link (Berumur 15 Menit)
-    // ================================================================
-    try {
-        if (isset($nextApproval)) {
-            // 1. GENERATE URL AUTO-LOGIN AMAN (Hanya Aktif 15 Menit sejak email terkirim)
-            $magicLoginUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
-                'login.magic', // Nama route penerima yang ada di web.php
-                now()->addMinutes(15), // Durasi kedaluwarsa
-                [
-                    'user_id' => $nextApproval->user_id, 
-                    'document_id' => $document->id
-                ]
-            );
-
-            // 2. Kirim Email ke Pimpinan Berikutnya dengan Menitipkan Link Rahasia
-            // Pastikan file Mailable 'NewDocumentReviewMail' kamu diubah untuk menerima parameter link ini!
-            if ($nextApproval->user && $nextApproval->user->email) {
-                Mail::to($nextApproval->user->email)->send(
-                    new \App\Mail\NewDocumentReviewMail($document, $nextApproval->user, $magicLoginUrl)
-                );
-            }
-
-        } else {
-            // Notif ke pembuat SOP kalau dokumen sudah selesai di-approve semua pihak (Selesai Estafet)
-            if (class_exists('\App\Mail\DocumentApprovedMail') && isset($document->user) && !empty($document->user->email)) {
-                Mail::to($document->user->email)->send(new \App\Mail\DocumentApprovedMail($document));
-            }
-        }
-    } catch (\Throwable $e) {
-        \Log::error("e-QMS Email Error: " . $e->getMessage());
-    }
-
-    return redirect()->route('reviewer.dashboard')->with('success', $statusMsg);
-}
 
     /**
      * Fungsi Detektif untuk mencari posisi teks di PDF
@@ -275,88 +451,201 @@ public function index()
 
         private function findTextCoordinates($pdfParsed, $targetText)
         {
-            // 1. TENTUKAN KOORDINAT MANUAL (OPSIONAL/FALLBACK)
-            
-            $manualCoordinates = [
-                //PT LBS
-                '[sig01]' => ['x' => 143, 'y' => 90],  // Imam
-                '[sig02]' => ['x' => 143, 'y' => 108], // Trinwetty
-                '[sig03]' => ['x' => 143, 'y' => 116], // Tri Minarni
-                '[sig04]' => ['x' => 143, 'y' => 125], // Ekowati
-                '[sig05]' => ['x' => 143, 'y' => 134], // Ibnu Mirza
-                '[sig06]' => ['x' => 143, 'y' => 143], // Lalu Wandi
-                '[sig07]' => ['x' => 143, 'y' => 152], // Putri Larasati
-                '[sig08]' => ['x' => 143, 'y' => 161], // Suhaimi
-                '[sig09]' => ['x' => 143, 'y' => 177], // Zikri
+            $ptToMm = 25.4 / 72.0;
+            $markerMmY = null;
+            $pageWidthPt  = 612.0;
+            $pageHeightPt = 792.0;
 
-                //PT....
-            ];
+            // Scan all pages sequentially — LP may be on page 2+ in merged preview PDFs (Cover+LP+Content)
+            foreach ($pdfParsed->getPages() as $page) {
+                $details  = $page->getDetails();
+                $mediaBox = $details['MediaBox'] ?? [0, 0, 612, 792];
+                $pwPt     = (float)($mediaBox[2] ?? 612.0);
+                $phPt     = (float)($mediaBox[3] ?? 792.0);
+                $dataTm   = $page->getDataTm();
 
-            // 2. LOGIKA: CEK MANUAL DULU
-            // Jika targetText ada di daftar manual, langsung gunakan koordinat tersebut
-            if (isset($manualCoordinates[$targetText])) {
-                return $manualCoordinates[$targetText];
-            }
-
-            // 3. JIKA TIDAK ADA DI MANUAL, BARU CARI OTOMATIS (CADANGAN)
-            $page = $pdfParsed->getPages()[0];
-            $textObjects = $page->getDataTm(); 
-
-            foreach ($textObjects as $obj) {
-                $cleanedText = trim($obj[1]);
-                if ($cleanedText === $targetText) {
-                    return [
-                        'x' => $obj[0][4] * 0.264583,
-                        'y' => 297 - ($obj[0][5] * 0.264583) + 6 
-                    ];
+                foreach ($dataTm as $item) {
+                    if (str_contains(trim($item[1]), $targetText)) {
+                        $rawYPt      = $item[0][5];
+                        $markerMmY   = ($phPt - $rawYPt) * $ptToMm;
+                        $pageWidthPt  = $pwPt;
+                        $pageHeightPt = $phPt;
+                        break 2; // found — stop scanning
+                    }
                 }
             }
 
-            // Jika semua gagal, gunakan koordinat tengah dokumen
-            return ['x' => 145, 'y' => 100]; 
+            // If the marker was not found on any page, return null so the caller
+            // can throw a safe exception (PATH C: no marker = no stamp, no DB mutation).
+            if ($markerMmY === null) {
+                return null;
+            }
+
+            // Compute X using same ratio formula as PdfSignaturePositionResolver:
+            // sigColumnCenterX = pageWidthMm * 0.6824, stampX = sigColumnCenterX - halfStampWidth (12.5mm).
+            // This gives legacy fallback the SAME baseX semantic as DocumentApproval.signature_x,
+            // so drawDigitalStamp() applies the universal +7.2 draw offset identically for both paths.
+            $pageWidthMm = $pageWidthPt * $ptToMm;
+            $stampX = round($pageWidthMm * 0.6824 - 12.50, 2);
+            $stampY = $markerMmY - 4.10;
+
+            return ['x' => $stampX, 'y' => $stampY];
         }
 
     private function drawDigitalStamp($pdf, $x, $y, $name) 
-{
-    // UKURAN BARU: Lebih panjang (30mm) untuk membungkus seluruh teks
-    $w = 30; 
-    $h = 8;  
+    {
+        // Compact visual stamp box (25.0mm x 5.2mm to fit tight table cells safely across all templates)
+        $w = 25.0; 
+        $h = 5.2;  
 
-    // 1. Gambar Latar Belakang Putih & Bingkai Luar
-    $pdf->SetFillColor(255, 255, 255);
-    $pdf->Rect($x, $y, $w, $h, 'F');
-    $pdf->SetDrawColor(30, 41, 59); // Warna Slate-700
-    $pdf->SetLineWidth(0.3); // Membuat garis bingkai sedikit lebih tegas
-    $pdf->Rect($x, $y, $w, $h);
+        // Center X alignment: offset X by +7.2mm to center the compact stamp in the Tanda Tangan column (since signature_x was resolved based on marker)
+        $x = $x + 7.2;
 
-    // 2. Gambar Kotak Label Samping (Warna Biru Tua/Slate)
-    $labelW = 6; // Lebar label samping
-    $pdf->SetFillColor(30, 41, 59);
-    $pdf->Rect($x, $y, $labelW, $h, 'F'); 
+        // Center Y alignment: offset Y slightly to maintain vertical center inside cell row
+        $y = $y + 0.9;
 
-    // 3. Tulisan Label (QMS)
-    $pdf->SetTextColor(255, 255, 255);
-    $pdf->SetFont('Arial', 'B', 5.5); 
-    $pdf->SetXY($x, $y + 2.5);
-    $pdf->Cell($labelW, 3, 'QMS', 0, 0, 'C');
+        // 1. Latar Belakang Putih Menutupi Marker & Bingkai Slate-700
+        $pdf->SetFillColor(255, 255, 255);
+        $pdf->Rect($x, $y, $w, $h, 'F');
+        $pdf->SetDrawColor(30, 41, 59);
+        $pdf->SetLineWidth(0.2);
+        $pdf->Rect($x, $y, $w, $h);
 
-    // 4. Informasi Persetujuan (Sisi Kanan - Area Lebih Luas)
-    $pdf->SetTextColor(30, 41, 59);
-    
-    // Baris 1: Status Approval
-    $pdf->SetFont('Arial', 'B', 4.5);
-    $pdf->SetXY($x + 7, $y + 1.2);
-    $pdf->Cell(22, 2, 'DIGITALLY APPROVED', 0, 0, 'L');
+        // 2. Kotak Label Samping (Warna Slate) - narrower (4.0mm) for better visual balance
+        $labelW = 4.0;
+        $pdf->SetFillColor(30, 41, 59);
+        $pdf->Rect($x, $y, $labelW, $h, 'F'); 
 
-    // Baris 2: Nama User (Font sedikit diperbesar karena ruang cukup)
-    $pdf->SetFont('Arial', '', 4);
-    $pdf->SetXY($x + 7, $y + 3.5);
-    $pdf->Cell(22, 2, 'User: ' . strtoupper($name), 0, 0, 'L');
+        // 3. Tulisan Label (QMS) - Font size 4.2pt bold (centered vertically)
+        $pdf->SetTextColor(255, 255, 255);
+        $pdf->SetFont('Arial', 'B', 4.2); 
+        $pdf->SetXY($x, $y + 1.6);
+        $pdf->Cell($labelW, 2.0, 'QMS', 0, 0, 'C');
 
-    // Baris 3: Tanggal
-    $pdf->SetXY($x + 7, $y + 5.8);
-    $pdf->Cell(22, 2, 'Date: ' . date('d/m/Y H:i'), 0, 0, 'L');
-}
+        // 4. Informasi Persetujuan - padding adjusted to start at +4.8 (0.8mm gap)
+        $pdf->SetTextColor(30, 41, 59);
+        
+        // Baris 1: Status Approval - Font size 4.0pt bold (centered vertically)
+        $pdf->SetFont('Arial', 'B', 4.0);
+        $pdf->SetXY($x + 4.8, $y + 1.0);
+        $pdf->Cell(19.5, 1.5, 'DIGITALLY APPROVED', 0, 0, 'L');
+
+        // Baris 2: Nama User - Font size 3.6pt (centered vertically)
+        $pdf->SetFont('Arial', '', 3.6);
+        $pdf->SetXY($x + 4.8, $y + 2.7);
+        $pdf->Cell(19.5, 1.5, 'User: ' . strtoupper($name), 0, 0, 'L');
+    }
+
+    private function drawDateStamp($pdf, $pageWidthMm, $signatureY, $dateLine1, $dateLine2)
+    {
+        // Tanggal column center X ratio ~ 84.5% of page width
+        $dateColumnCenterX = $pageWidthMm * 0.845;
+        
+        $pdf->SetTextColor(30, 41, 59);
+        
+        // Line 1: DD/MM/YYYY (Font 5.8pt, Bold)
+        $pdf->SetFont('Arial', 'B', 5.8);
+        $pdf->SetXY($dateColumnCenterX - 15.0, $signatureY - 0.3);
+        $pdf->Cell(30.0, 2.5, $dateLine1, 0, 0, 'C');
+        
+        // Line 2: HH:MM WIB (Font 4.2pt)
+        $pdf->SetFont('Arial', '', 4.2);
+        $pdf->SetXY($dateColumnCenterX - 15.0, $signatureY + 2.6);
+        $pdf->Cell(30.0, 2.0, $dateLine2, 0, 0, 'C');
+    }
+
+    private function drawMasterDocumentStamp($pdf, $pageWidthMm, $pageHeightMm, $signatureY, $dateStr, $noteAnchorY = null)
+    {
+        $stampWidth = 45.0;
+        $stampHeight = 22.0;
+        $footerMargin = 12.0;
+
+        // 1. Hitung koordinat X (Rata kanan di DALAM border LP, dengan innerRightGap = 3.0mm)
+        // Outer right border LP terletak pada ~192.20mm (atau pageWidth * 0.89)
+        $lpRightBoundary = min(192.20, $pageWidthMm - 18.0);
+        $innerRightGap = 3.0;
+        $x = $lpRightBoundary - $stampWidth - $innerRightGap;
+        $x = max(10.0, min($x, $pageWidthMm - $stampWidth - 5.0));
+
+        // 2. Hitung koordinat Y (Di bawah Keterangan: NA... dengan gap kecil 3.5mm)
+        if ($noteAnchorY !== null && $noteAnchorY > 50.0 && $noteAnchorY < ($pageHeightMm - 30.0)) {
+            $targetY = $noteAnchorY + 3.5;
+        } else {
+            $targetY = $signatureY + 14.0;
+        }
+
+        $maxY = $pageHeightMm - $stampHeight - $footerMargin;
+
+        $y = $targetY;
+        if ($y > $maxY) {
+            $y = $maxY;
+        }
+        $y = max(10.0, $y);
+
+        // 3. Matikan AutoPageBreak sementara agar FPDF tidak memicu pembuatan halaman baru secara otomatis
+        $pdf->SetAutoPageBreak(false);
+
+        // 4. Gambar Bingkai Persegi Panjang Transparan (Warna Biru `#1E40AF` / RGB 30, 64, 175)
+        $pdf->SetDrawColor(30, 64, 175);
+        $pdf->SetLineWidth(0.4);
+        $pdf->Rect($x, $y, $stampWidth, $stampHeight);
+
+        // 5. Render Teks dengan Absolut Positioning (ln = 0 untuk mencegah pergerakan kursor/newline)
+        // Baris 1: "MASTER DOCUMENT" (Warna Biru, Bold, Centered)
+        $pdf->SetTextColor(30, 64, 175);
+        $pdf->SetFont('Arial', 'B', 8.0);
+        $pdf->SetXY($x, $y + 3.5);
+        $pdf->Cell($stampWidth, 4.0, 'MASTER DOCUMENT', 0, 0, 'C');
+
+        // Baris 2: Tanggal e.g. "14 AUG 2026" (Warna Merah `#DC2626` / RGB 220, 38, 38, Bold, Centered)
+        $pdf->SetTextColor(220, 38, 38);
+        $pdf->SetFont('Arial', 'B', 9.0);
+        $pdf->SetXY($x, $y + 9.0);
+        $pdf->Cell($stampWidth, 4.5, $dateStr, 0, 0, 'C');
+
+        // Baris 3: "DCC PKM GROUP" (Warna Biru, Bold, Centered)
+        $pdf->SetTextColor(30, 64, 175);
+        $pdf->SetFont('Arial', 'B', 7.5);
+        $pdf->SetXY($x, $y + 14.5);
+        $pdf->Cell($stampWidth, 4.0, 'DCC PKM GROUP', 0, 0, 'C');
+
+        // 6. Kembalikan Setting AutoPageBreak ke Kondisi Semula
+        $pdf->SetAutoPageBreak(true, 20.0);
+    }
+
+    private function findKeteranganAnchorY($pdfParsed, $pageHeightMm)
+    {
+        try {
+            $pages = $pdfParsed->getPages();
+            if (empty($pages)) {
+                return null;
+            }
+
+            $page1 = $pages[0];
+            $details = $page1->getDetails();
+            $mediaBox = $details['MediaBox'] ?? [0, 0, 612, 792];
+            $cropBox = $details['CropBox'] ?? $mediaBox;
+
+            $mediaBoxTopPt = (float)($mediaBox[3] ?? 792.0);
+            $cropBoxBottomPt = (float)($cropBox[1] ?? 0.0);
+
+            $dataTm = $page1->getDataTm();
+
+            foreach ($dataTm as $item) {
+                $text = trim($item[1] ?? '');
+                if (stripos($text, 'Keterangan') !== false) {
+                    $rawYPt = (float)($item[0][5] ?? 0.0);
+                    // Convert raw PDF baseline Y to top-down FPDF/FPDI Y coordinate in mm, accounting for CropBox offset
+                    $yMmFromTop = ($mediaBoxTopPt - $rawYPt - $cropBoxBottomPt) * (25.4 / 72.0);
+                    return $yMmFromTop;
+                }
+            }
+        } catch (\Throwable $e) {
+            // Silently fallback if anchor search fails
+        }
+
+        return null;
+    }
 
     public function streamFile($id)
     {

@@ -2,22 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Models\Document;
 use App\Models\DocumentApproval;
+use App\Models\DocumentAttachment;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
-use Webklex\PDFMerger\Facades\PDFMergerFacade;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\NewDocumentReviewMail;
+use Webklex\PDFMerger\Facades\PDFMergerFacade;
 
 class SupportController extends Controller
 {
     /**
-     * Dashboard Utama: Menampilkan status dokumen per departemen.
-     *
+     * Dashboard Utama Support: Menampilkan status dokumen per departemen.
      */
     public function index(): View
     {
@@ -39,7 +40,6 @@ class SupportController extends Controller
 
     /**
      * Daftar Dokumen: Menampilkan semua SOP dalam satu departemen.
-     *
      */
     public function show(string $department): View
     {
@@ -51,7 +51,7 @@ class SupportController extends Controller
             'waiting'  => $documents->where('status', 'waiting')->count(),
             'revisi'   => $documents->where('status', 'need_revision')->count(),
             'active'   => $documents->where('status', 'active')->count(),
-            'inactive' => $documents->where('status', 'need_revision')->count(),
+            'inactive' => $docs = $documents->where('status', 'need_revision')->count(),
         ];
 
         return view('admin.support.show', compact('documents', 'stats'));
@@ -59,149 +59,298 @@ class SupportController extends Controller
 
     /**
      * Form Unggah: Menyiapkan daftar peninjau untuk dipilih Admin.
-     *
      */
     public function create(string $department): View
     {
-        $reviewers = User::all(); 
+        $reviewers = User::all();
         return view('admin.support.create', compact('department', 'reviewers'));
     }
 
     /**
-     * Store: Menggabungkan 4 PDF, membuat antrean approval berantai, dan mengirim email.
-     *
+     * Menyimpan dokumen baru Support, memvalidasi 4 berkas PDF, menggabungkannya,
+     * serta otomatis mendeteksi penandatangan dari LP dan membuat antrean approval.
      */
-    public function store(Request $request, string $department): RedirectResponse
+    public function store(Request $request, string $department)
     {
-        // 1. Validasi
-        $request->validate([
-            'title'         => 'required|string|max:255',
-            'approvers'     => 'required|array|min:1', 
-            'file_cover'    => 'required|mimes:pdf|max:5000',
-            'file_lp'       => 'required|mimes:pdf|max:5000',
-            'file_isi'      => 'required|mimes:pdf|max:10000',
-            'file_lampiran' => 'nullable|mimes:pdf|max:5000',
-        ]);
+        $uploadedNewFiles = [];
 
-        // 2. Simpan 4 File Asli
-        $pathCover = $request->file('file_cover')->store('documents/covers', 'public');
-        $pathLp    = $request->file('file_lp')->store('documents/lps', 'public');
-        $pathIsi   = $request->file('file_isi')->store('documents/contents', 'public');
-        $pathLamp  = $request->hasFile('file_lampiran') 
-                     ? $request->file('file_lampiran')->store('documents/attachments', 'public') 
-                     : null;
-
-        // 3. Proses Penggabungan (Merge): Cover -> LP -> Isi -> Lampiran
-        $tempFilesToClean = [];
         try {
-            $mergeCover = $this->ensurePdfCompatible(storage_path('app/public/' . $pathCover), $tempFilesToClean);
-            $mergeLp    = $this->ensurePdfCompatible(storage_path('app/public/' . $pathLp), $tempFilesToClean);
-            $mergeIsi   = $this->ensurePdfCompatible(storage_path('app/public/' . $pathIsi), $tempFilesToClean);
-            $mergeLamp  = $pathLamp ? $this->ensurePdfCompatible(storage_path('app/public/' . $pathLamp), $tempFilesToClean) : null;
+            // 1. Validasi Input
+            $request->validate([
+                'title'           => 'required|string|max:255',
+                'file_cover'      => 'required|mimes:pdf|max:5000',
+                'file_isi'        => 'required|mimes:pdf|max:10000',
+                'file_lampiran'   => 'nullable|array|max:20',
+                'file_lampiran.*' => 'file|mimes:pdf|max:5000',
+                'company_header'  => 'required|string|in:pkm,sck,cpt,lbs',
+                'doc_number'      => 'required|string|max:255',
+                'doc_revision'    => 'required|string|max:50',
+                'doc_date'        => 'required|date',
+                'creator_id'      => 'required|exists:users,id',
+                'reviewers'       => 'required|array|min:3',
+                'reviewers.*'     => 'exists:users,id',
+                'final_id'        => 'required|exists:users,id',
+            ]);
 
-            $merger = PDFMergerFacade::init();
-            $merger->addPDF($mergeCover, 'all');
-            $merger->addPDF($mergeLp, 'all');
-            $merger->addPDF($mergeIsi, 'all');
-            if ($mergeLamp) $merger->addPDF($mergeLamp, 'all');
+            // 2. Simpan Berkas Fisik Asli
+            $pathCover = $request->file('file_cover')->store('documents/covers', 'public');
+            $uploadedNewFiles[] = $pathCover;
 
-            $merger->merge();
-            $previewName = 'preview_' . time() . '.pdf';
-            $previewPath = 'documents/previews/' . $previewName;
-            
-            Storage::disk('public')->put($previewPath, $merger->output());
-        } catch (\Exception $e) {
-            return back()->withErrors(['msg' => "Gagal Merge: " . $e->getMessage()]);
-        } finally {
-            foreach ($tempFilesToClean as $tempFile) {
-                if (file_exists($tempFile)) {
-                    @unlink($tempFile);
+            $pathIsi = $request->file('file_isi')->store('documents/contents', 'public');
+            $uploadedNewFiles[] = $pathIsi;
+
+            $attachmentData = [];
+            if ($request->hasFile('file_lampiran')) {
+                $files = $request->file('file_lampiran');
+                if (!is_array($files)) {
+                    $files = [$files];
+                }
+                foreach ($files as $idx => $lampFile) {
+                    $storedPath = $lampFile->store('documents/attachments', 'public');
+                    $uploadedNewFiles[] = $storedPath;
+                    $attachmentData[] = [
+                        'original_name' => $lampFile->getClientOriginalName(),
+                        'stored_name'   => basename($storedPath),
+                        'file_path'     => $storedPath,
+                        'mime_type'     => $lampFile->getClientMimeType() ?: 'application/pdf',
+                        'file_size'     => $lampFile->getSize(),
+                        'sequence'      => $idx + 1,
+                    ];
                 }
             }
-        }
 
-        // 4. Simpan Data SOP ke Database
-        $document = Document::create([
-            'title'         => $request->title,
-            'department'    => $department,
-            'reviewer_id'   => $request->approvers[0], 
-            'file_cover'    => $pathCover,
-            'file_lp'       => $pathLp,
-            'file_isi'      => $pathIsi,
-            'file_lampiran' => $pathLamp,
-            'file_preview'  => $previewPath,
-            'status'        => 'waiting',
-        ]);
-
-        // 5. Generate Data Antrean Berantai Awal (Document Approvals)
-        foreach ($request->approvers as $index => $approverId) {
-            DocumentApproval::create([
-                'document_id' => $document->id,
-                'user_id'     => $approverId,
-                'sequence'    => $index + 1, 
-                'status'      => ($index === 0) ? 'current' : 'pending', 
-            ]);
-        }
-
-        // 6. Logika Pengiriman Email Notifikasi + Magic Link
-        $firstReviewer = User::find($request->approvers[0]);
-
-        if ($firstReviewer && $firstReviewer->email) {
-            try {
-                $magicLoginUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
-                    'login.magic',
-                    now()->addHours(24),
-                    [
-                        'user_id' => $firstReviewer->id,
-                        'document_id' => $document->id
-                    ]
-                );
-
-                Mail::to($firstReviewer->email)->send(
-                    new NewDocumentReviewMail($document, $firstReviewer, $magicLoginUrl)
-                );
-            } catch (\Throwable $e) {
-                \Log::error("e-QMS Support Email Error: " . $e->getMessage());
+            // 3. Validasi Halaman Cover (Harus tepat 1 Halaman) dan hitung halaman
+            $pdfParser = new \Smalot\PdfParser\Parser();
+            
+            $coverPdf = $pdfParser->parseFile(storage_path('app/public/' . $pathCover));
+            if (count($coverPdf->getPages()) !== 1) {
+                throw new \Exception('File Cover harus 1 halaman. Silakan periksa kembali berkas Cover yang diunggah.');
             }
-        }
 
-        return redirect()->route('admin.support.show', $department)
-                         ->with('success', 'Alur Pengesahan Berantai Support Berhasil Dimulai!');
+            $isiPdf = $pdfParser->parseFile(storage_path('app/public/' . $pathIsi));
+            $isiPageCount = count($isiPdf->getPages());
+
+            $attachmentsPageCount = 0;
+            foreach ($attachmentData as $att) {
+                $lampPdf = $pdfParser->parseFile(storage_path('app/public/' . $att['file_path']));
+                $attachmentsPageCount += count($lampPdf->getPages());
+            }
+
+            $totalPages = 1 + 1 + $isiPageCount + $attachmentsPageCount; // Cover (1) + LP (1) + Content + Attachments
+
+            // Retrieve signers
+            $creatorUser = User::findOrFail($request->creator_id);
+            $finalUser = User::findOrFail($request->final_id);
+            $reviewerIdsOrdered = $request->reviewers;
+            $reviewerUsers = User::whereIn('id', $reviewerIdsOrdered)->get()->sortBy(function($user) use ($reviewerIdsOrdered) {
+                return array_search($user->id, $reviewerIdsOrdered);
+            })->values();
+
+            // Generate LP PDF using LpGeneratorService
+            $lpGenerator = new \App\Services\LpGeneratorService();
+            $lpData = [
+                'title'          => $request->title,
+                'doc_number'     => $request->doc_number,
+                'doc_revision'   => $request->doc_revision,
+                'doc_date'       => date('d F Y', strtotime($request->doc_date)),
+                'company_header' => $request->company_header,
+                'total_pages'    => $totalPages
+            ];
+
+            $lpResult = $lpGenerator->generate($lpData, $creatorUser, $reviewerUsers, $finalUser);
+            $pathLp = $lpResult['file_path'];
+            $coordinates = $lpResult['coordinates'];
+            $uploadedNewFiles[] = $pathLp;
+
+            // 4. Proses Penggabungan (Merge): Cover -> LP -> Isi -> Lampiran 1..N
+            $tempFilesToClean = [];
+            try {
+                $mergeCover = $this->ensurePdfCompatible(storage_path('app/public/' . $pathCover), $tempFilesToClean);
+                $mergeLp    = $this->ensurePdfCompatible(storage_path('app/public/' . $pathLp), $tempFilesToClean);
+                $mergeIsi   = $this->ensurePdfCompatible(storage_path('app/public/' . $pathIsi), $tempFilesToClean);
+
+                $merger = PDFMergerFacade::init();
+                $merger->addPDF($mergeCover, 'all');
+                $merger->addPDF($mergeLp, 'all');
+                $merger->addPDF($mergeIsi, 'all');
+
+                foreach ($attachmentData as $att) {
+                    $mergeLamp = $this->ensurePdfCompatible(storage_path('app/public/' . $att['file_path']), $tempFilesToClean);
+                    $merger->addPDF($mergeLamp, 'all');
+                }
+
+                $merger->merge();
+                $previewName = 'preview_' . time() . '.pdf';
+                $previewPath = 'documents/previews/' . $previewName;
+
+                Storage::disk('public')->put($previewPath, $merger->output());
+                $uploadedNewFiles[] = $previewPath;
+            } finally {
+                foreach ($tempFilesToClean as $tempFile) {
+                    if (file_exists($tempFile)) {
+                        @unlink($tempFile);
+                    }
+                }
+            }
+
+            // 5. Simpan ke DB & Buat Antrean Approval
+            $createdDocument = null;
+            $creatorUserObj = $creatorUser;
+
+            \Illuminate\Support\Facades\DB::transaction(function () use ($request, $department, $pathCover, $pathLp, $pathIsi, $attachmentData, $previewPath, $coordinates, $creatorUser, $reviewerUsers, $finalUser, &$createdDocument) {
+                $firstPathLamp = !empty($attachmentData) ? $attachmentData[0]['file_path'] : null;
+
+                $createdDocument = Document::create([
+                    'title'          => $request->title,
+                    'department'     => $department,
+                    'reviewer_id'    => $creatorUser->id, 
+                    'file_cover'     => $pathCover,
+                    'file_lp'        => $pathLp,
+                    'file_isi'       => $pathIsi,
+                    'file_lampiran'  => $firstPathLamp,
+                    'file_preview'   => $previewPath,
+                    'status'         => 'waiting',
+                    'doc_number'     => $request->doc_number,
+                    'doc_revision'   => $request->doc_revision,
+                    'doc_date'       => $request->doc_date,
+                    'company_header' => $request->company_header,
+                ]);
+
+                foreach ($attachmentData as $att) {
+                    $createdDocument->attachments()->create($att);
+                }
+
+                $signersList = [];
+                $seq = 1;
+
+                // 1. Creator
+                $signersList[] = [
+                    'user' => $creatorUser,
+                    'stage' => 'creator',
+                    'status' => 'current',
+                    'sequence' => $seq++
+                ];
+
+                // 2. Reviewers
+                foreach ($reviewerUsers as $revUser) {
+                    $signersList[] = [
+                        'user' => $revUser,
+                        'stage' => 'reviewer',
+                        'status' => 'pending',
+                        'sequence' => $seq++
+                    ];
+                }
+
+                // 3. Final Approver
+                $signersList[] = [
+                    'user' => $finalUser,
+                    'stage' => 'final',
+                    'status' => 'pending',
+                    'sequence' => $seq++
+                ];
+
+                foreach ($signersList as $s) {
+                    $approverUser = $s['user'];
+                    $slotMeta = DocumentApproval::getSlotAndStageForUser($approverUser);
+
+                    if (empty(trim($approverUser->full_name ?? ''))) {
+                        throw new \Exception(
+                            "Nama lengkap pegawai '{$approverUser->username}' belum dikonfigurasi. Silakan lengkapi data pegawai terlebih dahulu sebelum dipilih sebagai penandatangan."
+                        );
+                    }
+
+                    // Map dynamic coordinates from generator
+                    $pos = collect($coordinates)->firstWhere('user_id', $approverUser->id);
+                    if (!$pos) {
+                        throw new \Exception("Gagal menentukan koordinat tanda tangan untuk {$approverUser->full_name}.");
+                    }
+
+                    DocumentApproval::create([
+                        'document_id'      => $createdDocument->id,
+                        'user_id'          => $approverUser->id,
+                        'sequence'         => $s['sequence'],
+                        'stage'            => $s['stage'],
+                        'status'           => $s['status'],
+                        'notes'            => null,
+                        'signature_slot'   => $slotMeta['signature_slot'],
+                        'signature_page'   => $pos['page'],
+                        'signature_x'      => $pos['x'],
+                        'signature_y'      => $pos['y'],
+                    ]);
+                }
+
+                $createdDocument->logs()->create([
+                    'user_id' => auth()->id() ?? $creatorUser->id,
+                    'action'  => 'diunggah',
+                    'notes'   => 'Dokumen baru diunggah dan otomatis memicu alur persetujuan ke ' . ($creatorUser->full_name ?? $creatorUser->username) . '.'
+                ]);
+            });
+
+            // Kirim Email Notifikasi ke Creator
+            if ($creatorUserObj && $creatorUserObj->email) {
+                try {
+                    $magicLoginUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                        'login.magic',
+                        now()->addHours(24),
+                        [
+                            'user_id' => $creatorUserObj->id,
+                            'document_id' => $createdDocument->id
+                        ]
+                    );
+
+                    Mail::to($creatorUserObj->email)->send(
+                        new NewDocumentReviewMail($createdDocument, $creatorUserObj, $magicLoginUrl)
+                    );
+                } catch (\Exception $e) {
+                    \Log::error("e-QMS Email Store Notification Error: " . $e->getMessage());
+                }
+            }
+
+            return redirect()->route('admin.support.show', $department)
+                ->with('success', 'Dokumen berhasil diunggah. Alur persetujuan telah otomatis dikirimkan ke ' . ($creatorUserObj->username ?? 'Pembuat Dokumen'));
+
+        } catch (\Throwable $e) {
+            \Log::error("e-QMS Document Store Error: " . $e->getMessage());
+            Storage::disk('public')->delete(array_filter($uploadedNewFiles));
+            return back()->withInput()->withErrors(['msg' => $e->getMessage() ?: 'Dokumen gagal diproses. Silakan periksa berkas yang diunggah atau hubungi administrator.']);
+        }
     }
 
     /**
-     * Audit Trail: Melihat detail perjalanan dan komentar dokumen.
-     *
+     * Menampilkan detail dokumen Support
      */
     public function documentDetail(int $id): View
     {
-        $document = Document::with('logs.user')->findOrFail($id);
-        $reviewers = User::all();
-        $pathFinal = $document->file_final ?? $document->file_preview ?? $document->file_lp ?? $document->file_path;
-        
-        return view('admin.support.document_detail', compact('document', 'reviewers', 'pathFinal'));
+        $document = Document::with(['reviewer', 'approvals.user', 'logs.user', 'attachments'])->findOrFail($id);
+        $approvals = $document->approvals;
+        $pathFinal = $document->file_final;
+        return view('admin.support.document_detail', compact('document', 'approvals', 'pathFinal'));
     }
 
     /**
-     * Estafet: Mengoper dokumen ke peninjau (Reviewer) lain.
-     *
+     * Alias method untuk documentDetail
      */
-    public function updateReviewer(Request $request, int $id): RedirectResponse
+    public function detail(int $id): View
+    {
+        return $this->documentDetail($id);
+    }
+
+    /**
+     * Oper/pindahkan reviewer dokumen Support
+     */
+    public function updateReviewer(Request $request, int $id)
     {
         $request->validate([
-            'reviewer_id' => 'required|exists:users,id',
+            'new_reviewer_id' => 'required|exists:users,id',
         ]);
 
         $document = Document::findOrFail($id);
-        $newUser = User::find($request->reviewer_id);
+        $newUser = User::findOrFail($request->new_reviewer_id);
 
-        // 1. Update reviewer_id pada tabel documents
         $document->update([
             'reviewer_id' => $newUser->id,
-            'status'      => 'waiting'
         ]);
 
-        // 2. Update user_id pada antrean document_approvals yang berstatus current
         $currentApproval = DocumentApproval::where('document_id', $document->id)
             ->where('status', 'current')
             ->first();
@@ -212,14 +361,12 @@ class SupportController extends Controller
             ]);
         }
 
-        // 3. Catat ke log
         $document->logs()->create([
             'user_id' => auth()->id() ?? 1,
-            'action'  => 'transfer',
-            'notes'   => 'Admin memindahkan kendali dokumen kepada: ' . $newUser->username, 
+            'action'  => 'dioper',
+            'notes'   => 'Dokumen dioper ke peninjau baru: ' . $newUser->username,
         ]);
 
-        // 4. Kirim email & magic link ke reviewer baru (jika email ada)
         if ($newUser->email) {
             try {
                 $magicLoginUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
@@ -234,7 +381,7 @@ class SupportController extends Controller
                 Mail::to($newUser->email)->send(
                     new NewDocumentReviewMail($document, $newUser, $magicLoginUrl)
                 );
-            } catch (\Throwable $e) {
+            } catch (\Exception $e) {
                 \Log::error("e-QMS Support Email Transfer Error: " . $e->getMessage());
             }
         }
@@ -242,194 +389,465 @@ class SupportController extends Controller
         return redirect()->back()->with('success', 'Dokumen berhasil dioper ke ' . $newUser->username);
     }
 
-public function destroy($id)
-{
-    $document = Document::findOrFail($id);
-    
-    // 1. Hapus file fisik dari folder storage agar tidak menumpuk
-    $filePath = storage_path('app/public/' . $document->file_path);
-    if (file_exists($filePath)) {
-        unlink($filePath);
+    /**
+     * Alias method untuk updateReviewer
+     */
+    public function transfer(Request $request, int $id)
+    {
+        return $this->updateReviewer($request, $id);
     }
 
-    // 2. Hapus data dari database
-    $document->delete();
+    /**
+     * Menghapus dokumen Support secara permanen beserta berkas fisiknya
+     */
+    public function destroy($id)
+    {
+        $document = Document::with('attachments')->findOrFail($id);
+        $department = $document->department;
 
-    // 3. Kembali ke daftar departemen dengan pesan sukses
-    return redirect()->route('admin.support.show', $document->department)
-                     ->with('success', 'Dokumen berhasil dihapus secara permanen!');
-}
+        $filesToDelete = [
+            $document->file_cover,
+            $document->file_lp,
+            $document->file_isi,
+            $document->file_lampiran,
+            $document->file_preview,
+            $document->file_final,
+        ];
 
-    // ================================================================
-    // 🔥 BARU: MENAMPILKAN FORM REVISI DOKUMEN SUPPORT
-    // ================================================================
+        foreach ($document->attachments as $att) {
+            $filesToDelete[] = $att->file_path;
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($document) {
+            $document->attachments()->delete();
+            $document->approvals()->delete();
+            $document->logs()->delete();
+            $document->delete();
+        });
+
+        foreach ($filesToDelete as $file) {
+            if (!empty($file)) {
+                $fullPath = storage_path('app/public/' . $file);
+                if (file_exists($fullPath) && is_file($fullPath)) {
+                    @unlink($fullPath);
+                }
+            }
+        }
+
+        return redirect()->route('admin.support.show', $department)
+                         ->with('success', 'Dokumen berhasil dihapus secara permanen!');
+    }
+
+    /**
+     * Menampilkan form revisi dokumen Support
+     */
     public function editRevision(int $id): View
     {
-        $document = Document::with('approvals.user')->findOrFail($id);
+        $document = Document::with(['approvals.user', 'attachments'])->findOrFail($id);
         return view('admin.support.edit_revision', compact('document'));
     }
 
-    // ================================================================
-    // 🔥 BARU: MEMPROSES UPLOAD FILE REVISI SUPPORT & ESTAFET PINTAR
-    // ================================================================
+    /**
+     * Memproses upload file revisi Support & estafet pintar
+     */
     public function updateRevision(Request $request, int $id)
     {
-        // 1. Validasi
-        $request->validate([
-            'title'         => 'required|string|max:255',
-            'file_cover'    => 'nullable|mimes:pdf|max:5000',
-            'file_lp'       => 'nullable|mimes:pdf|max:5000',
-            'file_isi'      => 'nullable|mimes:pdf|max:10000',
-            'file_lampiran' => 'nullable|mimes:pdf|max:5000',
-        ]);
+        $uploadedNewFiles = [];
+        $oldPhysicalFilesToDelete = [];
 
-        $document = Document::findOrFail($id);
-
-        // 2. Simpan File Fisik Baru ke Storage (Jika ada)
-        $pathCover = $request->hasFile('file_cover') 
-            ? $request->file('file_cover')->store('documents/covers', 'public') 
-            : $document->file_cover;
-
-        $pathLp = $request->hasFile('file_lp') 
-            ? $request->file('file_lp')->store('documents/lps', 'public') 
-            : $document->file_lp;
-
-        $pathIsi = $request->hasFile('file_isi') 
-            ? $request->file('file_isi')->store('documents/contents', 'public') 
-            : $document->file_isi;
-
-        $pathLamp = $request->hasFile('file_lampiran') 
-            ? $request->file('file_lampiran')->store('documents/attachments', 'public') 
-            : $document->file_lampiran;
-
-        // 3. PROSES STRATEGI GABUNG PDF (MERGER)
-        $tempFilesToClean = [];
         try {
-            $merger = PDFMergerFacade::init();
-            
-            if ($request->hasFile('file_isi')) {
-                if (!empty($document->file_preview) && file_exists(storage_path('app/public/' . $document->file_preview))) {
-                    $prevPdf = $this->ensurePdfCompatible(storage_path('app/public/' . $document->file_preview), $tempFilesToClean);
-                    $merger->addPDF($prevPdf, [1, 2]); 
-                } else {
-                    if (!empty($pathCover)) {
-                        $covPdf = $this->ensurePdfCompatible(storage_path('app/public/' . $pathCover), $tempFilesToClean);
-                        $merger->addPDF($covPdf, 'all');
-                    }
-                    if (!empty($pathLp)) {
-                        $lpPdf = $this->ensurePdfCompatible(storage_path('app/public/' . $pathLp), $tempFilesToClean);
-                        $merger->addPDF($lpPdf, 'all');
-                    }
-                }
-                $isiPdf = $this->ensurePdfCompatible(storage_path('app/public/' . $pathIsi), $tempFilesToClean);
-                $merger->addPDF($isiPdf, 'all');
+            $request->validate([
+                'title'                 => 'required|string|max:255',
+                'file_cover'            => 'nullable|mimes:pdf|max:5000',
+                'file_lp'               => 'nullable|mimes:pdf|max:5000',
+                'file_isi'              => 'nullable|mimes:pdf|max:10000',
+                'file_lampiran'         => 'nullable|array|max:20',
+                'file_lampiran.*'       => 'file|mimes:pdf|max:5000',
+                'deleted_attachments'   => 'nullable|array',
+                'deleted_attachments.*' => 'integer',
+            ]);
+
+            $document = Document::with('attachments')->findOrFail($id);
+            $unit = $document->department;
+
+            // Handle Cover
+            $pathCover = $document->file_cover;
+            if ($request->hasFile('file_cover')) {
+                $pathCover = $request->file('file_cover')->store('documents/covers', 'public');
+                $uploadedNewFiles[] = $pathCover;
+            }
+
+            // Handle LP
+            $pathLp = $document->file_lp;
+            $isAutoGenerated = !empty($document->company_header);
+            $coordinates = [];
+
+            if ($isAutoGenerated) {
+                // Generated dynamically later
             } else {
-                if (!empty($document->file_preview) && file_exists(storage_path('app/public/' . $document->file_preview))) {
-                    $prevPdf = $this->ensurePdfCompatible(storage_path('app/public/' . $document->file_preview), $tempFilesToClean);
-                    $merger->addPDF($prevPdf, 'all');
+                if ($request->hasFile('file_lp')) {
+                    $pathLp = $request->file('file_lp')->store('documents/lps', 'public');
+                    $uploadedNewFiles[] = $pathLp;
                 }
             }
 
-            $activeLamp = null;
+            // Handle Isi
+            $pathIsi = $document->file_isi;
+            if ($request->hasFile('file_isi')) {
+                $pathIsi = $request->file('file_isi')->store('documents/contents', 'public');
+                $uploadedNewFiles[] = $pathIsi;
+            }
+
+            // Handle Attachments Revision
+            $existingAttachments = $document->all_attachments;
+            $deletedIds = $request->input('deleted_attachments', []);
+            if (!is_array($deletedIds)) {
+                $deletedIds = [];
+            }
+
+            $keptAttachments = [];
+            $recordsToDelete = [];
+
+            foreach ($existingAttachments as $att) {
+                if (in_array((int)$att->id, array_map('intval', $deletedIds), true) || in_array((string)$att->id, $deletedIds, true)) {
+                    $recordsToDelete[] = $att;
+                    if (!empty($att->file_path)) {
+                        $oldPhysicalFilesToDelete[] = $att->file_path;
+                    }
+                } else {
+                    $keptAttachments[] = $att;
+                }
+            }
+
+            $newAttachmentData = [];
             if ($request->hasFile('file_lampiran')) {
-                $activeLamp = $pathLamp;
-            } else {
-                if (!empty($document->file_lampiran)) {
-                    if (is_array($document->file_lampiran) || is_object($document->file_lampiran)) {
-                        foreach ((array)$document->file_lampiran as $item) {
-                            if (is_string($item) && !empty($item)) {
-                                $activeLamp = $item;
-                                break; 
+                $files = $request->file('file_lampiran');
+                if (!is_array($files)) {
+                    $files = [$files];
+                }
+                foreach ($files as $lampFile) {
+                    $storedPath = $lampFile->store('documents/attachments', 'public');
+                    $uploadedNewFiles[] = $storedPath;
+                    $newAttachmentData[] = [
+                        'original_name' => $lampFile->getClientOriginalName(),
+                        'stored_name'   => basename($storedPath),
+                        'file_path'     => $storedPath,
+                        'mime_type'     => $lampFile->getClientMimeType() ?: 'application/pdf',
+                        'file_size'     => $lampFile->getSize(),
+                    ];
+                }
+            }
+
+            $totalAttachmentsCount = count($keptAttachments) + count($newAttachmentData);
+            if ($totalAttachmentsCount > 20) {
+                throw new \Exception("Jumlah total lampiran setelah revisi tidak boleh melebihi 20 file. Saat ini: {$totalAttachmentsCount} file.");
+            }
+
+            // Generate LP dynamically if auto-generated
+            if ($isAutoGenerated) {
+                $pdfParser = new \Smalot\PdfParser\Parser();
+                
+                $coverPdf = $pdfParser->parseFile(storage_path('app/public/' . $pathCover));
+                if (count($coverPdf->getPages()) !== 1) {
+                    throw new \Exception('File Cover harus 1 halaman.');
+                }
+
+                $isiPdf = $pdfParser->parseFile(storage_path('app/public/' . $pathIsi));
+                $isiPageCount = count($isiPdf->getPages());
+
+                $attachmentsPageCount = 0;
+                foreach ($keptAttachments as $att) {
+                    if (!empty($att->file_path) && file_exists(storage_path('app/public/' . $att->file_path))) {
+                        $lampPdf = $pdfParser->parseFile(storage_path('app/public/' . $att->file_path));
+                        $attachmentsPageCount += count($lampPdf->getPages());
+                    }
+                }
+                foreach ($newAttachmentData as $nAtt) {
+                    if (!empty($nAtt['file_path']) && file_exists(storage_path('app/public/' . $nAtt['file_path']))) {
+                        $lampPdf = $pdfParser->parseFile(storage_path('app/public/' . $nAtt['file_path']));
+                        $attachmentsPageCount += count($lampPdf->getPages());
+                    }
+                }
+
+                $totalPages = 1 + 1 + $isiPageCount + $attachmentsPageCount;
+
+                $creatorApp = DocumentApproval::where('document_id', $document->id)->where('stage', 'creator')->first();
+                $reviewerApps = DocumentApproval::where('document_id', $document->id)->where('stage', 'reviewer')->orderBy('sequence', 'asc')->get();
+                $finalApp = DocumentApproval::where('document_id', $document->id)->where('stage', 'final')->first();
+
+                $creatorUser = $creatorApp->user;
+                $reviewerUsers = $reviewerApps->map->user;
+                $finalUser = $finalApp->user;
+
+                $lpGenerator = new \App\Services\LpGeneratorService();
+                $lpData = [
+                    'title'          => $request->title,
+                    'doc_number'     => $document->doc_number,
+                    'doc_revision'   => $document->doc_revision,
+                    'doc_date'       => date('d F Y', strtotime($document->doc_date)),
+                    'company_header' => $document->company_header,
+                    'total_pages'    => $totalPages
+                ];
+
+                $lpResult = $lpGenerator->generate($lpData, $creatorUser, $reviewerUsers, $finalUser);
+                $pathLp = $lpResult['file_path'];
+                $coordinates = $lpResult['coordinates'];
+                $uploadedNewFiles[] = $pathLp;
+            }
+
+            // Proses Penggabungan (Merge PDF)
+            $tempFilesToClean = [];
+            try {
+                $merger = PDFMergerFacade::init();
+                
+                if ($isAutoGenerated) {
+                    $covPdf = $this->ensurePdfCompatible(storage_path('app/public/' . $pathCover), $tempFilesToClean);
+                    $lpPdf = $this->ensurePdfCompatible(storage_path('app/public/' . $pathLp), $tempFilesToClean);
+                    $isiPdf = $this->ensurePdfCompatible(storage_path('app/public/' . $pathIsi), $tempFilesToClean);
+
+                    $merger->addPDF($covPdf, 'all');
+                    $merger->addPDF($lpPdf, 'all');
+                    $merger->addPDF($isiPdf, 'all');
+                } else {
+                    if ($request->hasFile('file_isi')) {
+                        if (!empty($document->file_preview) && file_exists(storage_path('app/public/' . $document->file_preview))) {
+                            $prevPdf = $this->ensurePdfCompatible(storage_path('app/public/' . $document->file_preview), $tempFilesToClean);
+                            $merger->addPDF($prevPdf, [1, 2]); 
+                        } else {
+                            if (!empty($pathCover)) {
+                                $covPdf = $this->ensurePdfCompatible(storage_path('app/public/' . $pathCover), $tempFilesToClean);
+                                $merger->addPDF($covPdf, 'all');
+                            }
+                            if (!empty($pathLp)) {
+                                $lpPdf = $this->ensurePdfCompatible(storage_path('app/public/' . $pathLp), $tempFilesToClean);
+                                $merger->addPDF($lpPdf, 'all');
                             }
                         }
+                        $isiPdf = $this->ensurePdfCompatible(storage_path('app/public/' . $pathIsi), $tempFilesToClean);
+                        $merger->addPDF($isiPdf, 'all');
                     } else {
-                        $activeLamp = $document->file_lampiran;
+                        if (!empty($document->file_preview) && file_exists(storage_path('app/public/' . $document->file_preview))) {
+                            $prevPdf = $this->ensurePdfCompatible(storage_path('app/public/' . $document->file_preview), $tempFilesToClean);
+                            $merger->addPDF($prevPdf, 'all');
+                        }
+                    }
+                }
+
+                // Add kept attachments
+                foreach ($keptAttachments as $att) {
+                    if (!empty($att->file_path) && file_exists(storage_path('app/public/' . $att->file_path))) {
+                        $lampPdf = $this->ensurePdfCompatible(storage_path('app/public/' . $att->file_path), $tempFilesToClean);
+                        $merger->addPDF($lampPdf, 'all');
+                    }
+                }
+
+                // Add new attachments
+                foreach ($newAttachmentData as $nAtt) {
+                    if (!empty($nAtt['file_path']) && file_exists(storage_path('app/public/' . $nAtt['file_path']))) {
+                        $lampPdf = $this->ensurePdfCompatible(storage_path('app/public/' . $nAtt['file_path']), $tempFilesToClean);
+                        $merger->addPDF($lampPdf, 'all');
+                    }
+                }
+
+                $merger->merge();
+                $previewName = 'preview_rev_' . time() . '.pdf';
+                $previewPath = 'documents/previews/' . $previewName;
+                
+                Storage::disk('public')->put($previewPath, $merger->output());
+                $uploadedNewFiles[] = $previewPath;
+
+                // Redraw currently approved stamps if any on auto-generated document
+                if ($isAutoGenerated) {
+                    $allApproved = DocumentApproval::where('document_id', $document->id)
+                        ->where('status', 'approved')
+                        ->orderBy('sequence', 'asc')
+                        ->get();
+
+                    if ($allApproved->isNotEmpty()) {
+                        $pdfStamper = new \setasign\Fpdi\Fpdi();
+                        $previewAbs = storage_path('app/public/' . $previewPath);
+                        $pageCount = $pdfStamper->setSourceFile($previewAbs);
+
+                        $stampsToDraw = [];
+                        foreach ($allApproved as $appItem) {
+                            $pos = collect($coordinates)->firstWhere('user_id', $appItem->user_id);
+                            $x = $pos ? $pos['x'] : (float)$appItem->signature_x;
+                            $y = $pos ? $pos['y'] : (float)$appItem->signature_y;
+                            $page = $pos ? $pos['page'] : ($appItem->signature_page ?? 1);
+
+                            if ($x !== null && $y !== null) {
+                                $stampsToDraw[] = [
+                                    'x'            => (float)$x,
+                                    'y'            => (float)$y,
+                                    'page'         => (int)$page,
+                                    'username'     => $appItem->user->username ?? 'user',
+                                    'processed_at' => $appItem->processed_at ?? now(),
+                                    'stage'        => $appItem->stage
+                                ];
+                            }
+                        }
+
+                        for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+                            $templateId = $pdfStamper->importPage($pageNo);
+                            $size = $pdfStamper->getTemplateSize($templateId);
+                            $pdfStamper->AddPage($size['orientation'], [$size['width'], $size['height']]);
+                            $pdfStamper->useTemplate($templateId);
+
+                            foreach ($stampsToDraw as $stamp) {
+                                $stampTargetPage = ($pageCount > 1) ? ($stamp['page'] + 1) : $stamp['page'];
+                                if ($pageNo == $stampTargetPage) {
+                                    $carbonDate = \Carbon\Carbon::parse($stamp['processed_at'])->timezone('Asia/Jakarta');
+                                    $dLine1 = $carbonDate->format('d/m/Y');
+                                    $dLine2 = $carbonDate->format('H:i \W\I\B');
+
+                                    $this->drawDigitalStampInController($pdfStamper, $stamp['x'], $stamp['y'], $stamp['username']);
+                                    $this->drawDateStampInController($pdfStamper, $size['width'], $stamp['y'], $dLine1, $dLine2);
+                                }
+                            }
+                        }
+
+                        $pdfStamper->Output('F', $previewAbs);
+                    }
+                }
+
+            } finally {
+                foreach ($tempFilesToClean as $tempFile) {
+                    if (file_exists($tempFile)) {
+                        @unlink($tempFile);
                     }
                 }
             }
 
-            if (!empty($activeLamp) && is_string($activeLamp)) {
-                $fullLampPath = storage_path('app/public/' . $activeLamp);
-                if (file_exists($fullLampPath)) {
-                    $lampPdf = $this->ensurePdfCompatible($fullLampPath, $tempFilesToClean);
-                    $merger->addPDF($lampPdf, 'all');
+            // Target antrean berikutnya yang memerlukan revisi
+            $rejectedApprovals = DocumentApproval::where('document_id', $document->id)
+                ->where('status', 'rejected')
+                ->orderBy('sequence', 'asc')
+                ->get();
+
+            $approvalsToActivate = collect();
+            if ($rejectedApprovals->isNotEmpty()) {
+                $approvalsToActivate = $rejectedApprovals;
+            } else {
+                // Fallback jika tidak ada yang statusnya 'rejected' (misal revisi manual oleh admin)
+                $firstWaiting = DocumentApproval::where('document_id', $document->id)
+                    ->whereIn('status', ['current', 'waiting'])
+                    ->orderBy('sequence', 'asc')
+                    ->first();
+                if ($firstWaiting) {
+                    $approvalsToActivate = collect([$firstWaiting]);
                 }
             }
 
-            $merger->merge();
-            $previewName = 'preview_rev_' . time() . '.pdf';
-            $previewPath = 'documents/previews/' . $previewName;
-            
-            Storage::disk('public')->put($previewPath, $merger->output());
+            if ($approvalsToActivate->isEmpty()) {
+                throw new \Exception("Tidak ditemukan antrean peninjau yang memerlukan revisi.");
+            }
 
-        } catch (\Exception $e) {
-            return back()->withErrors(['msg' => "Gagal Merge PDF Revisi: " . $e->getMessage()]);
-        } finally {
-            foreach ($tempFilesToClean as $tempFile) {
-                if (file_exists($tempFile)) {
-                    @unlink($tempFile);
+            $usersToNotify = [];
+
+            \Illuminate\Support\Facades\DB::transaction(function () use ($document, $recordsToDelete, $keptAttachments, $newAttachmentData, $approvalsToActivate, $request, $pathCover, $pathLp, $pathIsi, $previewPath, $isAutoGenerated, $coordinates, &$usersToNotify) {
+                // Hapus record attachment dari DB
+                foreach ($recordsToDelete as $r) {
+                    if ($r->id > 0) {
+                        DocumentAttachment::where('id', $r->id)->delete();
+                    }
+                }
+
+                // Update sequence lampiran lama yang dipertahankan
+                $seq = 1;
+                foreach ($keptAttachments as $kAtt) {
+                    if ($kAtt->id > 0) {
+                        DocumentAttachment::where('id', $kAtt->id)->update(['sequence' => $seq++]);
+                    } else {
+                        $seq++;
+                    }
+                }
+
+                // Buat record lampiran baru
+                foreach ($newAttachmentData as $nAtt) {
+                    $nAtt['sequence'] = $seq++;
+                    $document->attachments()->create($nAtt);
+                }
+
+                // Update target approval status ke 'current' dan reset processed_at
+                foreach ($approvalsToActivate as $appToAct) {
+                    $appToAct->update([
+                        'status'       => 'current',
+                        'processed_at' => null
+                    ]);
+                    $usersToNotify[] = $appToAct->user;
+                }
+
+                if ($isAutoGenerated) {
+                    foreach ($coordinates as $pos) {
+                        DocumentApproval::where('document_id', $document->id)
+                            ->where('user_id', $pos['user_id'])
+                            ->update([
+                                'signature_page' => $pos['page'],
+                                'signature_x'    => $pos['x'],
+                                'signature_y'    => $pos['y'],
+                            ]);
+                    }
+                }
+
+                $firstTarget = $approvalsToActivate->first();
+                $allAtts = $document->attachments()->orderBy('sequence', 'asc')->get();
+                $firstLamp = $allAtts->count() > 0 ? $allAtts->first()->file_path : null;
+
+                $document->update([
+                    'title'         => $request->title,
+                    'reviewer_id'   => $firstTarget->user_id,
+                    'file_cover'    => $pathCover,
+                    'file_lp'       => $pathLp,
+                    'file_isi'      => $pathIsi,
+                    'file_lampiran' => $firstLamp,
+                    'file_preview'  => $previewPath,
+                    'status'        => 'waiting', 
+                ]);
+
+                $document->logs()->create([
+                    'user_id' => auth()->id() ?? 1,
+                    'action'  => 'revisi',
+                    'notes'   => 'Admin mengunggah file revisi baru. Alur otomatis dilanjutkan langsung ke: ' . $firstTarget->user->username,
+                ]);
+            });
+
+            // Clean up old physical files after DB transaction commit
+            foreach ($oldPhysicalFilesToDelete as $oldFile) {
+                if (!empty($oldFile) && file_exists(storage_path('app/public/' . $oldFile))) {
+                    @unlink(storage_path('app/public/' . $oldFile));
                 }
             }
-        }
 
-        // 4. GENERATE ULANG VARIABEL TARGET ANTREAN
-        $nextTargetApproval = DocumentApproval::where('document_id', $document->id)
-            ->whereIn('status', ['rejected', 'current', 'waiting'])
-            ->orderBy('sequence', 'asc')
-            ->first();
+            // Send notification email to all activated reviewers
+            foreach ($usersToNotify as $notifyUser) {
+                if ($notifyUser && $notifyUser->email) {
+                    try {
+                        $magicLoginUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                            'login.magic',
+                            now()->addHours(24),
+                            [
+                                'user_id' => $notifyUser->id,
+                                'document_id' => $document->id
+                            ]
+                        );
 
-        if (!$nextTargetApproval) {
-            return back()->withErrors(['msg' => "Tidak ditemukan antrean peninjau yang memerlukan revisi."]);
-        }
-
-        // 5. UPDATE TARGET JADI CURRENT
-        $nextTargetApproval->update([
-            'status' => 'current',
-            'processed_at' => null
-        ]);
-
-        // 6. UPDATE MASTER DATA DOKUMEN UTAMA
-        $document->update([
-            'title'         => $request->title,
-            'reviewer_id'   => $nextTargetApproval->user_id,
-            'file_cover'    => $pathCover,
-            'file_lp'       => $pathLp,
-            'file_isi'      => $pathIsi,
-            'file_lampiran' => $pathLamp,
-            'file_preview'  => $previewPath,
-            'status'        => 'waiting', 
-        ]);
-
-        // 7. Catat Aksi ke Timeline Log
-        $document->logs()->create([
-            'user_id' => auth()->id() ?? 1,
-            'action'  => 'revisi',
-            'notes'   => 'Admin mengunggah file revisi baru. Alur otomatis dilanjutkan langsung ke: ' . $nextTargetApproval->user->username,
-        ]);
-
-        // 8. Kirim Email Notifikasi & Magic Link
-        $reviewerUser = $nextTargetApproval->user;
-        if ($reviewerUser && $reviewerUser->email) {
-            try {
-                $magicLoginUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
-                    'login.magic',
-                    now()->addHours(24),
-                    [
-                        'user_id' => $reviewerUser->id,
-                        'document_id' => $document->id
-                    ]
-                );
-
-                Mail::to($reviewerUser->email)->send(
-                    new NewDocumentReviewMail($document, $reviewerUser, $magicLoginUrl)
-                );
-            } catch (\Exception $e) {
-                \Log::error("e-QMS Support Email Revisi Error: " . $e->getMessage());
+                        Mail::to($notifyUser->email)->send(
+                            new NewDocumentReviewMail($document, $notifyUser, $magicLoginUrl)
+                        );
+                    } catch (\Exception $e) {
+                        \Log::error("e-QMS Support Email Revisi Error: " . $e->getMessage());
+                    }
+                }
             }
-        }
 
-        return redirect()->route('admin.support.document.detail', $document->id)
-            ->with('success', 'File revisi berhasil digabungkan dan dialirkan langsung ke ' . $reviewerUser->username);
+            return redirect()->route('admin.support.document.detail', $document->id)
+                ->with('success', 'File revisi berhasil digabungkan dan dialirkan langsung ke ' . ($reviewerUserObj->username ?? 'Peninjau'));
+
+        } catch (\Throwable $e) {
+            \Log::error("e-QMS Support Revision Error: " . $e->getMessage());
+            Storage::disk('public')->delete(array_filter($uploadedNewFiles));
+            return back()->withInput()->withErrors(['msg' => $e->getMessage()]);
+        }
     }
 
     /**
@@ -444,9 +862,8 @@ public function destroy($id)
         try {
             $pdfCheck = new \setasign\Fpdi\Fpdi();
             $pdfCheck->setSourceFile($absolutePath);
-            return $absolutePath; // File original compatible, gunakan langsung
+            return $absolutePath;
         } catch (\Throwable $e) {
-            // FPDI gagal (misal unsupported compression), coba normalisasi dengan QPDF
             $qpdfBin = 'C:\\Program Files\\qpdf 12.4.0\\bin\\qpdf.exe';
             if (!file_exists($qpdfBin)) {
                 return $absolutePath;
@@ -473,5 +890,59 @@ public function destroy($id)
 
             return $absolutePath;
         }
+    }
+
+    private function drawDigitalStampInController($pdf, $x, $y, $name) 
+    {
+        $w = 25.0; 
+        $h = 5.2;  
+
+        // Center X alignment: offset X by +7.2mm to center the compact stamp in the Tanda Tangan column
+        $x = $x + 7.2;
+
+        // Center Y alignment: offset Y slightly to maintain vertical center inside cell row
+        $y = $y + 0.9;
+
+        // 1. Latar Belakang Putih
+        $pdf->SetFillColor(255, 255, 255);
+        $pdf->Rect($x, $y, $w, $h, 'F');
+        $pdf->SetDrawColor(30, 41, 59);
+        $pdf->SetLineWidth(0.2);
+        $pdf->Rect($x, $y, $w, $h);
+
+        // 2. Kotak Label Samping (Warna Slate)
+        $labelW = 4.0;
+        $pdf->SetFillColor(30, 41, 59);
+        $pdf->Rect($x, $y, $labelW, $h, 'F'); 
+
+        // 3. Tulisan Label (QMS)
+        $pdf->SetTextColor(255, 255, 255);
+        $pdf->SetFont('Arial', 'B', 4.2); 
+        $pdf->SetXY($x, $y + 1.6);
+        $pdf->Cell($labelW, 2.0, 'QMS', 0, 0, 'C');
+
+        // 4. Informasi Persetujuan
+        $pdf->SetTextColor(30, 41, 59);
+        $pdf->SetFont('Arial', 'B', 4.0);
+        $pdf->SetXY($x + 4.8, $y + 1.0);
+        $pdf->Cell(19.5, 1.5, 'DIGITALLY APPROVED', 0, 0, 'L');
+
+        $pdf->SetFont('Arial', '', 3.6);
+        $pdf->SetXY($x + 4.8, $y + 2.7);
+        $pdf->Cell(19.5, 1.5, 'User: ' . strtoupper($name), 0, 0, 'L');
+    }
+
+    private function drawDateStampInController($pdf, $pageWidthMm, $signatureY, $dateLine1, $dateLine2)
+    {
+        $dateColumnCenterX = $pageWidthMm * 0.845;
+        $pdf->SetTextColor(30, 41, 59);
+        
+        $pdf->SetFont('Arial', 'B', 5.8);
+        $pdf->SetXY($dateColumnCenterX - 15.0, $signatureY - 0.3);
+        $pdf->Cell(30.0, 2.5, $dateLine1, 0, 0, 'C');
+        
+        $pdf->SetFont('Arial', '', 4.2);
+        $pdf->SetXY($dateColumnCenterX - 15.0, $signatureY + 2.6);
+        $pdf->Cell(30.0, 2.0, $dateLine2, 0, 0, 'C');
     }
 }

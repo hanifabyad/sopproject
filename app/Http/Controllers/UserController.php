@@ -61,32 +61,33 @@ private $roles = [
     }
 
     public function store(Request $request)
-{
-    // 1. Validasi dengan pesan error kustom agar kita tahu apa yang salah
-    $request->validate([
-        'username' => 'required|string|max:255|unique:users',
-        'email'    => 'required|string|email|max:255|unique:users',
-        'password' => 'required|string|min:8', // Hapus 'confirmed' jika di form tidak ada input password_confirmation
-        'role'     => ['required'], // Longgarkan dulu validasinya untuk memastikan data masuk
-        'status'   => 'required',
-    ]);
-
-    try {
-        // 2. Simpan ke Database
-        User::create([
-            'username' => $request->username,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password),
-            'role'     => $request->role,
-            'status'   => $request->status ?? 1, // Default aktif jika kosong
+    {
+        // 1. Validasi input
+        $request->validate([
+            'full_name' => 'required|string|max:255',
+            'username'  => 'required|string|max:255|unique:users',
+            'email'     => 'required|string|email|max:255|unique:users',
+            'password'  => 'required|string|min:8',
+            'role'      => ['required'],
+            'status'    => 'required',
         ]);
 
-        return redirect()->route('admin.users.index')->with('success', 'Akun pimpinan berhasil didaftarkan!');
-    } catch (\Exception $e) {
-        // Jika gagal karena database, balik ke form dengan pesan error asli
-        return back()->withInput()->with('error', 'Gagal menyimpan: ' . $e->getMessage());
+        try {
+            // 2. Simpan ke Database
+            User::create([
+                'username'  => $request->username,
+                'full_name' => $request->full_name,
+                'email'     => $request->email,
+                'password'  => Hash::make($request->password),
+                'role'      => $request->role,
+                'status'    => $request->status ?? 1,
+            ]);
+
+            return redirect()->route('admin.users.index')->with('success', 'Akun pimpinan berhasil didaftarkan!');
+        } catch (\Exception $e) {
+            return back()->withInput()->with('error', 'Gagal menyimpan: ' . $e->getMessage());
+        }
     }
-}
 
     public function edit(User $user)
     {
@@ -101,18 +102,20 @@ private $roles = [
     public function update(Request $request, User $user)
     {
         $request->validate([
-            'username' => ['required', 'string', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'email'    => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'role'     => ['required', Rule::in($this->roles)],
-            'status'   => ['required', 'boolean'],
-            'password' => ['nullable', 'string', 'min:8', 'confirmed'], 
+            'full_name' => ['required', 'string', 'max:255'],
+            'username'  => ['required', 'string', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'email'     => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'role'      => ['required', Rule::in($this->roles)],
+            'status'    => ['required', 'boolean'],
+            'password'  => ['nullable', 'string', 'min:8', 'confirmed'], 
         ]);
 
         $data = [
-            'username' => $request->username,
-            'email'    => $request->email,
-            'role'     => $request->role,
-            'status'   => $request->status,
+            'username'  => $request->username,
+            'full_name' => $request->full_name,
+            'email'     => $request->email,
+            'role'      => $request->role,
+            'status'    => $request->status,
         ];
         
         if ($request->filled('password')) {
@@ -125,11 +128,20 @@ private $roles = [
 
     public function destroy(User $user)
     {
-        if ($user->role == 'admin') {
+        if ($user->role === 'admin') {
             return redirect()->route('admin.users.index')->with('error', 'Admin utama tidak bisa dihapus.');
         }
 
-        $user->delete();
-        return redirect()->route('admin.users.index')->with('success', 'Akun berhasil dihapus.');
+        try {
+            $user->delete();
+            return redirect()->route('admin.users.index')->with('success', 'Akun berhasil dihapus permanen.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000 || str_contains($e->getMessage(), '1451')) {
+                return redirect()->route('admin.users.index')->with('error', 'Akun tidak dapat dihapus karena telah memiliki riwayat aktivitas atau dokumen pada sistem.');
+            }
+            return redirect()->route('admin.users.index')->with('error', 'Terjadi kesalahan sistem database saat menghapus akun.');
+        } catch (\Throwable $e) {
+            return redirect()->route('admin.users.index')->with('error', 'Terjadi kesalahan sistem saat menghapus akun.');
+        }
     }
 }

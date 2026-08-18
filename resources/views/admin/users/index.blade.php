@@ -60,11 +60,11 @@
                         <td class="px-6 py-4.5">
                             <div class="flex items-center space-x-3">
                                 <div class="w-10 h-10 bg-slate-100 group-hover:bg-blue-50 text-[#1e293b] group-hover:text-blue-600 rounded-xl flex items-center justify-center font-extrabold text-sm shadow-inner transition-colors duration-300 uppercase">
-                                    {{ strtoupper(substr($user->username, 0, 1)) }}
+                                    {{ strtoupper(substr($user->full_name ?: $user->username, 0, 1)) }}
                                 </div>
                                 <div>
-                                    <p class="font-bold text-[#1e293b] uppercase tracking-tight text-xs">{{ $user->username }}</p>
-                                    <p class="text-[10px] text-gray-400 font-medium mt-0.5">{{ $user->email }}</p>
+                                    <p class="font-bold text-[#1e293b] tracking-tight text-xs">{{ $user->full_name ?: $user->username }}</p>
+                                    <p class="text-[10px] text-gray-400 font-medium mt-0.5"><span class="font-mono text-gray-500">@ {{ $user->username }}</span> • {{ $user->email }}</p>
                                 </div>
                             </div>
                         </td>

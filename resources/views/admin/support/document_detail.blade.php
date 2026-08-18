@@ -117,33 +117,95 @@
                 </div>
             </div>
 
-            {{-- Card Oper Kendali Mutu (Estafet Berantai) --}}
-            <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100 relative overflow-hidden group">
+            {{-- Card Read-Only Status Approval Dokumen --}}
+            <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100 relative overflow-hidden">
                 <div class="flex items-center space-x-2.5 mb-4 border-b border-gray-100 pb-3">
                     <div class="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-sm shadow-inner">
-                        <i class="fa-solid fa-shuffle"></i>
+                        <i class="fa-solid fa-list-check"></i>
                     </div>
-                    <h4 class="text-[10px] font-black uppercase tracking-wider text-[#1e293b]">Oper Kendali (Estafet Manual)</h4>
+                    <h4 class="text-[10px] font-black uppercase tracking-wider text-[#1e293b]">Status Approval Dokumen</h4>
                 </div>
 
-                <form action="{{ route('admin.support.updateReviewer', $document->id) }}" method="POST" class="space-y-3">
-                    @csrf
-                    @method('PUT')
+                <div class="space-y-4">
+                    {{-- Section 1: Pembuat Dokumen --}}
                     <div>
-                        <label class="block text-[8px] font-bold uppercase text-gray-400 mb-1.5 tracking-wider">Pilih Peninjau Target Baru:</label>
-                        <select name="reviewer_id" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-[#1e293b] focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer">
-                            @foreach($reviewers as $rev)
-                                <option value="{{ $rev->id }}" {{ $document->reviewer_id == $rev->id ? 'selected' : '' }}>
-                                    {{ $rev->username }} ({{ $rev->role }})
-                                </option>
-                            @endforeach
-                        </select>
+                        <h5 class="text-[9px] font-black uppercase text-blue-600 tracking-wider mb-2 flex items-center gap-1">
+                            <i class="fa-solid fa-user-pen text-[8px]"></i> Pembuat Dokumen
+                        </h5>
+                        @foreach($document->approvals->where('stage', 'creator') as $app)
+                            <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl border border-gray-100 mb-1.5">
+                                <span class="text-xs font-bold text-[#1e293b]">{{ $app->user->full_name ?? $app->user->username }}</span>
+                                @if($app->status === 'approved')
+                                    <span class="px-2.5 py-1 bg-green-50 text-green-700 text-[8px] font-bold uppercase rounded-lg border border-green-200">Approved</span>
+                                @elseif($app->status === 'current')
+                                    <span class="px-2.5 py-1 bg-blue-50 text-blue-700 text-[8px] font-bold uppercase rounded-lg border border-blue-200 animate-pulse">Current</span>
+                                @else
+                                    <span class="px-2.5 py-1 bg-gray-100 text-gray-500 text-[8px] font-bold uppercase rounded-lg border border-gray-200">Pending</span>
+                                @endif
+                            </div>
+                        @endforeach
                     </div>
-                    
-                    <button type="submit" class="w-full py-3 bg-[#1e293b] text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all duration-300 shadow-sm hover:shadow-blue-100">
-                        <i class="fa-solid fa-paper-plane mr-1"></i> Transfer Kendali Dokumen
-                    </button>
-                </form>
+
+                    {{-- Section 2: Diperiksa dan Diketahui oleh --}}
+                    <div>
+                        <h5 class="text-[9px] font-black uppercase text-blue-600 tracking-wider mb-2 flex items-center gap-1">
+                            <i class="fa-solid fa-users-check text-[8px]"></i> Diperiksa dan Diketahui oleh
+                        </h5>
+                        @foreach($document->approvals->where('stage', 'reviewer') as $app)
+                            <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl border border-gray-100 mb-1.5">
+                                <span class="text-xs font-bold text-[#1e293b]">{{ $app->user->full_name ?? $app->user->username }}</span>
+                                @if($app->status === 'approved')
+                                    <span class="px-2.5 py-1 bg-green-50 text-green-700 text-[8px] font-bold uppercase rounded-lg border border-green-200">Approved</span>
+                                @elseif($app->status === 'current')
+                                    <span class="px-2.5 py-1 bg-blue-50 text-blue-700 text-[8px] font-bold uppercase rounded-lg border border-blue-200 animate-pulse">Current</span>
+                                @else
+                                    <span class="px-2.5 py-1 bg-gray-100 text-gray-500 text-[8px] font-bold uppercase rounded-lg border border-gray-200">Pending</span>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+
+                    {{-- Section 3: Disahkan oleh --}}
+                    <div>
+                        <h5 class="text-[9px] font-black uppercase text-blue-600 tracking-wider mb-2 flex items-center gap-1">
+                            <i class="fa-solid fa-signature text-[8px]"></i> Disahkan oleh
+                        </h5>
+                        @foreach($document->approvals->where('stage', 'final') as $app)
+                            <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl border border-gray-100 mb-1.5">
+                                <span class="text-xs font-bold text-[#1e293b]">{{ $app->user->full_name ?? $app->user->username }}</span>
+                                @if($app->status === 'approved')
+                                    <span class="px-2.5 py-1 bg-green-50 text-green-700 text-[8px] font-bold uppercase rounded-lg border border-green-200">Approved</span>
+                                @elseif($app->status === 'current')
+                                    <span class="px-2.5 py-1 bg-blue-50 text-blue-700 text-[8px] font-bold uppercase rounded-lg border border-blue-200 animate-pulse">Current</span>
+                                @else
+                                    <span class="px-2.5 py-1 bg-gray-100 text-gray-500 text-[8px] font-bold uppercase rounded-lg border border-gray-200">Pending</span>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+
+                    {{-- Section 4: Berkas Lampiran --}}
+                    @php $allAtts = $document->all_attachments; @endphp
+                    @if($allAtts->count() > 0)
+                    <div class="mt-4 pt-4 border-t border-gray-100">
+                        <h5 class="text-[9px] font-black uppercase text-gray-500 tracking-wider mb-2 flex items-center gap-1">
+                            <i class="fa-solid fa-paperclip text-[8px]"></i> Berkas Lampiran ({{ $allAtts->count() }})
+                        </h5>
+                        <div class="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                            @foreach($allAtts as $idx => $att)
+                                <a href="{{ asset('storage/' . $att->file_path) }}" target="_blank" class="flex items-center justify-between p-2 bg-white rounded-lg border border-gray-100 hover:border-blue-300 hover:shadow-sm transition-all text-xs font-semibold text-slate-700">
+                                    <div class="flex items-center gap-2 truncate pr-2">
+                                        <span class="text-blue-600 font-bold text-[10px]">{{ $idx + 1 }}.</span>
+                                        <i class="fa-solid fa-file-pdf text-red-500 text-xs"></i>
+                                        <span class="truncate text-[10px]">{{ $att->original_name ?? basename($att->file_path) }}</span>
+                                    </div>
+                                    <i class="fa-solid fa-download text-gray-400 text-[10px]"></i>
+                                </a>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+                </div>
             </div>
 
             {{-- Tombol Khusus Penanganan Perbaikan Berkas Revisi --}}

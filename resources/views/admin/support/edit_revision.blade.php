@@ -42,12 +42,21 @@
                         class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                 </div>
 
+                @if(empty($document->company_header))
                 <div class="p-4 bg-gray-50 rounded-2xl border border-gray-200">
                     <label class="block text-sm font-bold text-gray-800 mb-1">2. File Lembar Pengesahan (PDF)</label>
                     <p class="text-xs text-gray-400 mb-2">File saat ini: <span class="font-mono text-gray-600">{{ basename($document->file_lp) }}</span></p>
                     <input type="file" name="file_lp" accept="application/pdf"
                         class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                 </div>
+                @else
+                <div class="p-4 bg-blue-50/20 rounded-2xl border border-dashed border-blue-200">
+                    <label class="block text-sm font-bold text-blue-800 mb-1">2. Lembar Pengesahan (Auto-Generated)</label>
+                    <p class="text-xs text-blue-600 font-semibold leading-relaxed">
+                        Tabel Lembar Pengesahan di-generate secara otomatis oleh sistem menggunakan data peninjau aktif. Berkas LP akan diperbarui secara otomatis.
+                    </p>
+                </div>
+                @endif
 
                 <div class="p-4 bg-gray-50 rounded-2xl border border-gray-200">
                     <label class="block text-sm font-bold text-gray-800 mb-1">3. File Isi SOP (PDF)</label>
@@ -57,9 +66,31 @@
                 </div>
 
                 <div class="p-4 bg-gray-50 rounded-2xl border border-gray-200">
-                    <label class="block text-sm font-bold text-gray-800 mb-1">4. File Lampiran (PDF) - <span class="text-gray-400 font-normal">Opsional</span></label>
-                    <p class="text-xs text-gray-400 mb-2">File saat ini: <span class="font-mono text-gray-600">{{ $document->file_lampiran ? basename($document->file_lampiran) : 'Tidak ada lampiran' }}</span></p>
-                    <input type="file" name="file_lampiran" accept="application/pdf"
+                    <label class="block text-sm font-bold text-gray-800 mb-1">4. File Lampiran (PDF) - <span class="text-gray-400 font-normal">Opsional (Maksimal 20 file)</span></label>
+                    
+                    @php $allAtts = $document->all_attachments; @endphp
+                    @if($allAtts->count() > 0)
+                        <p class="text-xs font-bold text-gray-600 mb-2">Lampiran Saat Ini (Centang file yang ingin DIHAPUS):</p>
+                        <div class="space-y-2 mb-4">
+                            @foreach($allAtts as $att)
+                                <label class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-gray-200 text-xs font-medium cursor-pointer hover:bg-red-50/50 transition-all">
+                                    <div class="flex items-center gap-2 truncate pr-2">
+                                        <i class="fa-solid fa-file-pdf text-red-500"></i>
+                                        <span class="font-mono text-gray-700 truncate">{{ $att->original_name ?? basename($att->file_path) }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5 text-red-600 font-bold">
+                                        <input type="checkbox" name="deleted_attachments[]" value="{{ $att->id }}" class="rounded text-red-600 focus:ring-red-500">
+                                        <span>Hapus</span>
+                                    </div>
+                                </label>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-xs text-gray-400 mb-2">File saat ini: <span class="font-mono text-gray-600">Tidak ada lampiran</span></p>
+                    @endif
+
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Tambah Lampiran Baru (PDF):</label>
+                    <input type="file" name="file_lampiran[]" multiple accept="application/pdf"
                         class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                 </div>
 
