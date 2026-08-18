@@ -179,48 +179,54 @@ class LpGeneratorService
         $currentY = 78.0;
         $coordinates = [];
 
+        $numReviewers = count($reviewers);
+        $rowHeight = 12.0;
+        $headerHeight = 6.0;
+
+        if ($numReviewers > 5) {
+            // Shrink row height and header height proportionally so 8 reviewers fit perfectly in 1 page.
+            $rowHeight = max(8.0, 12.0 - ($numReviewers - 5) * 1.2);
+            $headerHeight = max(4.5, 6.0 - ($numReviewers - 5) * 0.4);
+        }
+
         // Helper to draw a row section
-        $drawSectionHeader = function ($label) use ($pdf, &$currentY) {
+        $drawSectionHeader = function ($label) use ($pdf, &$currentY, $headerHeight) {
             $pdf->SetFillColor(241, 245, 249); // Slate-100
-            $pdf->Rect(15, $currentY, 180, 6, 'F');
+            $pdf->Rect(15, $currentY, 180, $headerHeight, 'F');
             $pdf->SetLineWidth(0.2);
             $pdf->SetDrawColor(203, 213, 225);
-            $pdf->Line(15, $currentY + 6, 195, $currentY + 6);
+            $pdf->Line(15, $currentY + $headerHeight, 195, $currentY + $headerHeight);
 
-            $pdf->SetXY(17, $currentY + 1);
+            $pdf->SetXY(17, $currentY + ($headerHeight - 4.0) / 2.0);
             $pdf->SetFont('Arial', 'B', 8);
             $pdf->SetTextColor(71, 85, 105); // Slate-600
             $pdf->Cell(176, 4, $label, 0, 1, 'L');
-            $currentY += 6;
+            $currentY += $headerHeight;
         };
 
-        $drawSignerRow = function (User $user) use ($pdf, &$currentY, &$coordinates) {
+        $drawSignerRow = function (User $user) use ($pdf, &$currentY, &$coordinates, $rowHeight) {
             $pdf->SetLineWidth(0.2);
             $pdf->SetDrawColor(203, 213, 225);
-            $pdf->Line(15, $currentY + 12, 195, $currentY + 12);
-            $pdf->Line(80, $currentY, 80, $currentY + 12);
-            $pdf->Line(125, $currentY, 125, $currentY + 12);
-            $pdf->Line(165, $currentY, 165, $currentY + 12);
+            $pdf->Line(15, $currentY + $rowHeight, 195, $currentY + $rowHeight);
+            $pdf->Line(80, $currentY, 80, $currentY + $rowHeight);
+            $pdf->Line(125, $currentY, 125, $currentY + $rowHeight);
+            $pdf->Line(165, $currentY, 165, $currentY + $rowHeight);
 
             // Column 1: Jabatan / Role
-            $pdf->SetXY(17, $currentY + 4);
-            $pdf->SetFont('Arial', '', 8);
             $pdf->SetTextColor(30, 41, 59);
-            $this->drawCellFit($pdf, 61, 4, $user->role ?? '-', 0, 0, 'L');
+            $this->drawCellWrapped($pdf, 17, $currentY, 61, $rowHeight, $user->role ?? '-', 7.5, false);
 
             // Column 2: Kode Nama / Full Name
-            $pdf->SetXY(82, $currentY + 4);
-            $pdf->SetFont('Arial', 'B', 8);
-            $this->drawCellFit($pdf, 41, 4, $user->full_name ?? $user->username, 0, 0, 'L');
+            $this->drawCellWrapped($pdf, 82, $currentY, 41, $rowHeight, $user->full_name ?? $user->username, 7.5, true);
 
             // Compute math coordinate for 100% center stamp placement
             // Signature Column starts at X=125, width=40. Center is 145.
             $centeredX = 145.0 - 12.5; // 132.50 mm (center of 40mm column)
-            $centeredY = $currentY + 6.0 - 2.6; // $currentY + 3.40 mm (vertical center of 12mm row)
+            $centeredY = $currentY + ($rowHeight / 2.0) - 2.6; // Vertical center based on rowHeight
 
             // Adjust coordinates to compensate for ReviewerController's draw offsets (+7.2 X, +0.9 Y)
-            $stampX = $centeredX - 7.2; // 125.30 mm
-            $stampY = $centeredY - 0.9; // $currentY + 2.50 mm
+            $stampX = $centeredX - 7.2; 
+            $stampY = $centeredY - 0.9; 
 
             $coordinates[] = [
                 'user_id' => $user->id,
@@ -229,7 +235,7 @@ class LpGeneratorService
                 'y'       => round($stampY, 2)
             ];
 
-            $currentY += 12;
+            $currentY += $rowHeight;
         };
 
         // Section A: Pembuat Dokumen
@@ -270,6 +276,68 @@ class LpGeneratorService
             'file_path'   => $lpPath,
             'coordinates' => $coordinates
         ];
+    }
+
+    private function drawCellWrapped($pdf, $x, $y, $w, $h, $txt, $maxFont = 8.0, $isBold = false)
+    {
+        $fontStyle = $isBold ? 'B' : '';
+        $pdf->SetFont('Arial', $fontStyle, $maxFont);
+        
+        // Split by words
+        $words = explode(' ', $txt);
+        $lines = [];
+        $currentLine = '';
+        
+        foreach ($words as $word) {
+            $testLine = $currentLine === '' ? $word : $currentLine . ' ' . $word;
+            if ($pdf->GetStringWidth($testLine) > $w - 2) {
+                if ($currentLine !== '') {
+                    $lines[] = $currentLine;
+                }
+                $currentLine = $word;
+            } else {
+                $currentLine = $testLine;
+            }
+        }
+        if ($currentLine !== '') {
+            $lines[] = $currentLine;
+        }
+        
+        // If Y height overflows, shrink size and try again
+        $fontSizePt = $maxFont;
+        $lineHeightMm = $fontSizePt * 0.35 + 0.3;
+        $totalTextHeight = count($lines) * $lineHeightMm;
+        
+        if ($totalTextHeight > $h - 1.0 && $maxFont > 5.0) {
+            $fontSizePt = $maxFont - 1.5;
+            $pdf->SetFont('Arial', $fontStyle, $fontSizePt);
+            $lines = [];
+            $currentLine = '';
+            foreach ($words as $word) {
+                $testLine = $currentLine === '' ? $word : $currentLine . ' ' . $word;
+                if ($pdf->GetStringWidth($testLine) > $w - 2) {
+                    if ($currentLine !== '') {
+                        $lines[] = $currentLine;
+                    }
+                    $currentLine = $word;
+                } else {
+                    $currentLine = $testLine;
+                }
+            }
+            if ($currentLine !== '') {
+                $lines[] = $currentLine;
+            }
+            $lineHeightMm = $fontSizePt * 0.35 + 0.3;
+            $totalTextHeight = count($lines) * $lineHeightMm;
+        }
+        
+        // Vertically center inside row Y height
+        $startY = $y + ($h - $totalTextHeight) / 2.0;
+        
+        foreach ($lines as $i => $line) {
+            $pdf->SetXY($x, $startY + $i * $lineHeightMm);
+            $pdf->Cell($w, $lineHeightMm, $line, 0, 0, 'L');
+        }
     }
 
     private function drawCellFit($pdf, $w, $h, $txt, $border = 0, $ln = 0, $align = '', $fill = false)
