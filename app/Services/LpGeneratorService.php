@@ -275,10 +275,10 @@ class LpGeneratorService
         // ---------------------------------------------------------
         $pdf->SetLineWidth($LINE_TABLE);
         $pdf->SetDrawColor(...$BLACK);
-        $pdf->Line(15, 85, 195, 85);
-        $pdf->Line(80,  77, 80,  85);
-        $pdf->Line(125, 77, 125, 85);
-        $pdf->Line(165, 77, 165, 85);
+        $pdf->Rect(15, 77, 65, 8);  // Cell 1
+        $pdf->Rect(80, 77, 45, 8);  // Cell 2
+        $pdf->Rect(125, 77, 40, 8); // Cell 3
+        $pdf->Rect(165, 77, 30, 8); // Cell 4
 
         $colHeaders = [
             [15,  65, 'Jabatan'],
@@ -312,10 +312,9 @@ class LpGeneratorService
         // Helper to draw a section header row (light gray fill, black border, black text)
         $drawSectionHeader = function ($label) use ($pdf, &$currentY, $headerHeight, $LINE_TABLE, $BLACK) {
             $pdf->SetFillColor(245, 245, 245); // very light gray
-            $pdf->Rect(15, $currentY, 180, $headerHeight, 'F');
             $pdf->SetLineWidth($LINE_TABLE);
             $pdf->SetDrawColor(...$BLACK);
-            $pdf->Line(15, $currentY + $headerHeight, 195, $currentY + $headerHeight);
+            $pdf->Rect(15, $currentY, 180, $headerHeight, 'DF'); // Draw border and Fill background
 
             $pdf->SetXY(17, $currentY + ($headerHeight - 4.0) / 2.0);
             $pdf->SetFont('Arial', 'B', 8);
@@ -327,10 +326,10 @@ class LpGeneratorService
         $drawSignerRow = function (User $user) use ($pdf, &$currentY, &$coordinates, $rowHeight, $LINE_TABLE, $BLACK) {
             $pdf->SetLineWidth($LINE_TABLE);
             $pdf->SetDrawColor(...$BLACK);
-            $pdf->Line(15, $currentY + $rowHeight, 195, $currentY + $rowHeight);
-            $pdf->Line(80, $currentY, 80, $currentY + $rowHeight);
-            $pdf->Line(125, $currentY, 125, $currentY + $rowHeight);
-            $pdf->Line(165, $currentY, 165, $currentY + $rowHeight);
+            $pdf->Rect(15, $currentY, 65, $rowHeight);  // Cell 1
+            $pdf->Rect(80, $currentY, 45, $rowHeight);  // Cell 2
+            $pdf->Rect(125, $currentY, 40, $rowHeight); // Cell 3
+            $pdf->Rect(165, $currentY, 30, $rowHeight); // Cell 4
 
             // Column 1: Jabatan / Role
             $pdf->SetTextColor(30, 41, 59);
@@ -377,7 +376,7 @@ class LpGeneratorService
         // Anchored at Y=270 (5mm above the outer border at Y=282) so it
         // never overlaps the MASTER DOCUMENT stamp or falls outside page.
         // ---------------------------------------------------------
-        $pdf->SetXY(17, 270);
+        $pdf->SetXY(17, $currentY + 5.0);
         $pdf->SetFont('Arial', 'I', 7);
         $pdf->SetTextColor(80, 80, 80); // dark gray — clearly legible
         $pdf->Cell(160, 4, 'Keterangan: NA (Not Applicable), apabila tidak diperlukan pemeriksaan dan persetujuan dari Pejabat terkait', 0, 1, 'L');

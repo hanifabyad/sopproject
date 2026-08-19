@@ -849,6 +849,30 @@ public function reject(Request $request, $id)
         'notes'   => $request->notes ?? 'Dokumen memerlukan perbaikan.',
     ]);
 
+    // Kirim notifikasi email ke pembuat dokumen (creator)
+    try {
+        $creatorApproval = \App\Models\DocumentApproval::where('document_id', $document->id)
+            ->where('stage', 'creator')
+            ->first();
+        if ($creatorApproval && $creatorApproval->user && !empty(trim($creatorApproval->user->email ?? ''))) {
+            $creator = $creatorApproval->user;
+            $magicLoginUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                'login.magic',
+                now()->addHours(24),
+                [
+                    'user_id' => $creator->id,
+                    'document_id' => $document->id
+                ]
+            );
+
+            \Illuminate\Support\Facades\Mail::to($creator->email)->send(
+                new \App\Mail\DocumentRevisionRequestedMail($document, $creator, $user, $request->notes ?? 'Dokumen memerlukan perbaikan.', $magicLoginUrl)
+            );
+        }
+    } catch (\Throwable $e) {
+        \Log::error("e-QMS Revision Email Notification Error: " . $e->getMessage());
+    }
+
     return redirect()->route('reviewer.dashboard') // 👈 Sesuaikan dengan nama route halaman antrean review Trinwetty
         ->with('info', 'Dokumen berhasil dikembalikan ke Admin untuk direvisi.');
 }

@@ -841,7 +841,7 @@ class SupportController extends Controller
                         );
 
                         Mail::to($notifyUser->email)->send(
-                            new NewDocumentReviewMail($document, $notifyUser, $magicLoginUrl)
+                            new \App\Mail\DocumentRevisionResubmittedMail($document, $notifyUser, auth()->user(), $magicLoginUrl)
                         );
                     } catch (\Exception $e) {
                         \Log::error("e-QMS Support Email Revisi Error: " . $e->getMessage());

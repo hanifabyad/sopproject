@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -6,7 +8,54 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+    --color-sand-0: #fff9ed;
+    --color-sand-50: #f7f3e9;
+    --color-sand-100: #e5dfd3;
+    --color-sand-200: #d6cebf;
+    --color-canvas: #f7f6f2;
+    --color-bento: #ffffff;
+    --color-bento-subtle: #eee8db;
+    
+    --color-charcoal-900: #333028;
+    --color-charcoal-800: #423e35;
+    --color-charcoal-700: #544f43;
+    
+    --color-gold-500: #705d00;
+    --color-gold-container: #ffd92f;
+    --color-gold-fixed: #ffe16e;
+    --color-gold-dim: #e8c410;
+    
+    --color-on-surface: #1e1c14;
+    --color-on-surface-variant: #4d4633;
 }
+
+@layer utilities {
+    .font-material {
+        font-family: 'Material Symbols Outlined', sans-serif;
+        font-weight: normal;
+        font-style: normal;
+        display: inline-block;
+        line-height: 1;
+        text-transform: none;
+        letter-spacing: normal;
+        word-wrap: normal;
+        white-space: nowrap;
+        direction: ltr;
+    }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #d6cebf;
+    border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
 

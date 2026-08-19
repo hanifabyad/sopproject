@@ -1,110 +1,126 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>e-QMS - Upload Perbaikan Dokumen</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body class="bg-gray-50 font-sans min-h-screen">
+@extends('layouts.admin')
 
-    <div class="max-w-3xl mx-auto py-12 px-4">
-        <div class="bg-white rounded-3xl shadow-xl border border-gray-100 p-8">
-            
-            <div class="mb-8 border-b border-gray-100 pb-6">
-                <a href="{{ route('admin.BU.detail', $document->id) }}" class="text-sm text-blue-900 font-semibold hover:underline">← Kembali ke Detail Dokumen</a>
-                <h1 class="text-3xl font-black text-gray-800 mt-3 uppercase tracking-tight">Perbaiki Dokumen SOP</h1>
-                <p class="text-sm text-gray-500 mt-1">Isi kolom file di bawah ini <span class="text-red-600 font-bold">hanya pada file PDF yang ingin diubah/direvisi saja</span>. Kolom yang dikosongkan akan otomatis menggunakan file lama.</p>
-            </div>
+@section('title', 'Perbaiki Dokumen SOP BU')
+@section('header_title', 'Perbaikan Dokumen SOP Unit Bisnis')
 
-            @if ($errors->any())
-                <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-                    @foreach ($errors->all() as $error)
-                        <p class="text-red-600 text-xs font-semibold">{{ $error }}</p>
-                    @endforeach
-                </div>
-            @endif
-
-            <form action="{{ route('admin.BU.update_revision', $document->id) }}" method="POST" enctype="multipart/form-data" class="space-y-6">
-                @csrf
-                @method('PUT')
-
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Judul Dokumen / SOP</label>
-                    <input type="text" name="title" value="{{ old('title', $document->title) }}" required
-                        class="w-full border border-gray-200 bg-gray-50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-blue-900 focus:bg-white focus:outline-none transition-all">
-                </div>
-
-                <div class="p-4 bg-gray-50 rounded-2xl border border-gray-200">
-                    <label class="block text-sm font-bold text-gray-800 mb-1">1. File Cover (PDF)</label>
-                    <p class="text-xs text-gray-400 mb-2">File saat ini: <span class="font-mono text-gray-600">{{ basename($document->file_cover) }}</span></p>
-                    <input type="file" name="file_cover" accept="application/pdf"
-                        class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                </div>
-
-                @if(empty($document->company_header))
-                <div class="p-4 bg-gray-50 rounded-2xl border border-gray-200">
-                    <label class="block text-sm font-bold text-gray-800 mb-1">2. File Lembar Pengesahan (PDF)</label>
-                    <p class="text-xs text-gray-400 mb-2">File saat ini: <span class="font-mono text-gray-600">{{ basename($document->file_lp) }}</span></p>
-                    <input type="file" name="file_lp" accept="application/pdf"
-                        class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                </div>
-                @else
-                <div class="p-4 bg-blue-50/20 rounded-2xl border border-dashed border-blue-200">
-                    <label class="block text-sm font-bold text-blue-800 mb-1">2. Lembar Pengesahan (Auto-Generated)</label>
-                    <p class="text-xs text-blue-600 font-semibold leading-relaxed">
-                        Tabel Lembar Pengesahan di-generate secara otomatis oleh sistem menggunakan data peninjau aktif. Berkas LP akan diperbarui secara otomatis.
-                    </p>
-                </div>
-                @endif
-
-                <div class="p-4 bg-gray-50 rounded-2xl border border-gray-200">
-                    <label class="block text-sm font-bold text-gray-800 mb-1">3. File Isi SOP (PDF)</label>
-                    <p class="text-xs text-gray-400 mb-2">File saat ini: <span class="font-mono text-gray-600">{{ basename($document->file_isi) }}</span></p>
-                    <input type="file" name="file_isi" accept="application/pdf"
-                        class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                </div>
-
-                <div class="p-4 bg-gray-50 rounded-2xl border border-gray-200">
-                    <label class="block text-sm font-bold text-gray-800 mb-1">4. File Lampiran (PDF) - <span class="text-gray-400 font-normal">Opsional (Maksimal 20 file)</span></label>
-                    
-                    @php $allAtts = $document->all_attachments; @endphp
-                    @if($allAtts->count() > 0)
-                        <p class="text-xs font-bold text-gray-600 mb-2">Lampiran Saat Ini (Centang file yang ingin DIHAPUS):</p>
-                        <div class="space-y-2 mb-4">
-                            @foreach($allAtts as $att)
-                                <label class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-gray-200 text-xs font-medium cursor-pointer hover:bg-red-50/50 transition-all">
-                                    <div class="flex items-center gap-2 truncate pr-2">
-                                        <i class="fa-solid fa-file-pdf text-red-500"></i>
-                                        <span class="font-mono text-gray-700 truncate">{{ $att->original_name ?? basename($att->file_path) }}</span>
-                                    </div>
-                                    <div class="flex items-center gap-1.5 text-red-600 font-bold">
-                                        <input type="checkbox" name="deleted_attachments[]" value="{{ $att->id }}" class="rounded text-red-600 focus:ring-red-500">
-                                        <span>Hapus</span>
-                                    </div>
-                                </label>
-                            @endforeach
-                        </div>
-                    @else
-                        <p class="text-xs text-gray-400 mb-2">File saat ini: <span class="font-mono text-gray-600">Tidak ada lampiran</span></p>
-                    @endif
-
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Tambah Lampiran Baru (PDF):</label>
-                    <input type="file" name="file_lampiran[]" multiple accept="application/pdf"
-                        class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                </div>
-
-                <div class="pt-4">
-                    <button type="submit" 
-                        class="w-full bg-blue-900 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-800 active:scale-95 transition-all uppercase tracking-wider text-sm">
-                        🚀 Kirim File Perbaikan & Lewati yang Sudah Approve
-                    </button>
-                </div>
-
-            </form>
-
-        </div>
+@section('content')
+<div class="max-w-4xl mx-auto space-y-6">
+    
+    <!-- TOP BAR -->
+    <div class="flex items-center justify-between">
+        <a href="{{ route('admin.BU.detail', $document->id) }}" class="px-3.5 py-1.5 bg-white border border-[#cfc6ac] text-[#333028] hover:bg-[#fff9ed] rounded-md font-bold text-xs transition-all shadow-sm flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-base">arrow_back</span>
+            <span>Kembali ke Detail Dokumen</span>
+        </a>
     </div>
 
-</body>
-</html>
+    <!-- MAIN CARD FORM CONTAINER -->
+    <div class="bg-white rounded-lg p-6 md:p-8 shadow-sm border border-[#cfc6ac]/60 space-y-6">
+        <div class="border-b border-[#cfc6ac]/40 pb-4">
+            <span class="px-2.5 py-0.5 bg-red-50 text-red-700 font-bold text-[10px] uppercase rounded tracking-wider border border-red-200">Perbaikan Dokumen</span>
+            <h2 class="text-xl font-extrabold text-[#1e1c14] uppercase tracking-tight mt-2">Unggah Perbaikan Dokumen SOP</h2>
+            <p class="text-xs text-[#4d4633] mt-1">
+                Unggah berkas baru <span class="font-bold text-red-600">hanya pada komponen yang memerlukan revisi</span>. Kolom yang dikosongkan akan tetap menggunakan berkas PDF lama.
+            </p>
+        </div>
+
+        @if ($errors->any())
+            <div class="p-3.5 bg-[#ffdad6] border-l-4 border-[#ba1a1a] text-[#ba1a1a] font-semibold text-xs rounded-r-md space-y-1">
+                @foreach ($errors->all() as $error)
+                    <p class="flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">error</span> {{ $error }}</p>
+                @endforeach
+            </div>
+        @endif
+
+        <form action="{{ route('admin.BU.update_revision', $document->id) }}" method="POST" enctype="multipart/form-data" class="space-y-5">
+            @csrf
+            @method('PUT')
+
+            <!-- Judul Dokumen -->
+            <div>
+                <label class="block text-xs font-bold text-[#1e1c14] uppercase tracking-wider mb-1.5">Judul Dokumen / SOP</label>
+                <input type="text" name="title" value="{{ old('title', $document->title) }}" required
+                    class="w-full bg-[#fbf9f4] border border-[#cfc6ac] rounded-md p-2.5 font-semibold text-xs text-[#1e1c14] focus:bg-white focus:ring-2 focus:ring-[#705d00] outline-none transition-all">
+            </div>
+
+            <!-- 1. Cover -->
+            <div class="p-4 bg-[#fbf9f4] rounded-md border border-[#cfc6ac] space-y-2">
+                <label class="block text-xs font-bold text-[#1e1c14]">1. File Cover (PDF)</label>
+                <p class="text-[11px] text-[#4d4633]">File saat ini: <span class="font-mono font-bold text-[#333028]">{{ basename($document->file_cover) }}</span></p>
+                <input type="file" name="file_cover" accept="application/pdf"
+                    class="w-full text-xs font-semibold text-[#4d4633] file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-[#333028] file:text-[#ffe16e] hover:file:bg-black cursor-pointer">
+            </div>
+
+            <!-- 2. Lembar Pengesahan -->
+            @if(empty($document->company_header))
+            <div class="p-4 bg-[#fbf9f4] rounded-md border border-[#cfc6ac] space-y-2">
+                <label class="block text-xs font-bold text-[#1e1c14]">2. File Lembar Pengesahan (PDF)</label>
+                <p class="text-[11px] text-[#4d4633]">File saat ini: <span class="font-mono font-bold text-[#333028]">{{ basename($document->file_lp) }}</span></p>
+                <input type="file" name="file_lp" accept="application/pdf"
+                    class="w-full text-xs font-semibold text-[#4d4633] file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-[#333028] file:text-[#ffe16e] hover:file:bg-black cursor-pointer">
+            </div>
+            @else
+            <div class="p-4 bg-[#fff9ed] rounded-md border border-dashed border-[#cfc6ac] space-y-1">
+                <div class="flex items-center space-x-2 text-[#705d00] font-bold text-xs">
+                    <span class="material-symbols-outlined text-base">auto_awesome</span>
+                    <span>2. Lembar Pengesahan (Auto-Generated)</span>
+                </div>
+                <p class="text-[11px] text-[#4d4633] leading-relaxed">
+                    Tabel Lembar Pengesahan di-generate secara otomatis oleh sistem menggunakan data peninjau aktif. Berkas LP akan diperbarui secara otomatis saat revisi dikirim.
+                </p>
+            </div>
+            @endif
+
+            <!-- 3. File Isi -->
+            <div class="p-4 bg-[#fbf9f4] rounded-md border border-[#cfc6ac] space-y-2">
+                <label class="block text-xs font-bold text-[#1e1c14]">3. File Isi SOP (PDF)</label>
+                <p class="text-[11px] text-[#4d4633]">File saat ini: <span class="font-mono font-bold text-[#333028]">{{ basename($document->file_isi) }}</span></p>
+                <input type="file" name="file_isi" accept="application/pdf"
+                    class="w-full text-xs font-semibold text-[#4d4633] file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-[#333028] file:text-[#ffe16e] hover:file:bg-black cursor-pointer">
+            </div>
+
+            <!-- 4. Lampiran -->
+            <div class="p-4 bg-[#fbf9f4] rounded-md border border-[#cfc6ac] space-y-3">
+                <label class="block text-xs font-bold text-[#1e1c14]">4. File Lampiran (PDF) — <span class="text-[#4d4633] font-normal">Opsional (Maksimal 20 file)</span></label>
+                
+                @php $allAtts = $document->all_attachments; @endphp
+                @if($allAtts->count() > 0)
+                    <p class="text-xs font-bold text-[#4d4633]">Lampiran Saat Ini (Centang file yang ingin DIHAPUS):</p>
+                    <div class="space-y-2">
+                        @foreach($allAtts as $att)
+                            <label class="flex items-center justify-between p-2.5 bg-white rounded-md border border-[#cfc6ac] text-xs font-semibold cursor-pointer hover:bg-red-50 transition-all">
+                                <div class="flex items-center gap-2 truncate pr-2">
+                                    <span class="material-symbols-outlined text-red-600 text-sm">picture_as_pdf</span>
+                                    <span class="font-mono text-[#1e1c14] truncate">{{ $att->original_name ?? basename($att->file_path) }}</span>
+                                </div>
+                                <div class="flex items-center gap-1.5 text-red-600 font-bold">
+                                    <input type="checkbox" name="deleted_attachments[]" value="{{ $att->id }}" class="rounded text-red-600 focus:ring-red-500 w-3.5 h-3.5 border-[#cfc6ac]">
+                                    <span>Hapus</span>
+                                </div>
+                            </label>
+                        @endforeach
+                    </div>
+                @else
+                    <p class="text-xs text-[#4d4633]">File saat ini: <span class="font-mono font-bold text-[#333028]">Tidak ada lampiran</span></p>
+                @endif
+
+                <div class="pt-2">
+                    <label class="block text-xs font-bold text-[#1e1c14] mb-1">Tambah Lampiran Baru (PDF):</label>
+                    <input type="file" name="file_lampiran[]" multiple accept="application/pdf"
+                        class="w-full text-xs font-semibold text-[#4d4633] file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-[#333028] file:text-[#ffe16e] hover:file:bg-black cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="pt-3">
+                <button type="submit" 
+                    class="w-full bg-[#333028] text-[#ffe16e] hover:bg-black font-bold py-3 rounded-md shadow-sm transition-all uppercase tracking-wider text-xs flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-base">send</span>
+                    <span>Kirim File Perbaikan & Lewati yang Sudah Approved</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endsection
+

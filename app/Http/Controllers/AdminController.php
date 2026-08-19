@@ -19,6 +19,7 @@ class AdminController extends Controller
 
             $stats = [
                 'total_pegawai'  => User::where('role', '!=', 'admin')->count(),
+                'total_sop'      => Document::count(),
                 'sop_support'    => Document::whereNotIn('department', $buUnits)->count(),
                 'sop_divisi'     => Document::whereIn('department', $buUnits)->count(),
                 'pending_review' => Document::where('status', 'waiting')->count(),

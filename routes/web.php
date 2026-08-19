@@ -28,7 +28,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     // Kelola Pegawai (CRUD User dengan Role Lengkap)
     Route::resource('users', UserController::class)->except(['show']);
 
-    // Hapus dokumen E-Library secara permanen
+    // E-Library Khusus Admin Workspace
+    Route::get('/library', [LibraryController::class, 'index'])->name('library.index');
+    Route::post('/library/store-manual', [LibraryController::class, 'storeManual'])->name('library.store_manual');
     Route::delete('/library/{id}', [LibraryController::class, 'destroy'])->name('library.destroy');
 
     // ------------------------------------------

@@ -1,75 +1,100 @@
 @extends('layouts.reviewer')
 
-@section('title', 'Daftar Antrian Review')
+@section('title', 'Antrean Review')
+@section('header_title', 'Daftar Antrean Review SOP')
 
 @section('content')
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-
-<style>
-    .eqms-scope {
-        font-family: 'Poppins', sans-serif;
-    }
-</style>
-
-<div class="p-8 eqms-scope">
-    {{-- Header Halaman Utama Pimpinan --}}
-    <div class="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <h2 class="text-2xl font-black text-[#1e293b] uppercase tracking-tight flex items-center gap-2">
-                <i class="fa-solid fa-file-signature text-blue-600"></i> SOP Menunggu Review
+<div class="space-y-6">
+    
+    <!-- HEADER WELCOME CARD (Industrial Crisp Banner) -->
+    <div class="bg-[#333028] text-[#eee8db] rounded-lg p-6 shadow-md relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border border-black/20">
+        <div class="relative z-10">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider bg-[#ffe16e] text-[#333028] mb-2.5">
+                <span class="material-symbols-outlined text-xs">assignment_turned_in</span> Reviewer Workspace
+            </span>
+            <h2 class="text-xl md:text-2xl font-extrabold text-white tracking-tight uppercase">
+                SOP Menunggu Review Anda
             </h2>
-            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
-                Portal Otorisasi Dokumen Mutu • {{ Auth::user()->role ?? Auth::user()->username }}
+            <p class="text-xs text-[#eee8db]/70 mt-1 max-w-xl">
+                Daftar dokumen mutu yang memerlukan pemeriksaan, catatan revisi, atau pengesahan tanda tangan digital dari Anda.
             </p>
         </div>
-        <div class="px-3 py-1.5 bg-blue-50 border border-blue-100/50 text-blue-600 rounded-xl text-[9px] font-bold uppercase tracking-wider animate-pulse flex items-center gap-1.5 h-fit w-fit">
-            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 block"></span> Sistem Siaga
+
+        <div class="relative z-10 flex items-center space-x-2 bg-white/10 px-3.5 py-2 rounded-md border border-white/15 text-xs font-semibold text-[#ffe16e]">
+            <span class="w-2 h-2 rounded-full bg-[#ffe16e] animate-ping"></span>
+            <span>Sistem Siaga Review</span>
         </div>
     </div>
 
-    {{-- Container Box Berkas Konten Utama --}}
-    <div class="bg-white rounded-2xl shadow-md p-8 md:p-10 border border-gray-100 min-h-[450px] transition-all duration-300">
-        <div class="space-y-4">
-            {{-- Loop data dokumen yang dikirim khusus ke reviewer_id login --}}
-            @forelse($documents as $doc)
-            <div class="flex items-center justify-between p-5 bg-gray-50 rounded-xl hover:bg-white hover:shadow-lg transition-all duration-300 border border-transparent hover:border-gray-100 group">
-                <div class="flex items-center space-x-4">
-                    {{-- Ikon Status File Interaktif --}}
-                    <div class="w-12 h-12 bg-white text-[#1e293b] rounded-xl flex items-center justify-center text-lg shadow-sm group-hover:bg-[#1e293b] group-hover:text-white transition-all duration-300">
-                        <i class="fa-regular fa-file-lines"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-extrabold text-[#1e293b] text-sm uppercase tracking-tight leading-snug group-hover:text-blue-600 transition-colors duration-300">{{ $doc->title }}</h3>
-                        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wide mt-1 flex items-center gap-1">
-                            <span class="text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md"><i class="fa-solid fa-building text-[8px] mr-0.5"></i> {{ $doc->department }}</span> 
-                            • Diajukan: {{ $doc->created_at->format('d M Y') }}
-                        </p>
-                    </div>
+    <!-- SEMANTIC DATA TABLE: LIST ANTREAN REVIEW -->
+    <div class="bg-white rounded-lg p-6 shadow-sm border border-[#cfc6ac]/60 min-h-[400px] space-y-4">
+        <div class="flex items-center justify-between border-b border-[#cfc6ac]/40 pb-4">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 rounded-md bg-[#333028] text-[#ffe16e] flex items-center justify-center font-bold">
+                    <span class="material-symbols-outlined text-lg">pending_actions</span>
                 </div>
+                <div>
+                    <h3 class="text-xs font-extrabold text-[#1e1c14] uppercase tracking-wider">Antrean Persetujuan Active</h3>
+                    <p class="text-[11px] text-[#4d4633]">Pilih dokumen untuk membuka pratinjau PDF dan memberikan keputusan</p>
+                </div>
+            </div>
+        </div>
 
-                {{-- Tombol Menuju Halaman Review Dokumen --}}
-                <a href="{{ route('reviewer.show', $doc->id) }}" 
-                   class="bg-[#1e293b] text-white px-6 py-3 rounded-xl font-bold uppercase text-[10px] tracking-wider shadow-md hover:bg-blue-600 hover:shadow-blue-100 transition-all duration-300 transform hover:-translate-y-0.5 flex items-center gap-1.5">
-                    Review Dokumen <i class="fa-solid fa-chevron-right text-[8px]"></i>
-                </a>
-            </div>
-            @empty
-            {{-- 🔥 TAMPILAN ANTRIAN KOSONG PREMIUM BARU (MENGGANTI YANG LAMA) --}}
-            <div class="py-16 flex flex-col items-center justify-center text-center px-6">
-                <div class="w-20 h-20 bg-gray-50 border border-gray-100 rounded-full flex items-center justify-center text-3xl mb-4 text-gray-300 animate-pulse shadow-inner">
-                    <i class="fa-solid fa-inbox"></i>
-                </div>
-                <h5 class="text-sm font-bold text-[#1e293b] uppercase tracking-wide">Semua Tugas Review Selesai</h5>
-                <p class="text-[10px] text-gray-400 font-medium max-w-sm mt-1 leading-relaxed lowercase">belum ada antrian berkas atau ajukan SOP baru yang memerlukan validasi tanda tangan digital anda untuk saat ini.</p>
-                
-                <div class="mt-6 flex gap-3">
-                    <a href="{{ route('library.index') }}" class="px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-[9px] font-bold uppercase tracking-wider text-gray-500 hover:bg-gray-100 transition-all shadow-sm">
-                        <i class="fa-solid fa-book-bookmark mr-1.5 text-blue-500"></i> Buka E-Library
-                    </a>
-                </div>
-            </div>
-            @endforelse
+        <div class="overflow-x-auto border border-[#cfc6ac]/60 rounded-md">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-[#eee8db] border-b border-[#cfc6ac] text-[11px] font-bold uppercase tracking-wider text-[#4d4633]">
+                    <tr>
+                        <th class="py-3 px-4 w-12 text-center">#</th>
+                        <th class="py-3 px-4">Judul Dokumen SOP</th>
+                        <th class="py-3 px-4">Departemen / Unit</th>
+                        <th class="py-3 px-4">Tanggal Pengajuan</th>
+                        <th class="py-3 px-4 text-center">Aksi Tinjauan</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-[#e8e2d6] text-xs font-semibold text-[#1e1c14]">
+                    @forelse($documents as $doc)
+                    <tr class="border-b border-[#e8e2d6] hover:bg-[#f7f6f2] transition-colors">
+                        <td class="py-3.5 px-4 text-center font-bold text-[#705d00]">{{ $loop->iteration }}</td>
+                        <td class="py-3.5 px-4">
+                            <div class="flex items-center space-x-3">
+                                <span class="material-symbols-outlined text-red-600 text-lg flex-shrink-0">description</span>
+                                <span class="font-bold text-[#1e1c14] uppercase hover:text-[#705d00] transition-colors">{{ $doc->title }}</span>
+                            </div>
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <span class="px-2.5 py-1 bg-[#f7f6f2] border border-[#cfc6ac]/60 rounded-md text-[10px] font-bold uppercase text-[#333028]">
+                                {{ $doc->department }}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4 text-[#4d4633] text-[11px]">
+                            {{ $doc->created_at->format('d M Y - H:i') }} WIB
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            <a href="{{ route('reviewer.show', $doc->id) }}" 
+                               class="inline-flex items-center justify-center bg-[#333028] hover:bg-black text-[#ffe16e] px-4 py-2 rounded-md font-bold uppercase text-[10px] tracking-wider transition-all gap-1.5 shadow-sm">
+                                <span>Review</span>
+                                <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                            </a>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="5" class="py-16 text-center text-[#4d4633]">
+                            <div class="flex flex-col items-center justify-center space-y-2">
+                                <span class="material-symbols-outlined text-4xl text-[#705d00]">task_alt</span>
+                                <h5 class="text-xs font-bold text-[#1e1c14] uppercase tracking-wide">Semua Tugas Review Selesai</h5>
+                                <p class="text-[11px] text-[#4d4633] max-w-sm">
+                                    Saat ini belum ada antrean dokumen yang memerlukan pemeriksaan atau penandatanganan digital Anda.
+                                </p>
+                                <a href="{{ route('library.index') }}" class="mt-2 px-4 py-2 bg-[#f7f6f2] border border-[#cfc6ac] rounded-md text-[10px] font-bold uppercase tracking-wider text-[#333028] hover:bg-[#fff9ed] transition-all">
+                                    Buka E-Library
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

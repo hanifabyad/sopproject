@@ -1,104 +1,125 @@
 @extends('layouts.reviewer')
 
 @section('title', 'Peninjauan Digital - ' . $document->title)
+@section('header_title', 'Peninjauan & Verifikasi Digital Dokumen SOP')
 
 @section('content')
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-
-<style>
-    .eqms-scope {
-        font-family: 'Poppins', sans-serif;
-    }
-</style>
-
-<div class="p-8 eqms-scope">
-    {{-- Header Modul Peninjauan --}}
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+<div class="space-y-6">
+    
+    <!-- TOP STATUS HEADER BAR -->
+    <div class="bg-white rounded-[24px] p-6 shadow-sm border border-[#e5dfd3] flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <h2 class="text-2xl font-black text-[#1e293b] uppercase tracking-tight flex items-center gap-2">
-                <i class="fa-solid fa-file-shield text-blue-600"></i> PENINJAUAN DIGITAL
-            </h2>
-            <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Sistem Pengesahan Otomatis e-QMS Quality System</p>
+            <div class="flex items-center space-x-2 text-xs font-semibold text-[#4d4633] mb-1">
+                <span class="px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-full font-bold text-[10px] uppercase flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span>Awaiting Review</span>
+                </span>
+                <span>•</span>
+                <span class="font-bold text-[#1e1c14]">{{ strtoupper($document->department) }}</span>
+            </div>
+            <h2 class="text-xl font-extrabold text-[#1e1c14] tracking-tight uppercase">{{ $document->title }}</h2>
         </div>
-        <a href="{{ route('reviewer.dashboard') }}" class="bg-white border border-gray-200 text-gray-700 px-5 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-wider hover:bg-gray-50 transition-all duration-300 shadow-sm flex items-center gap-2 transform hover:-translate-y-0.5">
-            <i class="fa-solid fa-xmark text-red-500"></i> Batal / Kembali
+
+        <a href="{{ route('reviewer.dashboard') }}" class="px-4 py-2 bg-[#f7f6f2] border border-[#e5dfd3] text-[#333028] hover:bg-[#fff9ed] rounded-full font-bold text-xs transition-all flex items-center gap-1.5 self-start md:self-auto">
+            <span class="material-symbols-outlined text-base">close</span>
+            <span>Batal / Kembali</span>
         </a>
     </div>
 
-    {{-- Layout Utama Workspace (3 Kolom PDF : 1 Kolom Panel Aksi) --}}
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+    <!-- MAIN WORKSPACE SPLIT-SCREEN (VIEWER LEFT, ACTION PANEL RIGHT w-[400px]) -->
+    <div class="flex flex-col lg:flex-row gap-6 items-start">
         
-        {{-- PREVIEW DRAF SOP UTUH (SISI KIRI - ANTI DOWNLOAD & PRINT) --}}
-        <div class="lg:col-span-3">
-            <div class="bg-white rounded-2xl shadow-md p-5 border border-gray-100">
-                <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
-                    <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <i class="fa-solid fa-file-pdf text-red-500 text-xs"></i> Lembar Verifikasi Dokumen Kerja
-                    </h4>
-                    <span class="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-md text-[8px] font-bold uppercase tracking-wider"><i class="fa-solid fa-eye mr-1"></i> Mode Pratinjau Sah</span>
+        <!-- LEFT: TOOLBAR + PDF VIEWER IFRAME -->
+        <div class="flex-1 bg-white rounded-[24px] p-6 shadow-sm border border-[#e5dfd3] space-y-4 w-full">
+            <!-- TOOLBAR TOP -->
+            <div class="flex items-center justify-between border-b border-[#e5dfd3] pb-3 text-xs font-semibold text-[#1e1c14]">
+                <div class="flex items-center space-x-2">
+                    <span class="material-symbols-outlined text-red-600 text-base">picture_as_pdf</span>
+                    <span>Document Stream Player</span>
                 </div>
+                <div class="flex items-center space-x-3 text-[#4d4633]">
+                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">visibility</span> Pratinjau Sah</span>
+                    <a href="{{ route('reviewer.stream.file', $document->id) }}" target="_blank" class="flex items-center gap-1 hover:text-[#705d00]"><span class="material-symbols-outlined text-sm">open_in_new</span> Tab Baru</a>
+                </div>
+            </div>
 
-                <div class="rounded-xl overflow-hidden border border-gray-200 bg-slate-800 relative shadow-inner">
-                    {{-- 🔐 AMANKAN DOKUMEN: Parameter #toolbar=0&navpanes=0&view=FitH dipasang ketat untuk menyembunyikan tombol download/print bawaan browser --}}
-                    <iframe src="{{ route('reviewer.stream.file', $document->id) }}#toolbar=0&navpanes=0&view=FitH" 
-                            class="w-full min-h-[750px] border-none" 
-                            style="height: 75vh;"
-                            id="pdfViewerFrame">
-                    </iframe>
-                    
-                    {{-- Lapisan pelindung transparan di area luar iframe untuk memblokir klik kanan jahil --}}
-                    <div class="absolute inset-0 bg-transparent pointer-events-none" oncontextmenu="return false;"></div>
-                </div>
+            <!-- PDF VIEWPORT -->
+            <div class="h-[650px] bg-[#f7f6f2] rounded-xl overflow-hidden border border-[#e5dfd3] shadow-inner relative">
+                <iframe src="{{ route('reviewer.stream.file', $document->id) }}#toolbar=0&navpanes=0&view=FitH" 
+                        class="w-full h-full border-none" 
+                        id="pdfViewerFrame">
+                </iframe>
+                <div class="absolute inset-0 bg-transparent pointer-events-none" oncontextmenu="return false;"></div>
             </div>
         </div>
 
-        {{-- PANEL KEPUTUSAN REVIEWER (SISI KANAN) --}}
-        <div class="lg:col-span-1">
-            <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-100 sticky top-8 flex flex-col justify-between min-h-[350px]">
-                <div class="w-full">
-                    <h4 class="text-[10px] font-black uppercase mb-4 tracking-wider text-gray-400 border-b border-gray-100 pb-3 flex items-center gap-1.5">
-                        <i class="fa-solid fa-gavel text-blue-500"></i> Keputusan Reviewer
-                    </h4>
-                    
-                    <form id="review-form" method="POST" class="space-y-4">
-                        @csrf
-                        {{-- Input Catatan/Koreksi --}}
-                        <div>
-                            <label class="block text-[8px] font-bold uppercase text-gray-400 mb-1.5 tracking-wider">Catatan / Instruksi Tambahan:</label>
-                            <textarea 
-                                name="notes" 
-                                placeholder="Tulis instruksi revisi atau catatan persetujuan Anda di sini..."
-                                class="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs font-medium text-gray-700 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all placeholder-gray-300 resize-none shadow-inner"
-                                rows="5"></textarea>
-                        </div>
-                        
-                        {{-- Tombol Keputusan Semantik --}}
-                        <div class="flex flex-col gap-2.5 pt-2">
-                            {{-- Tombol Setuju & Sahkan (Hijau Mewah) --}}
-                            <button type="submit" 
-                                    formaction="{{ route('reviewer.approve', $document->id) }}"
-                                    class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold uppercase text-[10px] tracking-wider shadow-md hover:shadow-emerald-100 transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-1.5">
-                                <i class="fa-solid fa-file-signature text-xs"></i> Setuju & Sahkan Digital
-                            </button>
-
-                            {{-- Tombol Kembalikan / Tolak Revisi (Merah Berbahaya) --}}
-                            <button type="submit" 
-                                    formaction="{{ route('reviewer.reject', $document->id) }}"
-                                    class="w-full py-3.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold uppercase text-[10px] tracking-wider shadow-md hover:shadow-red-100 transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-1.5">
-                                <i class="fa-solid fa-rotate-left text-xs"></i> Kembalikan (Revisi)
-                            </button>
-                        </div>
-                    </form>
+        <!-- RIGHT: ACTION PANEL (w-full lg:w-[400px]) -->
+        <div class="w-full lg:w-[400px] flex-shrink-0">
+            <div class="bg-white p-6 rounded-[24px] shadow-sm border border-[#e5dfd3] space-y-6">
+                <!-- PANEL HEADER -->
+                <div class="border-b border-[#e5dfd3] pb-3 space-y-1">
+                    <div class="flex items-center space-x-2 text-[#705d00]">
+                        <span class="material-symbols-outlined text-lg">gavel</span>
+                        <h4 class="font-extrabold text-xs uppercase tracking-wider">Keputusan Peninjauan</h4>
+                    </div>
+                    <p class="text-[11px] text-[#4d4633]">Pilih tindakan persetujuan atau penolakan dokumen</p>
                 </div>
                 
-                {{-- Keterangan Otomatisasi Proteksi Bawah --}}
-                <div class="mt-6 pt-3 border-t border-gray-50 flex items-center gap-2 text-gray-400">
-                    <i class="fa-solid fa-shield-halved text-xs text-blue-500/70"></i>
-                    <p class="text-[8px] font-semibold uppercase leading-relaxed tracking-wide">Enkripsi e-QMS mengamankan dokumen ini dari penyalinan data ilegal.</p>
+                <!-- DECISION FORM -->
+                <form id="review-form" method="POST" class="space-y-5">
+                    @csrf
+                    
+                    <!-- DETAILS METADATA SUMMARY -->
+                    <div class="p-3.5 bg-[#f7f6f2] rounded-xl border border-[#e5dfd3] space-y-1.5 text-xs text-[#4d4633]">
+                        <div class="flex justify-between">
+                            <span>Role Peninjau:</span>
+                            <strong class="text-[#1e1c14] uppercase">{{ Auth::user()->role }}</strong>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Status Antrean:</span>
+                            <strong class="text-[#705d00] uppercase">Waiting Review</strong>
+                        </div>
+                    </div>
+
+                    <!-- NOTES TEXTAREA -->
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase text-[#4d4633] mb-1.5">Catatan / Instruksi Peninjau:</label>
+                        <textarea 
+                            name="notes" 
+                            placeholder="Tulis instruksi perbaikan atau catatan persetujuan di sini..."
+                            class="w-full bg-[#f7f6f2] border border-[#e5dfd3] rounded-xl p-3.5 text-xs font-semibold text-[#1e1c14] outline-none focus:bg-white focus:ring-2 focus:ring-[#705d00] transition-all placeholder-[#d6cebf] resize-none"
+                            rows="5"></textarea>
+                    </div>
+                    
+                    <!-- ACTION BUTTONS -->
+                    <div class="space-y-3 pt-2">
+                        <!-- Approve Button -->
+                        <button type="submit" 
+                                id="approve-btn"
+                                formaction="{{ route('reviewer.approve', $document->id) }}"
+                                class="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full font-bold uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2">
+                            <span class="material-symbols-outlined text-base">check_circle</span>
+                            <span>Setuju & Sahkan Digital</span>
+                        </button>
+
+                        <!-- Reject / Revision Button -->
+                        <button type="submit" 
+                                id="reject-btn"
+                                formaction="{{ route('reviewer.reject', $document->id) }}"
+                                class="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-full font-bold uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2">
+                            <span class="material-symbols-outlined text-base">cancel</span>
+                            <span>Kembalikan (Minta Revisi)</span>
+                        </button>
+                    </div>
+                </form>
+
+                <div class="pt-3 border-t border-[#e5dfd3] flex items-center space-x-2 text-[10px] text-[#4d4633]">
+                    <span class="material-symbols-outlined text-base text-[#705d00]">verified</span>
+                    <span>Sistem enkripsi e-QMS mengamankan dokumen ini.</span>
                 </div>
             </div>
         </div>
 
     </div>
 </div>
+@endsection
