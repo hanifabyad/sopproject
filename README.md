@@ -1,59 +1,226 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# e-QMS Portal — PT PKM Group
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Electronic Quality Management System untuk mengelola dokumen SOP, proses review, approval digital, revisi, dan arsip dokumen sah dalam satu portal.
 
-## About Laravel
+## Fitur
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Login admin, reviewer, dan magic link dari email.
+- Manajemen akun pengguna, jabatan, dan tanda tangan digital.
+- Manajemen SOP Business Unit dan Departemen Support.
+- Upload Cover, Lembar Pengesahan, Isi SOP, dan Lampiran.
+- Workflow approval otomatis berurutan.
+- Reviewer dapat menyetujui atau meminta revisi dengan catatan.
+- Stempel digital otomatis pada PDF.
+- Dukungan format Lembar Pengesahan khusus PT CPT.
+- Dukungan satu pengguna dengan beberapa jabatan approval.
+- Nomor revisi otomatis: revisi 0 saat dokumen dibuat, lalu 1, 2, 3, dan seterusnya saat file revisi diunggah.
+- Audit log aktivitas dokumen dan riwayat approval.
+- Notifikasi email dan signed magic link.
+- E-Library untuk dokumen yang sudah disahkan.
+- Preview PDF langsung di halaman reviewer.
+- Tampilan responsif untuk admin dan reviewer.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Alur Dokumen
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```text
+Admin upload SOP
+      ↓
+Sistem membuat LP dan PDF gabungan
+      ↓
+Reviewer menerima email / magic link
+      ↓
+Reviewer approve atau meminta revisi
+      ↓
+Sistem menambahkan stamp digital
+      ↓
+Approval berikutnya aktif otomatis
+      ↓
+Semua approval selesai
+      ↓
+Dokumen menjadi aktif dan masuk E-Library
+```
 
-## Learning Laravel
+Jika reviewer meminta revisi, pembuat dokumen dapat mengunggah file baru. Nomor revisi hanya bertambah ketika file baru benar-benar diunggah, bukan ketika reviewer melakukan approval.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Teknologi
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- Laravel 12
+- PHP 8.2+
+- MySQL atau MariaDB
+- Blade, Tailwind CSS, dan Vite
+- FPDI/FPDF untuk stamp PDF
+- PDFMerger untuk menggabungkan file PDF
+- PDFParser untuk membaca struktur PDF
+- Laravel Mail untuk notifikasi
 
-## Laravel Sponsors
+## Persyaratan Instalasi
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- PHP 8.2 atau lebih baru
+- Composer
+- Node.js dan npm
+- MySQL/MariaDB
+- Git
+- QPDF (opsional, disarankan untuk PDF terkompresi)
 
-### Premium Partners
+Untuk Windows, project dapat dijalankan menggunakan Laragon.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## Instalasi Lokal
 
-## Contributing
+```bash
+git clone https://github.com/hanifabyad/sopproject.git
+cd sopproject
+composer install
+npm install
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Buat environment file dan application key.
 
-## Code of Conduct
+Windows:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+copy .env.example .env
+php artisan key:generate
+```
 
-## Security Vulnerabilities
+Linux/macOS:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+cp .env.example .env
+php artisan key:generate
+```
 
-## License
+## Konfigurasi Database
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Buat database baru, lalu sesuaikan `.env`:
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=eqms
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+Jalankan migration dan seeder:
+
+```bash
+php artisan migrate --seed
+```
+
+Akun admin awal:
+
+```text
+Username: admin
+Password: password123
+```
+
+Segera ganti password tersebut setelah login pada environment bersama atau production.
+
+## Konfigurasi Email
+
+Contoh konfigurasi Gmail SMTP:
+
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=alamat-email@gmail.com
+MAIL_PASSWORD=app-password-gmail
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=alamat-email@gmail.com
+MAIL_FROM_NAME="e-QMS PT PKM Group"
+MAIL_TIMEOUT=10
+```
+
+Gunakan Gmail App Password, bukan password akun Gmail biasa. Untuk development tanpa mengirim email:
+
+```env
+MAIL_MAILER=log
+```
+
+Email akan ditulis ke `storage/logs/laravel.log`.
+
+## Konfigurasi QPDF
+
+QPDF digunakan sebagai fallback untuk PDF dengan kompresi yang tidak didukung parser gratis FPDI.
+
+Windows:
+
+```env
+QPDF_BINARY_PATH="C:\\Program Files\\qpdf\\bin\\qpdf.exe"
+```
+
+Linux:
+
+```env
+QPDF_BINARY_PATH=/usr/bin/qpdf
+```
+
+## Menjalankan Aplikasi
+
+Jalankan server Laravel dan Vite pada dua terminal:
+
+```bash
+php artisan serve
+npm run dev
+```
+
+Atau gunakan script gabungan:
+
+```bash
+composer run dev
+```
+
+Aplikasi tersedia di `http://127.0.0.1:8000`.
+
+Untuk build frontend production:
+
+```bash
+npm run build
+```
+
+## Testing
+
+```bash
+php artisan test
+```
+
+Test mencakup approval workflow, revisi dokumen, custom workflow, multi-jabatan, validasi reviewer, akses dokumen, dan pencegahan approval duplikat.
+
+## Struktur Modul
+
+```text
+app/Http/Controllers/
+├── AdminController.php
+├── BusinessUnitController.php
+├── LibraryController.php
+├── LoginController.php
+├── ReviewerController.php
+├── SupportController.php
+└── UserController.php
+
+app/Services/
+├── LpGeneratorService.php
+├── LpSectionSignerParser.php
+└── PdfSignaturePositionResolver.php
+
+resources/views/
+├── admin/
+├── reviewer/
+├── library/
+├── emails/
+└── layouts/
+```
+
+## Keamanan
+
+- Jangan commit file `.env`.
+- Jangan menyimpan password SMTP atau secret key di repository.
+- Gunakan `APP_DEBUG=false` pada production.
+- Gunakan HTTPS untuk magic link dan halaman approval.
+- Ganti password admin bawaan setelah instalasi.
+
+## Lisensi
+
+Project ini dikembangkan untuk kebutuhan internal PT PKM Group.
