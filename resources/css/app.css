@@ -59,4 +59,14 @@
     background: transparent;
 }
 
+/* Responsive PDF Preview Modal padding matching the sidebar state on Desktop */
+@media (min-width: 1024px) {
+    #main-container.lg\:pl-64 #pdfModal {
+        padding-left: 17.5rem !important;
+    }
+    #main-container.lg\:pl-16 #pdfModal {
+        padding-left: 5.5rem !important;
+    }
+}
+
 

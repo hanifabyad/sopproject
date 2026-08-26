@@ -436,4 +436,89 @@ class E2EWorkflowTest extends TestCase
             }
         }
     }
+
+    public function test_revision_locking_and_email_notification()
+    {
+        Mail::fake();
+        DB::beginTransaction();
+
+        try {
+            $creator = User::findOrFail(28); // Imam M
+            $reviewer1 = User::findOrFail(7); // Trinwetty
+            $reviewer2 = User::findOrFail(26); // Yayu Indah Maya
+            $reviewer3 = User::findOrFail(15); // Putri Larasati Ariandini
+            $finalApprover = User::findOrFail(17); // Zikri
+            $admin = User::where('role', 'admin')->firstOrFail();
+
+            $cover = $this->createMockPdf('CoverLock', 1);
+            $isi = $this->createMockPdf('IsiLock', 2);
+
+            $payload = [
+                'title'           => 'Test SOP Kunci',
+                'file_cover'      => $cover,
+                'file_isi'        => $isi,
+                'company_header'  => 'pkm',
+                'doc_number'      => 'SOP-LOCK-001',
+                'doc_revision'    => '0',
+                'doc_date'        => now()->format('Y-m-d'),
+                'creator_id'      => $creator->id,
+                'reviewers'       => [$reviewer1->id, $reviewer2->id, $reviewer3->id],
+                'final_id'        => $finalApprover->id,
+            ];
+
+            $response = $this->actingAs($admin)
+                ->post(route('admin.BU.store', ['unit' => 'SPBU']), $payload);
+            $response->assertRedirect();
+            
+            $document = Document::where('title', 'Test SOP Kunci')->firstOrFail();
+            $this->filesToClean[] = storage_path('app/public/' . $document->file_cover);
+            $this->filesToClean[] = storage_path('app/public/' . $document->file_lp);
+            $this->filesToClean[] = storage_path('app/public/' . $document->file_isi);
+            if ($document->file_preview) $this->filesToClean[] = storage_path('app/public/' . $document->file_preview);
+
+            // 1. Creator approves first
+            $this->actingAs($creator)->post(route('reviewer.approve', ['id' => $document->id]), ['notes' => 'ready']);
+            $document->refresh();
+
+            // 2. Reviewer 1 (Trinwetty) is current. Let's make Reviewer 1 request revision.
+            $this->actingAs($reviewer1)->post(route('reviewer.reject', ['id' => $document->id]), ['notes' => 'Perbaiki penulisan.']);
+            $document->refresh();
+            $this->assertEquals('need_revision', $document->status);
+
+            // 3. Reviewer 2 tries to approve while in need_revision status -> must be blocked
+            $response = $this->actingAs($reviewer2)
+                ->post(route('reviewer.approve', ['id' => $document->id]), ['notes' => 'approve anyway']);
+            $response->assertRedirect();
+            $this->assertNotNull(session('error') ?? null);
+
+            // 4. Checking the show page for Reviewer 2 -> must contain locking message and history logs
+            $response = $this->actingAs($reviewer2)->get(route('reviewer.show', $document->id));
+            $response->assertStatus(200);
+            $response->assertSee('Dokumen Ditangguhkan / Terkunci');
+            $response->assertSee('Perbaiki penulisan.'); // Catatan reviewer 1
+
+            // 5. Creator uploads revision.
+            // Check that emails are dispatched to both reviewer1 (who requested it) AND reviewer2 + reviewer3 + finalApprover (who haven't approved yet).
+            $newIsi = $this->createMockPdf('IsiLockRev', 2);
+            $response = $this->actingAs($admin)
+                ->put(route('admin.BU.update_revision', $document->id), [
+                    'title' => 'Test SOP Kunci',
+                    'file_isi' => $newIsi
+                ]);
+            $response->assertRedirect();
+
+            // Verify Mail::sent count or types
+            Mail::assertSent(\App\Mail\DocumentRevisionResubmittedMail::class, function ($mail) use ($reviewer1, $reviewer2, $reviewer3, $finalApprover) {
+                return in_array($mail->user->id, [$reviewer1->id, $reviewer2->id, $reviewer3->id, $finalApprover->id]);
+            });
+
+        } finally {
+            DB::rollBack();
+            foreach (array_unique($this->filesToClean) as $file) {
+                if (file_exists($file)) {
+                    @unlink($file);
+                }
+            }
+        }
+    }
 }

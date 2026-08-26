@@ -443,14 +443,19 @@ class LpGeneratorService
         // ---------------------------------------------------------
         // 6. FOOTER NOTES & REVISION TABLE (PT CPT Specific or Default)
         // ---------------------------------------------------------
+        // Draw note text below approval table (for all templates, exactly 5mm below the last signature row)
+        $pdf->SetXY(17, $currentY + 5.0);
+        $pdf->SetFont('Arial', '', 9.0);
         if ($companyCode === 'cpt') {
-            $yTable = 240.0;
-
-            // Draw note text above table
-            $pdf->SetXY(17, $yTable - 6.0);
-            $pdf->SetFont('Arial', '', 9.0);
             $pdf->SetTextColor(0, 0, 0);
             $pdf->Cell(176, 4, 'Keterangan: NA (Not Applicable), apabila tidak diperlukan pemeriksaan dan persetujuan dari Pejabat terkait', 0, 1, 'L');
+        } else {
+            $pdf->SetTextColor(80, 80, 80); // dark gray — clearly legible
+            $pdf->Cell(160, 4, 'Keterangan: NA (Not Applicable), apabila tidak diperlukan pemeriksaan dan persetujuan dari Pejabat terkait', 0, 1, 'L');
+        }
+
+        if ($companyCode === 'cpt') {
+            $yTable = 240.0;
 
             // Draw table outer rect
             $pdf->SetLineWidth($LINE_TABLE);
@@ -509,11 +514,6 @@ class LpGeneratorService
                     $pdf->Cell($colWidth - 4, 4, $revValues[$row][$col], 0, 0, 'L');
                 }
             }
-        } else {
-            $pdf->SetXY(17, $currentY + 5.0);
-            $pdf->SetFont('Arial', '', 9.0);
-            $pdf->SetTextColor(80, 80, 80); // dark gray — clearly legible
-            $pdf->Cell(160, 4, 'Keterangan: NA (Not Applicable), apabila tidak diperlukan pemeriksaan dan persetujuan dari Pejabat terkait', 0, 1, 'L');
         }
 
         // Output and save PDF to public storage

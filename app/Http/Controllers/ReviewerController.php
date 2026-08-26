@@ -59,7 +59,7 @@ public function index()
 
     public function show($id)
     {
-        $document = Document::findOrFail($id);
+        $document = Document::with('approvals.user')->findOrFail($id);
         $user = Auth::user();
 
         if ($user->role !== 'admin') {
@@ -88,6 +88,9 @@ public function index()
         try {
             \Illuminate\Support\Facades\DB::transaction(function () use ($request, $id, &$statusMsg, &$usersToNotify, &$creatorToNotify, &$finalNotifiedUsers) {
                 $document = Document::where('id', $id)->lockForUpdate()->firstOrFail();
+                if ($document->status === 'need_revision') {
+                    throw new \Exception('Dokumen ini sedang dikunci untuk perbaikan revisi.');
+                }
                 $user = Auth::user();
                 \Log::info("e-QMS DEBUG USER INSIDE CONTROLLER: ID=" . ($user ? $user->id : 'NULL') . ", username=" . ($user ? $user->username : 'NULL'));
 
@@ -909,6 +912,9 @@ public function reject(Request $request, $id)
     ]);
 
     $document = Document::findOrFail($id);
+    if ($document->status === 'need_revision') {
+        return redirect()->route('reviewer.dashboard')->with('error', 'Dokumen ini sedang dikunci untuk perbaikan revisi.');
+    }
     $user = auth()->user(); // Ambil data reviewer yang sedang login
 
     // ================================================================

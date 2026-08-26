@@ -154,8 +154,8 @@
         }
     </style>
 </head>
-<body class="bg-canvas text-on-surface h-full font-sans antialiased overflow-hidden selection:bg-gold-fixed selection:text-charcoal-900">
-    <div class="flex h-screen w-full overflow-hidden">
+<body class="bg-canvas text-on-surface h-full font-sans antialiased lg:overflow-hidden overflow-y-auto selection:bg-gold-fixed selection:text-charcoal-900">
+    <div class="flex lg:h-screen lg:overflow-hidden min-h-screen w-full">
         
         <!-- SIDEBAR (Gradient Blue-Teal - sama dengan Admin) -->
         <aside id="sidebar" class="w-64 bg-gradient-to-b from-[#1677B8] to-[#00b4d8] text-white flex-shrink-0 flex flex-col z-40 fixed inset-y-0 left-0 transform -translate-x-full lg:translate-x-0 transition-all duration-200 ease-in-out rounded-r-3xl">
@@ -230,7 +230,7 @@
             </button>
 
             <!-- CANVAS AREA -->
-            <main class="flex-1 overflow-y-auto pt-6 px-4 md:px-6 pb-6 md:pb-8 custom-scrollbar">
+            <main class="flex-1 lg:overflow-y-auto pt-6 px-4 md:px-6 pb-6 md:pb-8 custom-scrollbar">
                 @if(session('success'))
                     <div class="mb-5 p-3.5 bg-emerald-50 border-l-4 border-emerald-600 text-emerald-800 font-semibold text-xs rounded-r-md shadow-sm flex items-center space-x-2.5">
                         <span class="material-symbols-outlined text-base text-emerald-600">check_circle</span>

@@ -975,6 +975,37 @@ class BusinessUnitController extends Controller
                 }
             }
 
+            // Kirim notifikasi informatif ke reviewer/final signer yang belum 'approved' (dan bukan giliran aktif saat ini)
+            $pendingOtherReviewers = DocumentApproval::where('document_id', $document->id)
+                ->whereIn('status', ['pending', 'waiting'])
+                ->whereIn('stage', ['reviewer', 'final'])
+                ->whereNotIn('user_id', $activatedUserIds)
+                ->with('user')
+                ->get();
+
+            foreach ($pendingOtherReviewers as $appItem) {
+                $notifyUser = $appItem->user;
+                if ($notifyUser && !empty(trim($notifyUser->email ?? ''))) {
+                    try {
+                        $magicLoginUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                            'login.magic',
+                            now()->addHours(24),
+                            [
+                                'user_id' => $notifyUser->id,
+                                'document_id' => $document->id
+                            ]
+                        );
+
+                        Mail::to($notifyUser->email)->send(
+                            new \App\Mail\DocumentRevisionResubmittedMail($document, $notifyUser, auth()->user(), $magicLoginUrl)
+                        );
+                        \Log::info("e-QMS BU: Notifikasi revisi dikirim ke reviewer belum approve (antrean depan): User ID {$notifyUser->id} ({$notifyUser->username})");
+                    } catch (\Exception $e) {
+                        \Log::error("e-QMS BU Email Revisi (Pending Reviewer) Error for User ID {$notifyUser->id}: " . $e->getMessage());
+                    }
+                }
+            }
+
             return redirect()->route('admin.BU.detail', $document->id)
                 ->with('success', 'File revisi berhasil digabungkan dan dialirkan langsung ke ' . ($firstTarget->user->username ?? 'Peninjau'));
 
