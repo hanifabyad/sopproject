@@ -28,6 +28,7 @@ private $roles = [
     'Ka. BU Gas & SPBE', 'Chief F&A Gas', 'Ka. Operasional',
     'Ka. BU Inmarr', 'Chief F & A Inmarr', 'Ka. Operasional Inmarr',
     'Ka. BU CPT',
+    'Direktur CPT',
     
     // --- DEPARTEMEN SUPPORT ---
     'KA.DEPT.HC', 'KA.DEPT.ADMIN & LEGAL', 'KA.DEPT.IT', 'KA.DEPT.CORPORATE SEKTARIS', 

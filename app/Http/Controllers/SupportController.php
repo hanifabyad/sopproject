@@ -82,14 +82,18 @@ class SupportController extends Controller
                 'file_isi'        => 'required|mimes:pdf|max:10000',
                 'file_lampiran'   => 'nullable|array|max:20',
                 'file_lampiran.*' => 'file|mimes:pdf|max:5000',
-                'company_header'  => 'required|string|in:pkm,sck,cpt,lbs',
+                'company_header'  => 'required|string|max:50',
                 'doc_number'      => 'required|string|max:255',
                 'doc_revision'    => 'required|string|max:50',
                 'doc_date'        => 'required|date',
                 'creator_id'      => 'required|exists:users,id',
                 'reviewers'       => 'required|array|min:3',
-                'reviewers.*'     => 'exists:users,id',
-                'final_id'        => 'required|exists:users,id',
+                'reviewers.*'     => 'exists:users,id|distinct',
+                'final_ids'       => 'nullable|array|min:1',
+                'final_ids.*'     => 'exists:users,id|distinct',
+                'final_additional_ids'   => 'nullable|array',
+                'final_additional_ids.*' => 'exists:users,id|distinct',
+                'final_id'        => 'nullable|exists:users,id',
             ]);
 
             // 2. Simpan Berkas Fisik Asli
@@ -136,11 +140,35 @@ class SupportController extends Controller
                 $attachmentsPageCount += count($lampPdf->getPages());
             }
 
-            $totalPages = 1 + 1 + $isiPageCount + $attachmentsPageCount; // Cover (1) + LP (1) + Content + Attachments
+            $totalPages = 1 + $isiPageCount + $attachmentsPageCount; // LP + Content + Attachments; cover tidak dihitung
 
             // Retrieve signers
             $creatorUser = User::findOrFail($request->creator_id);
-            $finalUser = User::findOrFail($request->final_id);
+            $finalIds = array_values(array_filter((array)$request->input('final_additional_ids', [])));
+            $finalIds = array_merge($finalIds, array_values(array_filter((array)$request->input('final_ids', []))));
+            if (empty($finalIds) && $request->filled('final_id')) $finalIds = [$request->input('final_id')];
+            $defaultFinal = User::whereRaw('LOWER(username) = ?', ['zikri'])->first();
+            if ($defaultFinal) {
+                $finalIds = array_values(array_filter($finalIds, fn ($id) => (string)$id !== (string)$defaultFinal->id));
+            }
+            
+            // Enforce Hendro accounts are placed directly before Zikri
+            $hendroIds = User::whereIn('id', $finalIds)
+                ->where(function($q) {
+                    $q->whereRaw('LOWER(username) LIKE ?', ['hendro%']);
+                })
+                ->pluck('id')
+                ->toArray();
+            if (!empty($hendroIds)) {
+                $finalIds = array_values(array_filter($finalIds, fn ($id) => !in_array($id, $hendroIds)));
+                $finalIds = array_merge($finalIds, $hendroIds);
+            }
+
+            if ($defaultFinal) {
+                $finalIds[] = $defaultFinal->id;
+            }
+            if (empty($finalIds)) throw new \Exception('Select at least one final approver.');
+            $finalUsers = User::whereIn('id', $finalIds)->get()->sortBy(fn ($user) => array_search($user->id, $finalIds))->values();
             $reviewerIdsOrdered = $request->reviewers;
             $reviewerUsers = User::whereIn('id', $reviewerIdsOrdered)->get()->sortBy(function($user) use ($reviewerIdsOrdered) {
                 return array_search($user->id, $reviewerIdsOrdered);
@@ -153,11 +181,12 @@ class SupportController extends Controller
                 'doc_number'     => $request->doc_number,
                 'doc_revision'   => $request->doc_revision,
                 'doc_date'       => date('d F Y', strtotime($request->doc_date)),
+                'revision_history' => [0 => $request->doc_date],
                 'company_header' => $request->company_header,
                 'total_pages'    => $totalPages
             ];
 
-            $lpResult = $lpGenerator->generate($lpData, $creatorUser, $reviewerUsers, $finalUser);
+            $lpResult = $lpGenerator->generate($lpData, $creatorUser, $reviewerUsers, $finalUsers);
             $pathLp = $lpResult['file_path'];
             $coordinates = $lpResult['coordinates'];
             $uploadedNewFiles[] = $pathLp;
@@ -197,7 +226,7 @@ class SupportController extends Controller
             $createdDocument = null;
             $creatorUserObj = $creatorUser;
 
-            \Illuminate\Support\Facades\DB::transaction(function () use ($request, $department, $pathCover, $pathLp, $pathIsi, $attachmentData, $previewPath, $coordinates, $creatorUser, $reviewerUsers, $finalUser, &$createdDocument) {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($request, $department, $pathCover, $pathLp, $pathIsi, $attachmentData, $previewPath, $coordinates, $creatorUser, $reviewerUsers, $finalUsers, &$createdDocument) {
                 $firstPathLamp = !empty($attachmentData) ? $attachmentData[0]['file_path'] : null;
 
                 $createdDocument = Document::create([
@@ -242,12 +271,14 @@ class SupportController extends Controller
                 }
 
                 // 3. Final Approver
-                $signersList[] = [
-                    'user' => $finalUser,
-                    'stage' => 'final',
-                    'status' => 'pending',
-                    'sequence' => $seq++
-                ];
+                foreach ($finalUsers as $finalUser) {
+                    $signersList[] = [
+                        'user' => $finalUser,
+                        'stage' => 'final',
+                        'status' => 'pending',
+                        'sequence' => $seq++
+                    ];
+                }
 
                 foreach ($signersList as $s) {
                     $approverUser = $s['user'];
@@ -260,7 +291,10 @@ class SupportController extends Controller
                     }
 
                     // Map dynamic coordinates from generator
-                    $pos = collect($coordinates)->firstWhere('user_id', $approverUser->id);
+                    static $userOccurrences = [];
+                    $occurrence = $userOccurrences[$approverUser->id] ?? 0;
+                    $userOccurrences[$approverUser->id] = $occurrence + 1;
+                    $pos = collect($coordinates)->first(fn ($coordinate) => $coordinate['user_id'] == $approverUser->id && ($coordinate['occurrence'] ?? 0) === $occurrence);
                     if (!$pos) {
                         throw new \Exception("Gagal menentukan koordinat tanda tangan untuk {$approverUser->full_name}.");
                     }
@@ -272,7 +306,7 @@ class SupportController extends Controller
                         'stage'            => $s['stage'],
                         'status'           => $s['status'],
                         'notes'            => null,
-                        'signature_slot'   => $slotMeta['signature_slot'],
+                        'signature_slot'   => $s['stage'] === 'final' ? 'sig09_final_' . $occurrence : $slotMeta['signature_slot'],
                         'signature_page'   => $pos['page'],
                         'signature_x'      => $pos['x'],
                         'signature_y'      => $pos['y'],
@@ -470,6 +504,8 @@ class SupportController extends Controller
 
             $document = Document::with('attachments')->findOrFail($id);
             $unit = $document->department;
+            $nextRevision = (string)((int)$document->doc_revision + 1);
+            $revisionDate = now()->toDateString();
 
             // Handle Cover
             $pathCover = $document->file_cover;
@@ -570,27 +606,31 @@ class SupportController extends Controller
                     }
                 }
 
-                $totalPages = 1 + 1 + $isiPageCount + $attachmentsPageCount;
+                $totalPages = 1 + $isiPageCount + $attachmentsPageCount; // LP + Content + Attachments; cover tidak dihitung
 
                 $creatorApp = DocumentApproval::where('document_id', $document->id)->where('stage', 'creator')->first();
                 $reviewerApps = DocumentApproval::where('document_id', $document->id)->where('stage', 'reviewer')->orderBy('sequence', 'asc')->get();
-                $finalApp = DocumentApproval::where('document_id', $document->id)->where('stage', 'final')->first();
+                $finalApps = DocumentApproval::where('document_id', $document->id)->where('stage', 'final')->orderBy('sequence')->get();
 
                 $creatorUser = $creatorApp->user;
                 $reviewerUsers = $reviewerApps->map->user;
-                $finalUser = $finalApp->user;
+                $finalUsers = $finalApps->map->user;
 
                 $lpGenerator = new \App\Services\LpGeneratorService();
                 $lpData = [
                     'title'          => $request->title,
                     'doc_number'     => $document->doc_number,
-                    'doc_revision'   => $document->doc_revision,
-                    'doc_date'       => date('d F Y', strtotime($document->doc_date)),
-                    'company_header' => $document->company_header,
+                    'doc_revision'   => $nextRevision,
+                    'doc_date'       => date('d F Y', strtotime($revisionDate)),
+                'revision_date'  => $revisionDate,
+                'revision_history' => collect([0 => $document->created_at])
+                    ->merge($document->logs()->where('action', 'revisi')->where('notes', 'like', '%unggah%')->orderBy('created_at')->pluck('created_at')->mapWithKeys(fn ($date, $index) => [$index + 1 => $date]))
+                    ->all(),
+                'company_header' => $document->company_header,
                     'total_pages'    => $totalPages
                 ];
 
-                $lpResult = $lpGenerator->generate($lpData, $creatorUser, $reviewerUsers, $finalUser);
+                $lpResult = $lpGenerator->generate($lpData, $creatorUser, $reviewerUsers, $finalUsers);
                 $pathLp = $lpResult['file_path'];
                 $coordinates = $lpResult['coordinates'];
                 $uploadedNewFiles[] = $pathLp;
@@ -670,8 +710,11 @@ class SupportController extends Controller
                         $pageCount = $pdfStamper->setSourceFile($previewAbs);
 
                         $stampsToDraw = [];
+                        $userOccurrences = [];
                         foreach ($allApproved as $appItem) {
-                            $pos = collect($coordinates)->firstWhere('user_id', $appItem->user_id);
+                            $occurrence = $userOccurrences[$appItem->user_id] ?? 0;
+                            $userOccurrences[$appItem->user_id] = $occurrence + 1;
+                            $pos = collect($coordinates)->first(fn ($coordinate) => (int)$coordinate['user_id'] === (int)$appItem->user_id && (int)($coordinate['occurrence'] ?? 0) === $occurrence);
                             $x = $pos ? $pos['x'] : (float)$appItem->signature_x;
                             $y = $pos ? $pos['y'] : (float)$appItem->signature_y;
                             $page = $pos ? $pos['page'] : ($appItem->signature_page ?? 1);
@@ -753,7 +796,7 @@ class SupportController extends Controller
 
             $usersToNotify = [];
 
-            \Illuminate\Support\Facades\DB::transaction(function () use ($document, $recordsToDelete, $keptAttachments, $newAttachmentData, $approvalsToActivate, $request, $pathCover, $pathLp, $pathIsi, $previewPath, $isAutoGenerated, $coordinates, &$usersToNotify) {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($document, $recordsToDelete, $keptAttachments, $newAttachmentData, $approvalsToActivate, $request, $pathCover, $pathLp, $pathIsi, $previewPath, $isAutoGenerated, $coordinates, $nextRevision, $revisionDate, &$usersToNotify) {
                 // Hapus record attachment dari DB
                 foreach ($recordsToDelete as $r) {
                     if ($r->id > 0) {
@@ -788,13 +831,18 @@ class SupportController extends Controller
 
                 if ($isAutoGenerated) {
                     foreach ($coordinates as $pos) {
-                        DocumentApproval::where('document_id', $document->id)
+                        $approval = DocumentApproval::where('document_id', $document->id)
                             ->where('user_id', $pos['user_id'])
-                            ->update([
+                            ->orderBy('sequence')
+                            ->skip((int)($pos['occurrence'] ?? 0))
+                            ->first();
+                        if ($approval) {
+                            $approval->update([
                                 'signature_page' => $pos['page'],
                                 'signature_x'    => $pos['x'],
                                 'signature_y'    => $pos['y'],
                             ]);
+                        }
                     }
                 }
 
@@ -804,6 +852,8 @@ class SupportController extends Controller
 
                 $document->update([
                     'title'         => $request->title,
+                    'doc_revision'  => $nextRevision,
+                    'doc_date'      => $revisionDate,
                     'reviewer_id'   => $firstTarget->user_id,
                     'file_cover'    => $pathCover,
                     'file_lp'       => $pathLp,
@@ -827,7 +877,7 @@ class SupportController extends Controller
                 }
             }
 
-            // Send notification email to all activated reviewers
+            // Send notification email to all activated reviewers (status baru: 'current')
             foreach ($usersToNotify as $notifyUser) {
                 if ($notifyUser && $notifyUser->email) {
                     try {
@@ -849,6 +899,42 @@ class SupportController extends Controller
                 }
             }
 
+            // ================================================================
+            // Kirim notifikasi informatif ke reviewer yang sudah 'approved'
+            // sebelumnya, agar mereka tahu dokumen revisi sudah diupload ulang.
+            // Mereka tidak perlu aksi apapun — hanya informasi status.
+            // ================================================================
+            $activatedUserIds = collect($usersToNotify)->pluck('id')->filter()->toArray();
+            $alreadyApprovedReviewers = DocumentApproval::where('document_id', $document->id)
+                ->where('stage', 'reviewer')
+                ->where('status', 'approved')
+                ->whereNotIn('user_id', $activatedUserIds)
+                ->with('user')
+                ->get();
+
+            foreach ($alreadyApprovedReviewers as $appItem) {
+                $notifyUser = $appItem->user;
+                if ($notifyUser && !empty(trim($notifyUser->email ?? ''))) {
+                    try {
+                        $magicLoginUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                            'login.magic',
+                            now()->addHours(24),
+                            [
+                                'user_id' => $notifyUser->id,
+                                'document_id' => $document->id
+                            ]
+                        );
+
+                        Mail::to($notifyUser->email)->send(
+                            new \App\Mail\DocumentRevisionResubmittedMail($document, $notifyUser, auth()->user(), $magicLoginUrl)
+                        );
+                        \Log::info("e-QMS Support: Notifikasi revisi dikirim ke reviewer yang sudah approve: User ID {$notifyUser->id} ({$notifyUser->username}) untuk Dokumen ID {$document->id}");
+                    } catch (\Exception $e) {
+                        \Log::error("e-QMS Support Email Revisi (Already Approved) Error for User ID {$notifyUser->id}: " . $e->getMessage());
+                    }
+                }
+            }
+
             return redirect()->route('admin.support.document.detail', $document->id)
                 ->with('success', 'File revisi berhasil digabungkan dan dialirkan langsung ke ' . ($firstTarget->user->username ?? 'Peninjau'));
 
@@ -857,6 +943,62 @@ class SupportController extends Controller
             Storage::disk('public')->delete(array_filter($uploadedNewFiles));
             return back()->withInput()->withErrors(['msg' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * Form revisi dokumen khusus untuk Creator (bukan admin).
+     * Authorization: user harus menjadi Creator (stage='creator') dari dokumen ini,
+     * DAN status dokumen harus 'need_revision'.
+     */
+    public function creatorEditRevision(int $id): View
+    {
+        $document = Document::with(['approvals.user', 'attachments'])->findOrFail($id);
+
+        // Authorization: cek apakah user saat ini adalah creator dokumen ini
+        $isCreator = \App\Models\DocumentApproval::where('document_id', $document->id)
+            ->where('user_id', auth()->id())
+            ->where('stage', 'creator')
+            ->exists();
+
+        if (!$isCreator || $document->status !== 'need_revision') {
+            abort(403, 'Anda tidak memiliki akses untuk merevisi dokumen ini.');
+        }
+
+        return view('admin.support.edit_revision', compact('document'));
+    }
+
+    /**
+     * Proses upload revisi dokumen dari Creator.
+     * Authorization: sama dengan creatorEditRevision.
+     * Setelah auth check, mendelegasikan ke updateRevision yang sudah ada,
+     * lalu redirect ke halaman yang bisa diakses oleh non-admin creator.
+     */
+    public function creatorUpdateRevision(Request $request, int $id)
+    {
+        $document = Document::findOrFail($id);
+
+        // Authorization: cek apakah user saat ini adalah creator dokumen ini
+        $isCreator = \App\Models\DocumentApproval::where('document_id', $document->id)
+            ->where('user_id', auth()->id())
+            ->where('stage', 'creator')
+            ->exists();
+
+        if (!$isCreator || $document->status !== 'need_revision') {
+            abort(403, 'Anda tidak memiliki akses untuk merevisi dokumen ini.');
+        }
+
+        // Jalankan updateRevision — semua file processing, email, dan log tetap berjalan normal.
+        // Karena updateRevision() akan redirect ke admin route (403 untuk non-admin),
+        // kita tangkap exception redirect dan ganti dengan redirect ke reviewer dashboard.
+        try {
+            $this->updateRevision($request, $id);
+        } catch (\Throwable $e) {
+            return back()->withErrors(['msg' => $e->getMessage()]);
+        }
+
+        // Redirect ke reviewer dashboard yang accessible untuk non-admin creator
+        return redirect()->route('reviewer.dashboard')
+            ->with('success', 'File revisi berhasil dikirimkan. Proses persetujuan akan dilanjutkan oleh reviewer.');
     }
 
     /**
@@ -945,7 +1087,7 @@ class SupportController extends Controller
 
         // 2. Kotak Label Samping (Green)
         $labelW = 5.0;
-        $pdf->SetFillColor(16, 124, 65);
+        $pdf->SetFillColor(30, 41, 59);
         $pdf->Rect($drawX, $drawY, $labelW, $h, 'F');
 
         // 3. Label QMS (Centered horizontally & vertically in the label box)
@@ -995,7 +1137,7 @@ class SupportController extends Controller
         $topPadding = ($h - $totalTextH) / 2.0;
 
         // Draw APPROVED
-        $pdf->SetTextColor(16, 124, 65);
+        $pdf->SetTextColor(30, 41, 59);
         $pdf->SetFont('Arial', 'B', $approvedFontSize);
         $pdf->SetXY($drawX + $labelW + 1.2, $drawY + $topPadding);
         $pdf->Cell($w - $labelW - 2.0, $approvedH, 'APPROVED', 0, 0, 'L');
@@ -1012,11 +1154,11 @@ class SupportController extends Controller
         $dateColumnCenterX = $pageWidthMm - 30.0;
         $pdf->SetTextColor(30, 41, 59);
         
-        $pdf->SetFont('Arial', 'B', 5.8);
+        $pdf->SetFont('Arial', 'B', 7.8);
         $pdf->SetXY($dateColumnCenterX - 15.0, $signatureY + 1.2);
         $pdf->Cell(30.0, 2.0, $dateLine1, 0, 0, 'C');
         
-        $pdf->SetFont('Arial', '', 4.2);
+        $pdf->SetFont('Arial', '', 6.2);
         $pdf->SetXY($dateColumnCenterX - 15.0, $signatureY + 3.6);
         $pdf->Cell(30.0, 2.0, $dateLine2, 0, 0, 'C');
     }

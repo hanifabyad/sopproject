@@ -23,7 +23,7 @@ class LpGeneratorService
      * @param User $finalApprover The final approver User instance
      * @return array ['file_path' => string, 'coordinates' => array]
      */
-    public function generate(array $data, User $creator, $reviewers, User $finalApprover): array
+    public function generate(array $data, User $creator, $reviewers, $finalApprover): array
     {
         $pdf = new Fpdi('P', 'mm', 'A4');
         $pdf->SetMargins(15, 15, 15);
@@ -62,77 +62,101 @@ class LpGeneratorService
         $pdf->Line(15, 42, 195, 42);  // Bottom of header
         $pdf->Line(60, 15, 60, 42);   // Logo | Company text split
 
+        $companyMap = self::getCompanyMap();
+
+        // Retrieve current company info, fallback to PKM Group default
+        $companyCode = strtolower(trim($companyHeader));
+        $companyInfo = $companyMap[$companyCode] ?? $companyMap['pkm'];
+
+        $companyName = $companyInfo['name'];
+        $companyAddress = $companyInfo['address'];
+        $logoFile = $companyInfo['logo'];
+
         // --- LOGO (centered inside left cell: X=15..60, Y=15..42) ---
         // Cell dimensions: width=45mm, height=27mm
-        // Logo rendered at 24mm × 24mm, centered with 1.5mm margin each side.
+        // Logo rendered dynamically based on original aspect ratio to fit inside a larger bounding box
         $logoCellX = 15.0;
         $logoCellY = 15.0;
         $logoCellW = 45.0;
         $logoCellH = 27.0;
 
-        $pdf->SetTextColor(30, 41, 59);
-        if ($companyHeader === 'sck') {
-            // SCK: vector text logo — blue box centered in cell
-            $logoW = 24.0; $logoH = 12.0;
-            $logoX = $logoCellX + ($logoCellW - $logoW) / 2.0;
-            $logoY = $logoCellY + ($logoCellH - $logoH) / 2.0;
-            $pdf->SetDrawColor(30, 64, 175);
-            $pdf->SetLineWidth(0.5);
-            $pdf->Rect($logoX, $logoY, $logoW, $logoH);
-            $pdf->SetFont('Arial', 'B', 13);
-            $pdf->SetTextColor(30, 64, 175);
-            $pdf->SetXY($logoX, $logoY);
-            $pdf->Cell($logoW, $logoH, 'SCK', 0, 0, 'C');
-            $pdf->SetDrawColor(...$BLACK);
-        } else {
-            // PKM / LBS / CPT: use PKM logo image, centered
-            $logoPath = public_path('img/logopkm.png');
-            if (file_exists($logoPath)) {
-                // logopkm.png is 200x200px (square). Render at 24mm × 24mm.
-                // Cell is 45mm wide × 27mm tall → margin: (45-24)/2=10.5mm H, (27-24)/2=1.5mm V
-                $logoW = 24.0;
-                $logoH = 24.0;
-                $logoX = $logoCellX + ($logoCellW - $logoW) / 2.0; // 26.5mm from left edge
-                $logoY = $logoCellY + ($logoCellH - $logoH) / 2.0; // 16.5mm from top edge
-                $pdf->Image($logoPath, $logoX, $logoY, $logoW, $logoH);
-            } else {
-                // Fallback text logo
-                $logoW = 24.0; $logoH = 12.0;
+        $logoPath = public_path('img/' . $logoFile);
+        if (!file_exists($logoPath)) {
+            $logoPath = storage_path('app/e library archive/Logo/' . $logoFile);
+        }
+        if (!file_exists($logoPath)) {
+            $logoPath = storage_path('app/e library archive/Logo (1)/' . $logoFile);
+        }
+
+        $logoDrawn = false;
+        if (file_exists($logoPath) && !is_dir($logoPath)) {
+            $size = @getimagesize($logoPath);
+            if ($size) {
+                $imgW = $size[0];
+                $imgH = $size[1];
+                $aspect = $imgH / $imgW;
+
+                // Max width is 44.0mm, max height is 25.5mm (maximizes logo size in the 45x27mm cell)
+                $logoW = 44.0;
+                $logoH = $logoW * $aspect;
+
+                if ($logoH > 25.5) {
+                    $logoH = 25.5;
+                    $logoW = $logoH / $aspect;
+                }
+
                 $logoX = $logoCellX + ($logoCellW - $logoW) / 2.0;
                 $logoY = $logoCellY + ($logoCellH - $logoH) / 2.0;
-                $pdf->SetDrawColor(16, 185, 129);
-                $pdf->SetLineWidth(0.5);
-                $pdf->Rect($logoX, $logoY, $logoW, $logoH);
-                $pdf->SetFont('Arial', 'B', 13);
-                $pdf->SetTextColor(16, 185, 129);
-                $pdf->SetXY($logoX, $logoY);
-                $pdf->Cell($logoW, $logoH, 'PKM', 0, 0, 'C');
-                $pdf->SetDrawColor(...$BLACK);
+
+                $pdf->Image($logoPath, $logoX, $logoY, $logoW, $logoH);
+                $logoDrawn = true;
             }
         }
 
-        // --- Company name & address, vertically centered in right cell ---
-        $companyName = 'PT PUTRA KELANA MAKMUR (PKM) GROUP';
-        $companyAddress = 'Jl. Budi Kemuliaan No. 3 Seraya, Batam';
-        if ($companyHeader === 'sck') {
-            $companyName = 'PT SATRIA CITRA KENCANA';
-        } elseif ($companyHeader === 'lbs') {
-            $companyName = 'PT LINTAS BINTAN SAMUDERA';
-        } elseif ($companyHeader === 'cpt') {
-            $companyName = 'PT CAHAYA PERDANA TRANSALAM';
+        if (!$logoDrawn) {
+            // Fallback text logo (no border rect, just centered text)
+            $pdf->SetFont('Arial', 'B', 11);
+            $pdf->SetTextColor(30, 41, 59);
+            $pdf->SetXY($logoCellX, $logoCellY);
+            $pdf->Cell($logoCellW, $logoCellH, 'PT. ' . strtoupper($companyCode), 0, 0, 'C');
         }
 
-        // Right cell: X=60..195, Y=15..42
-        // Vertically center company name and address in 27mm cell
-        $pdf->SetXY(60, 24.0);
-        $pdf->SetFont('Arial', 'B', 11);
-        $pdf->SetTextColor(30, 41, 59);
-        $pdf->Cell(135, 6, $companyName, 0, 1, 'C');
+        // --- Company name & address, vertically centered in right cell ---
+        if ($companyCode === 'cpt') {
+            $pdf->SetTextColor(0, 0, 0);
+            $pdf->SetFont('Arial', 'B', 11.0);
+            $pdf->SetXY(60, 18.0);
+            $pdf->Cell(135, 4.5, 'PT. CAHAYA PERDANA TRANSALAM', 0, 1, 'C');
 
-        $pdf->SetXY(60, 31.0);
-        $pdf->SetFont('Arial', '', 8);
-        $pdf->SetTextColor(80, 80, 80);
-        $pdf->Cell(135, 4, $companyAddress, 0, 1, 'C');
+            $pdf->SetFont('Arial', 'B', 9.5);
+            $pdf->SetXY(60, 23.5);
+            $pdf->Cell(135, 4.0, 'A SUBSIDIARY OF PKM GROUP', 0, 1, 'C');
+
+            $pdf->SetFont('Arial', '', 8.5);
+            $pdf->SetTextColor(80, 80, 80);
+            $pdf->SetXY(60, 28.5);
+            $pdf->Cell(135, 4.0, 'Jl. K.H. Ahmad Dahlan No. 01, Kelurahan Tanjung Riau,', 0, 1, 'C');
+            $pdf->SetXY(60, 32.5);
+            $pdf->Cell(135, 4.0, 'Kecamatan Sekupang, Batam 29425 Prov Kepulauan Riau', 0, 1, 'C');
+        } else {
+            $pdf->SetTextColor(30, 41, 59);
+            $pdf->SetFont('Arial', 'B', 11.0);
+
+            // Auto-fit company name to fit cleanly inside the 135mm cell
+            $companyNameSize = 11.0;
+            while ($pdf->GetStringWidth($companyName) > 131 && $companyNameSize > 8.0) {
+                $companyNameSize -= 0.5;
+                $pdf->SetFontSize($companyNameSize);
+            }
+
+            $pdf->SetXY(60, 21.0);
+            $pdf->Cell(135, 6, $companyName, 0, 1, 'C');
+
+            $pdf->SetXY(60, 27.5);
+            $pdf->SetFont('Arial', '', 11.0);
+            $pdf->SetTextColor(80, 80, 80);
+            $pdf->Cell(135, 4.5, $companyAddress, 0, 1, 'C');
+        }
 
         // ---------------------------------------------------------
         // 2. TITLE & METADATA SECTION (Y: 42 to 67) — height 25mm
@@ -140,7 +164,12 @@ class LpGeneratorService
         $pdf->SetDrawColor(...$BLACK);
         $pdf->SetLineWidth($LINE_TABLE);
         $pdf->Line(15, 67, 195, 67);
-        $pdf->Line(135, 42, 135, 67); // Title | Meta split
+
+        if ($companyCode === 'cpt') {
+            $pdf->Line(135, 42, 135, 67); // Title | Meta split
+        } else {
+            $pdf->Line(135, 42, 135, 67); // Title | Meta split
+        }
 
         // Document Title — auto-shrink so text stays within Y=42..67 (25mm area)
         // -----------------------------------------------------------------------
@@ -155,11 +184,12 @@ class LpGeneratorService
 
         // Map: font size → line height (mm) — proportional to font size
         $fontSteps = [
-            13 => 6.5,
+            16 => 8.0,
+            14 => 7.0,
             12 => 6.0,
             11 => 5.5,
             10 => 5.0,
-             9 => 4.5,
+            9 => 4.5,
         ];
 
         // Word-wrap helper: splits $text into lines that fit in $width at current font
@@ -186,7 +216,7 @@ class LpGeneratorService
         $chosenLines = [];
 
         foreach ($fontSteps as $fs => $lh) {
-            $pdf->SetFont('Arial', 'B', $fs);
+            $pdf->SetFont('Arial', '', $fs);
             $lines  = $wrapLines($titleText, $titleW);
             $totalH = count($lines) * $lh;
             if ($totalH <= $maxContentH) {
@@ -208,7 +238,7 @@ class LpGeneratorService
             $chosenLines = array_slice($chosenLines, 0, $maxLines);
             $last = end($chosenLines);
             // Trim last line until ellipsis fits
-            $pdf->SetFont('Arial', 'B', $chosenSize);
+            $pdf->SetFont('Arial', '', $chosenSize);
             while ($pdf->GetStringWidth($last . '...') > $titleW && strlen($last) > 0) {
                 $last = rtrim(substr($last, 0, -1));
             }
@@ -219,7 +249,7 @@ class LpGeneratorService
         $totalTextH = count($chosenLines) * $chosenLineH;
         $startY     = $titleAreaY + ($titleAreaH - $totalTextH) / 2.0;
 
-        $pdf->SetFont('Arial', 'B', $chosenSize);
+        $pdf->SetFont('Arial', '', $chosenSize);
         $pdf->SetTextColor(30, 41, 59);
         foreach ($chosenLines as $line) {
             $pdf->SetXY($titleX, $startY);
@@ -228,34 +258,61 @@ class LpGeneratorService
         }
 
         // Metadata sub-grid lines — uniform 0.35mm black
-        // 4 rows over 25mm → each 6.25mm; starts at Y=42
         $pdf->SetLineWidth($LINE_TABLE);
         $pdf->SetDrawColor(...$BLACK);
-        $pdf->Line(135, 48.25, 195, 48.25);
-        $pdf->Line(135, 54.5,  195, 54.5);
-        $pdf->Line(135, 60.75, 195, 60.75);
-        $pdf->Line(155, 42,    155, 67);    // Label | Value split
 
-        $metadata = [
-            ['No Dok',  $docNumber],
-            ['Revisi',  $revision],
-            ['Tanggal', $docDate],
-            ['Halaman', '2 dari ' . $totalPages],
-        ];
+        if ($companyCode === 'cpt') {
+            // CPT has only 2 rows in top-right meta table (No Dok and Halaman)
+            $pdf->Line(135, 54.5, 195, 54.5);
+            $pdf->Line(155, 42,    155, 67);    // Label | Value split
 
-        $yMeta = 42.0; // starts at top of Title+Meta section
-        foreach ($metadata as $meta) {
-            $pdf->SetXY(136, $yMeta + 1.2);
-            $pdf->SetFont('Arial', '', 8);
-            $pdf->SetTextColor(80, 80, 80);
-            $pdf->Cell(18, 4, $meta[0], 0, 0, 'L');
+            $metadata = [
+                ['No Dok',  $docNumber],
+                ['Halaman', '1 dari ' . $totalPages], // CPT has LP as page 1
+            ];
 
-            $pdf->SetXY(156, $yMeta + 1.2);
-            $pdf->SetFont('Arial', 'B', 8);
-            $pdf->SetTextColor(30, 41, 59);
-            $this->drawCellFit($pdf, 38, 4, $meta[1], 0, 0, 'L');
+            $yMeta = 42.0; // starts at top of Title+Meta section
+            foreach ($metadata as $meta) {
+                $pdf->SetXY(136, $yMeta + 4.25);
+                $pdf->SetFont('Arial', '', 11.0);
+                $pdf->SetTextColor(80, 80, 80);
+                $pdf->Cell(18, 4.5, $meta[0], 0, 0, 'L');
 
-            $yMeta += 6.25;
+                $pdf->SetXY(156, $yMeta + 4.25);
+                $pdf->SetFont('Arial', '', 11.0);
+                $pdf->SetTextColor(30, 41, 59);
+                $this->drawCellFit($pdf, 38, 4.5, $meta[1], 0, 0, 'L');
+
+                $yMeta += 12.5; // split 25mm into 2 halves
+            }
+        } else {
+            // Default 4 rows
+            $pdf->Line(135, 48.25, 195, 48.25);
+            $pdf->Line(135, 54.5,  195, 54.5);
+            $pdf->Line(135, 60.75, 195, 60.75);
+            $pdf->Line(155, 42,    155, 67);    // Label | Value split
+
+            $metadata = [
+                ['No Dok',  $docNumber],
+                ['Revisi',  $revision],
+                ['Tanggal', $docDate],
+                ['Halaman', '1 dari ' . $totalPages],
+            ];
+
+            $yMeta = 42.0; // starts at top of Title+Meta section
+            foreach ($metadata as $meta) {
+                $pdf->SetXY(136, $yMeta + 1.2);
+                $pdf->SetFont('Arial', '', 11.0);
+                $pdf->SetTextColor(80, 80, 80);
+                $pdf->Cell(18, 4, $meta[0], 0, 0, 'L');
+
+                $pdf->SetXY(156, $yMeta + 1.2);
+                $pdf->SetFont('Arial', '', 11.0);
+                $pdf->SetTextColor(30, 41, 59);
+                $this->drawCellFit($pdf, 38, 4, $meta[1], 0, 0, 'L');
+
+                $yMeta += 6.25;
+            }
         }
 
         // ---------------------------------------------------------
@@ -266,7 +323,7 @@ class LpGeneratorService
         $pdf->Line(15, 77, 195, 77);
         // Vertically center 11pt text in 10mm band (Y=67..77)
         $pdf->SetXY(15, 69.5);
-        $pdf->SetFont('Arial', 'B', 11);
+        $pdf->SetFont('Arial', 'B', 11.0);
         $pdf->SetTextColor(30, 41, 59);
         $pdf->Cell(180, 5, 'LEMBAR TINJAUAN DAN PENGESAHAN DOKUMEN', 0, 1, 'C');
 
@@ -288,7 +345,7 @@ class LpGeneratorService
         ];
         foreach ($colHeaders as $h) {
             $pdf->SetXY($h[0], 79.0); // vertical center within 8mm band
-            $pdf->SetFont('Arial', 'B', 9);
+            $pdf->SetFont('Arial', '', 11.0);
             $pdf->SetTextColor(30, 41, 59);
             $pdf->Cell($h[1], 4, $h[2], 0, 0, 'C');
         }
@@ -316,14 +373,15 @@ class LpGeneratorService
             $pdf->SetDrawColor(...$BLACK);
             $pdf->Rect(15, $currentY, 180, $headerHeight, 'DF'); // Draw border and Fill background
 
-            $pdf->SetXY(17, $currentY + ($headerHeight - 4.0) / 2.0);
-            $pdf->SetFont('Arial', 'B', 8);
+            $pdf->SetXY(17, $currentY + ($headerHeight - 4.5) / 2.0);
+            $pdf->SetFont('Arial', 'B', 11.0);
             $pdf->SetTextColor(0, 0, 0);
             $pdf->Cell(176, 4, $label, 0, 1, 'L');
             $currentY += $headerHeight;
         };
 
-        $drawSignerRow = function (User $user) use ($pdf, &$currentY, &$coordinates, $rowHeight, $LINE_TABLE, $BLACK) {
+        $userOccurrences = [];
+        $drawSignerRow = function (User $user, ?string $displayRole = null) use ($pdf, &$currentY, &$coordinates, &$userOccurrences, $rowHeight, $LINE_TABLE, $BLACK) {
             $pdf->SetLineWidth($LINE_TABLE);
             $pdf->SetDrawColor(...$BLACK);
             $pdf->Rect(15, $currentY, 65, $rowHeight);  // Cell 1
@@ -333,10 +391,11 @@ class LpGeneratorService
 
             // Column 1: Jabatan / Role
             $pdf->SetTextColor(30, 41, 59);
-            $this->drawCellWrapped($pdf, 17, $currentY, 61, $rowHeight, $user->role ?? '-', 7.5, false);
+            $roleText = $displayRole ?? ($user->role ?? '-');
+            $this->drawCellWrapped($pdf, 17, $currentY, 61, $rowHeight, $roleText, 11.0, false);
 
             // Column 2: Kode Nama / Full Name
-            $this->drawCellWrapped($pdf, 82, $currentY, 41, $rowHeight, $user->full_name ?? $user->username, 7.5, true);
+            $this->drawCellWrapped($pdf, 82, $currentY, 41, $rowHeight, $user->full_name ?? $user->username, 11.0, false);
 
             // Compute math coordinate for 100% center stamp placement
             // Signature Column starts at X=125, width=40. Center is 145.
@@ -347,8 +406,11 @@ class LpGeneratorService
             $stampX = $centeredX - 7.2; 
             $stampY = $centeredY - 0.9; 
 
+            $occurrence = $userOccurrences[$user->id] ?? 0;
+            $userOccurrences[$user->id] = $occurrence + 1;
             $coordinates[] = [
                 'user_id' => $user->id,
+                'occurrence' => $occurrence,
                 'page'    => 1, // Will map to page 2 inside merged document
                 'x'       => round($stampX, 2),
                 'y'       => round($stampY, 2)
@@ -362,24 +424,97 @@ class LpGeneratorService
         $drawSignerRow($creator);
 
         // Section B: Diperiksa dan Diketahui oleh:
-        $drawSectionHeader('Diperiksa dan Diketahui oleh:');
+        $drawSectionHeader($companyCode === 'cpt' ? 'Ditinjau dan diketahui oleh:' : 'Diperiksa dan Diketahui oleh:');
         foreach ($reviewers as $rev) {
             $drawSignerRow($rev);
         }
 
         // Section C: Disahkan oleh:
         $drawSectionHeader('Disahkan oleh:');
-        $drawSignerRow($finalApprover);
+        $finalApprovers = $finalApprover instanceof User ? collect([$finalApprover]) : collect($finalApprover);
+        foreach ($finalApprovers->values() as $finalIndex => $approver) {
+            $finalRole = null;
+            if ($companyCode === 'cpt' && (strtolower((string)$approver->username) === 'hendro' || $finalApprovers->count() > 1)) {
+                $finalRole = $finalIndex === 0 ? 'Direktur CPT' : 'Direktur Utama';
+            }
+            $drawSignerRow($approver, $finalRole);
+        }
 
         // ---------------------------------------------------------
-        // 6. FOOTER NOTES — always visible, dark gray, italic, left-aligned
-        // Anchored at Y=270 (5mm above the outer border at Y=282) so it
-        // never overlaps the MASTER DOCUMENT stamp or falls outside page.
+        // 6. FOOTER NOTES & REVISION TABLE (PT CPT Specific or Default)
         // ---------------------------------------------------------
-        $pdf->SetXY(17, $currentY + 5.0);
-        $pdf->SetFont('Arial', 'I', 7);
-        $pdf->SetTextColor(80, 80, 80); // dark gray — clearly legible
-        $pdf->Cell(160, 4, 'Keterangan: NA (Not Applicable), apabila tidak diperlukan pemeriksaan dan persetujuan dari Pejabat terkait', 0, 1, 'L');
+        if ($companyCode === 'cpt') {
+            $yTable = 240.0;
+
+            // Draw note text above table
+            $pdf->SetXY(17, $yTable - 6.0);
+            $pdf->SetFont('Arial', '', 9.0);
+            $pdf->SetTextColor(0, 0, 0);
+            $pdf->Cell(176, 4, 'Keterangan: NA (Not Applicable), apabila tidak diperlukan pemeriksaan dan persetujuan dari Pejabat terkait', 0, 1, 'L');
+
+            // Draw table outer rect
+            $pdf->SetLineWidth($LINE_TABLE);
+            $pdf->SetDrawColor(...$BLACK);
+            $pdf->Rect(15, $yTable, 180, 16);
+
+            // Draw middle horizontal line (starts after label column to avoid crossing through text)
+            $pdf->Line(45, $yTable + 8, 195, $yTable + 8);
+
+            // Draw vertical line for label column
+            $pdf->Line(45, $yTable, 45, $yTable + 16);
+
+            // Draw vertical lines for the 4 columns
+            $pdf->Line(82.5,  $yTable, 82.5,  $yTable + 16);
+            $pdf->Line(120.0, $yTable, 120.0, $yTable + 16);
+            $pdf->Line(157.5, $yTable, 157.5, $yTable + 16);
+
+            // Draw label — vertically centered across full 16mm table height
+            // The middle horizontal line is at yTable+8, so we center the label
+            // across the entire label column height to avoid the line crossing through text
+            $pdf->SetFont('Arial', '', 10.0);
+            $pdf->SetTextColor(0, 0, 0);
+            $pdf->SetXY(15, $yTable);
+            $pdf->Cell(30, 16, 'No/Tgl Revisi', 0, 0, 'C');
+
+            // Draw revision cell values
+            $revisionNumber = (string)((int)($data['doc_revision'] ?? 0));
+            $revisionDate = $data['revision_date'] ?? $docDate;
+            $revisionDate = date('d.m.y', strtotime($revisionDate));
+            // Angka revisi selalu tersedia sebagai slot default. Tanggal pada slot
+            // aktif diisi berdasarkan tanggal pembuatan atau tanggal revisi terbaru.
+            $revValues = [
+                ['0.', '1.', '2.', '3.'],
+                ['4.', '5.', '6.', '7.']
+            ];
+            $revisionIndex = (int)$revisionNumber;
+            $revisionHistory = $data['revision_history'] ?? [];
+            if (!array_key_exists($revisionIndex, $revisionHistory)) {
+                $revisionHistory[$revisionIndex] = $revisionDate;
+            }
+            foreach ($revisionHistory as $historyIndex => $historyDate) {
+                $historyIndex = (int)$historyIndex;
+                if ($historyIndex >= 0 && $historyIndex <= 7 && filled($historyDate)) {
+                    $historyDate = date('d.m.y', strtotime($historyDate));
+                    $revValues[intdiv($historyIndex, 4)][$historyIndex % 4] = $historyIndex . '. ' . $historyDate;
+                }
+            }
+
+            $colWidth = 37.5;
+            for ($row = 0; $row < 2; $row++) {
+                $yPos = $yTable + ($row * 8) + 2.0;
+                for ($col = 0; $col < 4; $col++) {
+                    $xPos = 47 + ($col * $colWidth);
+                    $pdf->SetXY($xPos, $yPos);
+                    $pdf->SetFont('Arial', '', 10.0);
+                    $pdf->Cell($colWidth - 4, 4, $revValues[$row][$col], 0, 0, 'L');
+                }
+            }
+        } else {
+            $pdf->SetXY(17, $currentY + 5.0);
+            $pdf->SetFont('Arial', '', 9.0);
+            $pdf->SetTextColor(80, 80, 80); // dark gray — clearly legible
+            $pdf->Cell(160, 4, 'Keterangan: NA (Not Applicable), apabila tidak diperlukan pemeriksaan dan persetujuan dari Pejabat terkait', 0, 1, 'L');
+        }
 
         // Output and save PDF to public storage
         $fileName = 'generated_lp_' . time() . '_' . uniqid() . '.pdf';
@@ -472,5 +607,139 @@ class LpGeneratorService
         }
         $pdf->Cell($w, $h, $txt, $border, $ln, $align, $fill);
         $pdf->SetFontSize($defaultFontSize);
+    }
+
+    public static function getCompanyMap()
+    {
+        $jsonPath = storage_path('app/company_configs.json');
+        if (file_exists($jsonPath)) {
+            $dynamicMap = json_decode(file_get_contents($jsonPath), true);
+            if (is_array($dynamicMap) && !empty($dynamicMap)) {
+                return $dynamicMap;
+            }
+        }
+        
+        return [
+            'pkm' => [
+                'name' => 'PT PRIMA KARYA MANUNGGAL (PKM) GROUP',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'PKM.jpg',
+            ],
+            'sck' => [
+                'name' => 'PT SATRIA CITRA KENCANA (SCK)',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'SCK.jpg',
+            ],
+            'cpt' => [
+                'name' => 'PT. CAHAYA PERDANA TRANSALAM',
+                'address' => 'Jl. K.H. Ahmad Dahlan No. 01, Tanjung Riau, Sekupang, Batam 29425',
+                'logo' => 'cpt.jpg',
+            ],
+            'lbs' => [
+                'name' => 'PT LINTAS BINTAN SAMUDERA (LBS)',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'LBS.jpg',
+            ],
+            'bki' => [
+                'name' => 'PT BINTANG KELANA INDONESIA (BKI)',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'BKI.jpg',
+            ],
+            'bsn' => [
+                'name' => 'PT BAINTAN ANUGERAH PRATAMA (BSN)',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'Baintan Anugerah.jpg',
+            ],
+            'cngm' => [
+                'name' => 'PT CITRA NUSANTARA GEMILANG MAKMUR (CNGM)',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'CNGM New.jpg',
+            ],
+            'dms' => [
+                'name' => 'PT DAYA MAKMUR SEJAHTERA (DMS)',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'Daya Makmur Sejahtera.jpg',
+            ],
+            'dumas' => [
+                'name' => 'PT DUMAS COAL INDONESIA (DUMAS)',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'Dumas.jpg',
+            ],
+            'epcm' => [
+                'name' => 'PT EKA PUTRA CIPTA MANDIRI (EPCM)',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'EPCM.jpg',
+            ],
+            'edbm' => [
+                'name' => 'PT EKA DAYA BAHARI MAS (EDBM)',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'Eka Daya Bahari MAs.jpg',
+            ],
+            'ekl' => [
+                'name' => 'PT ERA KENCANA LARAS (EKL)',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'Era Kencana Laras.jpg',
+            ],
+            'hiswana' => [
+                'name' => 'HISWANA MIGAS',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'Hiswana.jpg',
+            ],
+            'is' => [
+                'name' => 'PT ISMADI SALAM (IS)',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'Ismadi Salam.jpg',
+            ],
+            'lep' => [
+                'name' => 'PT LINTAS ELOK PERSADA (LEP)',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'LEP.jpg',
+            ],
+            'mms' => [
+                'name' => 'PT MARITIM MAKMUR SEJAHTERA (MMS)',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'MMS.jpg',
+            ],
+            'mkw' => [
+                'name' => 'PT MITHA KELANA WIJAYA (MKW)',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'Mitha Kelana Wijaya.jpg',
+            ],
+            'mcnp' => [
+                'name' => 'PT MITRA CIPTA NUSA PERSADA (MCNP)',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'Mitra Cipta Nusa Persada.jpg',
+            ],
+            'pims' => [
+                'name' => 'PT PUTRA INDO MANDIRI SEJAHTERA (PIMS)',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'PIMS.jpg',
+            ],
+            'pksp' => [
+                'name' => 'PT PUTRA KELANA SENTOSA PRATAMA (PKSP)',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'PKSP.jpg',
+            ],
+            'rap' => [
+                'name' => 'PT RIAU ALAM PERMAI (RAP)',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'logo RAP.jpg',
+            ],
+            'sdrp' => [
+                'name' => 'PT SATRIA DARMA RAYA PERKASA (SDRP)',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'SDRP.jpg',
+            ],
+            'sir' => [
+                'name' => 'PT SATRIA INDO RAYA (SIR)',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'SIR.jpg',
+            ],
+            'wimt' => [
+                'name' => 'PT WAHANA INDAH MARITIM TANGGUH (WIMT)',
+                'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
+                'logo' => 'WIMT.jpg',
+            ],
+        ];
     }
 }

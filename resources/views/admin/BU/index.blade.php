@@ -7,21 +7,18 @@
 <div class="space-y-6">
     
     <!-- HEADER BAR -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white rounded-lg p-6 border border-[#cfc6ac]/60 shadow-sm">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#1677B8] to-[#00b4d8] text-white rounded-lg p-6 border border-white/10 shadow-sm">
         <div>
-            <div class="flex items-center space-x-2 mb-1">
-                <span class="px-2.5 py-0.5 bg-[#ffd92f]/20 text-[#705d00] font-extrabold text-[10px] uppercase rounded tracking-wider border border-[#ffd92f]/40">Unit Bisnis</span>
-            </div>
-            <h2 class="text-xl font-extrabold text-[#1e1c14] uppercase tracking-tight">Divisi Business Unit</h2>
-            <p class="text-xs text-[#4d4633] mt-0.5">Monitoring dokumen operasional seluruh divisi unit bisnis PT PKM Group</p>
+            <h2 class="text-xl font-extrabold tracking-tight">Divisi Business Unit</h2>
+            <p class="text-xs text-white/85 mt-0.5 font-medium">Monitoring dokumen operasional seluruh divisi unit bisnis PT PKM Group</p>
         </div>
     </div>
 
     <!-- ENTERPRISE LINEAR DATA TABLE -->
-    <div class="border border-[#cfc6ac]/70 rounded-md bg-white overflow-hidden shadow-sm">
+    <div class="border border-sand-200/70 rounded-md bg-white overflow-hidden shadow-sm">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-body-main">
-                <thead class="bg-[#eee8db] border-b border-[#cfc6ac] text-[12px] font-semibold uppercase tracking-wider text-[#4d4633]">
+                <thead class="bg-sand-50 border-b border-sand-200 text-xs font-semibold text-on-surface-variant">
                     <tr>
                         <th class="py-3 px-4 text-center w-12">#</th>
                         <th class="py-3 px-4">Divisi / Entitas</th>
@@ -34,38 +31,36 @@
                 </thead>
                 <tbody class="divide-y divide-[#e8e2d6]">
                     @foreach($statsDivisi as $namaDivisi => $data)
-                    <tr class="border-b border-[#e8e2d6] hover:bg-[#f7f6f2] transition-colors">
-                        <td class="py-3.5 px-4 text-center text-xs font-bold text-[#4d4633]">
+                    <tr class="border-b border-[#e8e2d6] hover:bg-canvas transition-colors">
+                        <td class="py-3.5 px-4 text-center text-xs font-bold text-on-surface-variant">
                             {{ $loop->iteration }}
                         </td>
                         <td class="py-3.5 px-4">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-8 h-8 rounded-md bg-[#333028] text-[#ffe16e] flex items-center justify-center font-bold shadow-sm">
-                                    <span class="material-symbols-outlined text-base">
-                                        @if($namaDivisi == 'RETAIL')
-                                            storefront
-                                        @elseif($namaDivisi == 'KOMERSIL')
-                                            corporate_fare
-                                        @elseif($namaDivisi == 'SCM')
-                                            local_shipping
-                                        @else
-                                            account_balance
-                                        @endif
-                                    </span>
+                            <a href="{{ route('admin.BU.divisi.show', $namaDivisi) }}" class="flex items-center space-x-3 group hover:opacity-85 transition-opacity cursor-pointer">
+                                <div class="w-8 h-8 rounded-md bg-charcoal-900 text-gold-fixed flex items-center justify-center font-bold shadow-sm group-hover:scale-105 transition-transform">
+                                    @if($namaDivisi == 'RETAIL')
+                                        <i class="ph ph-storefront text-lg"></i>
+                                    @elseif($namaDivisi == 'KOMERSIL')
+                                        <i class="ph ph-buildings text-lg"></i>
+                                    @elseif($namaDivisi == 'SCM')
+                                        <i class="ph ph-truck text-lg"></i>
+                                    @else
+                                        <i class="ph ph-bank text-lg"></i>
+                                    @endif
                                 </div>
                                 <div>
-                                    <span class="font-semibold text-[#1e1c14] text-[14px] uppercase block leading-tight">{{ $namaDivisi }}</span>
-                                    <span class="text-[10px] text-[#4d4633] font-normal uppercase">Divisi Utama</span>
+                                    <span class="font-semibold text-on-surface text-xs hover:underline group-hover:text-[#1677B8] transition-colors">{{ $namaDivisi }}</span>
+                                    <span class="text-[11px] text-on-surface-variant font-normal block leading-tight">Divisi Utama</span>
                                 </div>
-                            </div>
+                            </a>
                         </td>
                         <td class="py-3.5 px-4">
-                            <span class="text-xs font-semibold text-[#4d4633] uppercase bg-[#f7f6f2] px-2.5 py-1 rounded-md border border-[#cfc6ac]/40">
+                            <span class="text-xs font-semibold text-on-surface-variant bg-canvas px-2.5 py-1 rounded-md border border-sand-200/40 whitespace-nowrap">
                                 {{ $data['bu_count'] }} Unit Bisnis
                             </span>
                         </td>
                         <td class="py-3.5 px-4 text-center">
-                            <span class="px-3 py-1 bg-[#f7f6f2] border border-[#cfc6ac]/60 font-bold text-[#1e1c14] text-xs rounded-md inline-block">
+                            <span class="px-3 py-1 bg-canvas border border-sand-200/60 font-bold text-on-surface text-xs rounded-md inline-block">
                                 {{ $data['total'] }} Dokumen
                             </span>
                         </td>
@@ -82,9 +77,9 @@
                             </span>
                         </td>
                         <td class="py-3.5 px-4 text-right">
-                            <a href="{{ route('admin.BU.divisi.show', $namaDivisi) }}" class="px-4 py-1.5 rounded-md bg-[#705d00] text-white hover:bg-[#544600] text-xs font-medium inline-flex items-center gap-1.5 transition-colors">
+                            <a href="{{ route('admin.BU.divisi.show', $namaDivisi) }}" class="px-4 py-1.5 rounded-md bg-charcoal-900 hover:bg-black text-gold-fixed text-xs font-medium inline-flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer">
                                 <span>Buka Dokumen</span>
-                                <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                                <i class="ph ph-arrow-right text-sm"></i>
                             </a>
                         </td>
                     </tr>

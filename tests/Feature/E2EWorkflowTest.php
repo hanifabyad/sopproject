@@ -197,7 +197,7 @@ class E2EWorkflowTest extends TestCase
                 ->post(route('admin.BU.store', ['unit' => 'SPBU']), $payload);
 
             $response->assertRedirect();
-            $document = Document::where('title', 'Test Prosedur Revisi')->firstOrFail();
+            $document = Document::where('title', 'Test Prosedur Revisi')->latest()->firstOrFail();
 
             if ($document->file_cover) $this->filesToClean[] = storage_path('app/public/' . $document->file_cover);
             if ($document->file_lp) $this->filesToClean[] = storage_path('app/public/' . $document->file_lp);
@@ -295,6 +295,135 @@ class E2EWorkflowTest extends TestCase
             $document->refresh();
             if ($document->file_final) $this->filesToClean[] = storage_path('app/public/' . $document->file_final);
 
+            $this->assertEquals('active', $document->status);
+            $this->assertFileExists(storage_path('app/public/' . $document->file_final));
+
+        } finally {
+            DB::rollBack();
+            foreach (array_unique($this->filesToClean) as $file) {
+                if (file_exists($file)) {
+                    @unlink($file);
+                }
+            }
+        }
+    }
+
+    public function test_custom_hc_revision_and_final_approval_workflow()
+    {
+        Mail::fake();
+        DB::beginTransaction();
+
+        try {
+            $creator = User::findOrFail(28); // Imam M
+            $reviewer1 = User::findOrFail(7); // Trinwetty
+            $reviewer2 = User::findOrFail(26); // Yayu Indah Maya
+            $reviewer3 = User::findOrFail(15); // Putri Larasati Ariandini
+            $finalApprover = User::findOrFail(17); // Zikri
+            $admin = User::where('role', 'admin')->firstOrFail();
+
+            $cover = $this->createMockPdf('Cover HC Original', 1);
+            $isi = $this->createMockPdf('Isi HC Original', 2);
+            $lamp1 = $this->createMockPdf('Lampiran HC Original', 1);
+
+            // 1. Create Support Document
+            $payload = [
+                'title'           => 'SOP HC BARU',
+                'file_cover'      => $cover,
+                'file_isi'        => $isi,
+                'file_lampiran'   => [$lamp1],
+                'company_header'  => 'pkm',
+                'doc_number'      => 'SOP-HC-2026',
+                'doc_revision'    => '0',
+                'doc_date'        => now()->format('Y-m-d'),
+                'creator_id'      => $creator->id,
+                'reviewers'       => [$reviewer1->id, $reviewer2->id, $reviewer3->id],
+                'final_id'        => $finalApprover->id,
+            ];
+
+            $response = $this->actingAs($admin)
+                ->post(route('admin.support.store', ['department' => 'HC']), $payload);
+
+            $response->assertRedirect();
+            $document = Document::where('title', 'SOP HC BARU')->latest()->firstOrFail();
+
+            if ($document->file_cover) $this->filesToClean[] = storage_path('app/public/' . $document->file_cover);
+            if ($document->file_lp) $this->filesToClean[] = storage_path('app/public/' . $document->file_lp);
+            if ($document->file_isi) $this->filesToClean[] = storage_path('app/public/' . $document->file_isi);
+            if ($document->file_lampiran) $this->filesToClean[] = storage_path('app/public/' . $document->file_lampiran);
+            if ($document->file_preview) $this->filesToClean[] = storage_path('app/public/' . $document->file_preview);
+
+            // 2. Creator Approves
+            $response = $this->actingAs($creator)
+                ->post(route('reviewer.approve', ['id' => $document->id]), [
+                    'notes' => 'SOP HC Baru siap direview.'
+                ]);
+            $response->assertRedirect();
+            $document->refresh();
+            if ($document->file_preview) $this->filesToClean[] = storage_path('app/public/' . $document->file_preview);
+
+            // 3. Reviewer 1 (Trinwetty) Approves
+            $response = $this->actingAs($reviewer1)
+                ->post(route('reviewer.approve', ['id' => $document->id]), [
+                    'notes' => 'Reviewer 1 setuju.'
+                ]);
+            $response->assertRedirect();
+
+            // 4. Reviewer 2 (Yayu) Requests Revision (Reject)
+            $response = $this->actingAs($reviewer2)
+                ->post(route('reviewer.reject', ['id' => $document->id]), [
+                    'notes' => 'Perbaiki tata bahasa pada pasal 3.'
+                ]);
+            $response->assertRedirect();
+
+            $document->refresh();
+            $this->assertEquals('need_revision', $document->status);
+
+            // 5. Creator/Admin submits revised document
+            $revisedIsi = $this->createMockPdf('Isi HC Revised', 2);
+            $response = $this->actingAs($admin)
+                ->put(route('admin.support.update_revision', ['id' => $document->id]), [
+                    'title' => 'SOP HC BARU',
+                    'file_isi' => $revisedIsi,
+                ]);
+
+            $response->assertSessionHasNoErrors();
+            $response->assertRedirect();
+            $document->refresh();
+            if ($document->file_preview) $this->filesToClean[] = storage_path('app/public/' . $document->file_preview);
+
+            // Status goes back to waiting
+            $this->assertEquals('waiting', $document->status);
+
+            // Only Reviewer 2 (who rejected) is current again, Reviewer 1 remains approved
+            $reviewer1Approval = DocumentApproval::where('document_id', $document->id)->where('user_id', $reviewer1->id)->first();
+            $reviewer2Approval = DocumentApproval::where('document_id', $document->id)->where('user_id', $reviewer2->id)->first();
+            $this->assertEquals('approved', $reviewer1Approval->status);
+            $this->assertEquals('current', $reviewer2Approval->status);
+
+            // 6. Reviewer 2 approves
+            $response = $this->actingAs($reviewer2)
+                ->post(route('reviewer.approve', ['id' => $document->id]), [
+                    'notes' => 'Revisi pasal 3 sudah oke.'
+                ]);
+            $response->assertRedirect();
+
+            // 7. Reviewer 3 (Putri) approves
+            $response = $this->actingAs($reviewer3)
+                ->post(route('reviewer.approve', ['id' => $document->id]), [
+                    'notes' => 'Reviewer 3 oke.'
+                ]);
+            $response->assertRedirect();
+
+            // 8. Final Approver (Zikri) approves
+            $response = $this->actingAs($finalApprover)
+                ->post(route('reviewer.approve', ['id' => $document->id]), [
+                    'notes' => 'Disahkan oleh Zikri.'
+                ]);
+            $response->assertRedirect();
+            $document->refresh();
+            if ($document->file_final) $this->filesToClean[] = storage_path('app/public/' . $document->file_final);
+
+            // Assert document is active and file was generated
             $this->assertEquals('active', $document->status);
             $this->assertFileExists(storage_path('app/public/' . $document->file_final));
 

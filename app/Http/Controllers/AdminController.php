@@ -14,21 +14,69 @@ class AdminController extends Controller
 {
 
     public function index()
-        {
-            $buUnits = ['SPBU', 'BBM RETAIL', 'GAS RETAIL', 'BBM INMAR', 'GAS INDUSTRI', 'MARINE TRANSPORT', 'SHIPYARD'];
+    {
+        $buUnits = ['SPBU', 'BBM RETAIL', 'GAS RETAIL', 'BBM INMAR', 'GAS INDUSTRI', 'MARINE TRANSPORT', 'SHIPYARD'];
 
-            $stats = [
-                'total_pegawai'  => User::where('role', '!=', 'admin')->count(),
-                'total_sop'      => Document::count(),
-                'sop_support'    => Document::whereNotIn('department', $buUnits)->count(),
-                'sop_divisi'     => Document::whereIn('department', $buUnits)->count(),
-                'pending_review' => Document::where('status', 'waiting')->count(),
-            ];
+        $stats = [
+            'total_pegawai'  => User::where('role', '!=', 'admin')->count(),
+            'total_sop'      => Document::count(),
+            'sop_support'    => Document::whereNotIn('department', $buUnits)->count(),
+            'sop_divisi'     => Document::whereIn('department', $buUnits)->count(),
+            'pending_review' => Document::where('status', 'waiting')->count(),
+        ];
 
-            $recentActivities = Document::latest()->take(5)->get();
+        $revisiDocs = Document::where('status', 'need_revision')->latest()->take(5)->get();
+        $inProgressDocs = Document::where('status', 'waiting')->latest()->take(5)->get();
+        $activeDocs = Document::where('status', 'active')->latest()->take(5)->get();
 
-            return view('admin.dashboard', compact('stats', 'recentActivities'));
+        return view('admin.dashboard', compact('stats', 'revisiDocs', 'inProgressDocs', 'activeDocs'));
+    }
+
+    public function logoIndex()
+    {
+        $companyMap = \App\Services\LpGeneratorService::getCompanyMap();
+        return view('admin.logo', compact('companyMap'));
+    }
+
+    public function updateCompanyLogo(Request $request)
+    {
+        $request->validate([
+            'company_code' => 'required|string',
+            'name'         => 'required|string|max:255',
+            'address'      => 'required|string|max:255',
+            'logo'         => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+        ]);
+
+        $code = strtolower(trim($request->company_code));
+        $companyMap = \App\Services\LpGeneratorService::getCompanyMap();
+
+        if (!isset($companyMap[$code])) {
+            return back()->with('error', 'Kode perusahaan tidak valid.');
         }
+
+        $companyMap[$code]['name'] = $request->name;
+        $companyMap[$code]['address'] = $request->address;
+
+        if ($request->hasFile('logo')) {
+            $file = $request->file('logo');
+            $filename = time() . '_' . $code . '.' . $file->getClientOriginalExtension();
+            
+            // Pastikan direktori public/img ada
+            $destPath = public_path('img');
+            if (!file_exists($destPath)) {
+                mkdir($destPath, 0755, true);
+            }
+            
+            $file->move($destPath, $filename);
+            $companyMap[$code]['logo'] = $filename;
+        }
+
+        // Simpan map kembali ke storage
+        $jsonPath = storage_path('app/company_configs.json');
+        file_put_contents($jsonPath, json_encode($companyMap, JSON_PRETTY_PRINT));
+
+        return back()->with('success', 'Informasi & logo PT berhasil diperbarui!');
+    }
     // Fungsi untuk menyimpan data dari form 3 file
     public function store(Request $request, $unit)
     {

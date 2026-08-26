@@ -15,27 +15,64 @@ class ReviewerController extends Controller
 {
 public function index()
 {
-    // Kita panggil langsung pakai DB facade agar tidak lewat Model (Anti-Zonk)
-    $approvalIds = \DB::table('document_approvals')
-                    ->where('user_id', auth()->id())
+    $userId = auth()->id();
+
+    // 1. Dokumen yang SEKARANG menunggu aksi dari saya (giliran saya)
+    $currentIds = \DB::table('document_approvals')
+                    ->where('user_id', $userId)
                     ->where('status', 'current')
                     ->pluck('document_id')
                     ->toArray();
 
-    // Kita ambil datanya, pastikan ID-nya cocok
-    $documents = \App\Models\Document::whereIn('id', $approvalIds)
+    $pendingDocuments = \App\Models\Document::whereIn('id', $currentIds)
                     ->latest()
                     ->get();
 
-    // Hapus tanda // di bawah ini untuk tes terakhir:
-    // return "Jumlah dokumen: " . count($documents) . " | ID Anda: " . auth()->id();
+    // 2. Dokumen yang sudah saya approve tapi MASIH dalam proses (belum active)
+    //    Ini mencakup dokumen berstatus: waiting, revision (perlu revisi dari creator)
+    $myApprovedIds = \DB::table('document_approvals')
+                    ->where('user_id', $userId)
+                    ->where('status', 'approved')
+                    ->pluck('document_id')
+                    ->toArray();
 
-    return view('reviewer.dashboard', compact('documents'));
+    // Ambil dokumen yang sudah saya approve tapi belum final (belum 'active')
+    // dan bukan dokumen yang sudah ada di currentIds (agar tidak duplikat)
+    $inProgressDocuments = \App\Models\Document::whereIn('id', $myApprovedIds)
+                    ->whereNotIn('status', ['active']) // hanya yang masih berjalan
+                    ->whereNotIn('id', $currentIds)    // jangan duplikasi
+                    ->latest()
+                    ->get()
+                    ->map(function ($doc) use ($userId) {
+                        // Tambahkan info approval saya untuk context
+                        $doc->my_approval = \App\Models\DocumentApproval::where('document_id', $doc->id)
+                            ->where('user_id', $userId)
+                            ->first();
+                        return $doc;
+                    });
+
+    // Untuk backward compat dengan view lama, tetap pass $documents untuk antrean aktif
+    $documents = $pendingDocuments;
+
+    return view('reviewer.dashboard', compact('documents', 'pendingDocuments', 'inProgressDocuments'));
 }
 
     public function show($id)
     {
         $document = Document::findOrFail($id);
+        $user = Auth::user();
+
+        if ($user->role !== 'admin') {
+            $isAssigned = \App\Models\DocumentApproval::where('document_id', $document->id)
+                ->where('user_id', $user->id)
+                ->exists();
+            $isActive = ($document->status === 'active');
+
+            if (!$isAssigned && !$isActive) {
+                abort(403, 'Unauthorized access to this document.');
+            }
+        }
+
         $pathToShow = $document->file_final ?? $document->file_preview ?? $document->file_lp;
         return view('reviewer.show', compact('document', 'pathToShow'));
     }
@@ -151,6 +188,24 @@ public function index()
                     
                     // Only draw the current reviewer's stamp during approval (estafet-chain and updateRevision take care of others)
                     $allApproved = collect([$currentApproval]);
+                    // Satu orang dapat memegang dua jabatan/slot approval dengan satu akun.
+                    // Satu klik pada magic-link menyelesaikan seluruh slot final miliknya.
+                    if ($currentApproval->stage === 'final') {
+                        $sameUserFinalApprovals = \App\Models\DocumentApproval::where('document_id', $document->id)
+                            ->where('user_id', $user->id)
+                            ->where('stage', 'final')
+                            ->where('status', 'current')
+                            ->where('id', '!=', $currentApproval->id)
+                            ->get();
+                        foreach ($sameUserFinalApprovals as $additionalApproval) {
+                            $additionalApproval->update([
+                                'status' => 'approved',
+                                'notes' => $request->notes ?? 'Setuju tanpa catatan.',
+                                'processed_at' => $nowTime,
+                            ]);
+                        }
+                        $allApproved = $allApproved->merge($sameUserFinalApprovals);
+                    }
 
                     $stampsToDraw = [];
                     foreach ($allApproved as $appItem) {
@@ -196,6 +251,7 @@ public function index()
                                 'x'            => $x,
                                 'y'            => $y,
                                 'page'         => $page,
+                                'user_id'      => $appItem->user_id,
                                 'username'     => $appItem->user->username ?? 'user',
                                 'processed_at' => $appItem->processed_at ?? $nowTime,
                                 'stage'        => $appItem->stage
@@ -227,7 +283,14 @@ public function index()
                                 $this->drawDigitalStamp($pdf, $stamp['x'], $stamp['y'], $stamp['username'], $rowHeight);
                                 $this->drawDateStamp($pdf, $size['width'], $stamp['y'], $dLine1, $dLine2);
                                 
-                                if ($stamp['stage'] === 'final') {
+                                // Get the ultimate final approver's user ID to ensure the DCC Master Document stamp is drawn only once.
+                                $ultimateFinalUserId = \DB::table('document_approvals')
+                                    ->where('document_id', $document->id)
+                                    ->where('stage', 'final')
+                                    ->orderBy('id', 'desc')
+                                    ->value('user_id');
+
+                                if ($stamp['stage'] === 'final' && isset($stamp['user_id']) && $stamp['user_id'] == $ultimateFinalUserId) {
                                     $noteAnchorY = null;
                                     try {
                                         $anchorParser = new \Smalot\PdfParser\Parser();
@@ -241,14 +304,21 @@ public function index()
                                         $noteAnchorY = null;
                                     }
                                     $masterDateStr = strtoupper($carbonDate->locale('en')->format('d M Y'));
-                                    $this->drawMasterDocumentStamp($pdf, $size['width'], $size['height'], $stamp['y'], $masterDateStr, $noteAnchorY);
+                                    $dccLabel = strtolower((string)$document->company_header) === 'cpt' ? 'DCC CPT' : 'DCC PKM GROUP';
+                                    $this->drawMasterDocumentStamp($pdf, $size['width'], $size['height'], $stamp['y'], $masterDateStr, $noteAnchorY, $dccLabel);
                                 }
                             }
                         }
                     }
 
                     // 5. SIMPAN FILE HASIL TANDA TANGAN
-                    $fileName = 'ESTAFET_' . time() . '_' . $user->username . '.pdf';
+                    $isFinal = ($currentApproval && $currentApproval->stage === 'final');
+                    if ($isFinal) {
+                        $cleanTitle = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $document->title);
+                        $fileName = $cleanTitle . '_' . time() . '.pdf';
+                    } else {
+                        $fileName = 'ESTAFET_' . time() . '_' . $user->username . '.pdf';
+                    }
                     $finalPath = 'documents/final/' . $fileName;
                     
                     if (!file_exists(storage_path('app/public/documents/final'))) {
@@ -362,7 +432,19 @@ public function index()
                             $statusMsg = 'Dokumen berhasil disetujui. Menunggu persetujuan Reviewer lainnya.';
                         }
                     } elseif ($stage === 'final') {
-                        // STAGE 3: Final Approver approved -> Dokumen ACTIVE & Masuk E-Library
+                        $remainingFinalApprovals = \App\Models\DocumentApproval::where('document_id', $document->id)
+                            ->where('stage', 'final')
+                            ->where('status', '!=', 'approved')
+                            ->count();
+
+                        if ($remainingFinalApprovals > 0) {
+                            $document->update([
+                                'file_preview' => $finalPath,
+                                'status' => 'waiting',
+                            ]);
+                            $statusMsg = 'Persetujuan final Anda berhasil dicatat. Menunggu penandatangan final lainnya.';
+                        } else {
+                        // STAGE 3: seluruh final approver approved -> Dokumen ACTIVE & Masuk E-Library
                         $document->update([
                             'file_final'   => $finalPath,
                             'file_preview' => $finalPath,
@@ -429,6 +511,7 @@ public function index()
                         }
 
                         $statusMsg = 'Dokumen telah disetujui final oleh semua pihak dan resmi masuk E-Library!';
+                        }
                     }
                 } else {
                     throw new \Exception('Data antrean approval untuk dokumen ini tidak ditemukan atau sudah diproses.');
@@ -603,7 +686,7 @@ public function index()
 
         // 2. Kotak Label Samping (Green)
         $labelW = 5.0;
-        $pdf->SetFillColor(16, 124, 65);
+        $pdf->SetFillColor(30, 41, 59);
         $pdf->Rect($drawX, $drawY, $labelW, $h, 'F');
 
         // 3. Label QMS (Centered horizontally & vertically in the label box)
@@ -653,7 +736,7 @@ public function index()
         $topPadding = ($h - $totalTextH) / 2.0;
 
         // Draw APPROVED
-        $pdf->SetTextColor(16, 124, 65);
+        $pdf->SetTextColor(30, 41, 59);
         $pdf->SetFont('Arial', 'B', $approvedFontSize);
         $pdf->SetXY($drawX + $labelW + 1.2, $drawY + $topPadding);
         $pdf->Cell($w - $labelW - 2.0, $approvedH, 'APPROVED', 0, 0, 'L');
@@ -672,18 +755,18 @@ public function index()
         
         $pdf->SetTextColor(30, 41, 59);
         
-        // Line 1: DD/MM/YYYY (Font 5.8pt, Bold)
-        $pdf->SetFont('Arial', 'B', 5.8);
+        // Line 1: DD/MM/YYYY (Font 7.8pt, Bold)
+        $pdf->SetFont('Arial', 'B', 7.8);
         $pdf->SetXY($dateColumnCenterX - 15.0, $signatureY + 1.2);
         $pdf->Cell(30.0, 2.0, $dateLine1, 0, 0, 'C');
         
-        // Line 2: HH:MM WIB (Font 4.2pt)
-        $pdf->SetFont('Arial', '', 4.2);
+        // Line 2: HH:MM WIB (Font 6.2pt)
+        $pdf->SetFont('Arial', '', 6.2);
         $pdf->SetXY($dateColumnCenterX - 15.0, $signatureY + 3.6);
         $pdf->Cell(30.0, 2.0, $dateLine2, 0, 0, 'C');
     }
 
-    private function drawMasterDocumentStamp($pdf, $pageWidthMm, $pageHeightMm, $signatureY, $dateStr, $noteAnchorY = null)
+    private function drawMasterDocumentStamp($pdf, $pageWidthMm, $pageHeightMm, $signatureY, $dateStr, $noteAnchorY = null, $dccLabel = 'DCC PKM GROUP')
     {
         $stampWidth = 45.0;
         $stampHeight = 22.0;
@@ -696,11 +779,11 @@ public function index()
         $x = $lpRightBoundary - $stampWidth - $innerRightGap;
         $x = max(10.0, min($x, $pageWidthMm - $stampWidth - 5.0));
 
-        // 2. Hitung koordinat Y (Di bawah Keterangan: NA... dengan gap kecil 3.5mm)
+        // 2. Hitung koordinat Y (Di bawah Keterangan: NA... dengan gap kecil 12.0mm)
         if ($noteAnchorY !== null && $noteAnchorY > 50.0 && $noteAnchorY < ($pageHeightMm - 30.0)) {
-            $targetY = $noteAnchorY + 3.5;
+            $targetY = $noteAnchorY + 12.0;
         } else {
-            $targetY = $signatureY + 14.0;
+            $targetY = $signatureY + 24.0;
         }
 
         $maxY = $pageHeightMm - $stampHeight - $footerMargin;
@@ -736,7 +819,7 @@ public function index()
         $pdf->SetTextColor(30, 64, 175);
         $pdf->SetFont('Arial', 'B', 7.5);
         $pdf->SetXY($x, $y + 14.5);
-        $pdf->Cell($stampWidth, 4.0, 'DCC PKM GROUP', 0, 0, 'C');
+        $pdf->Cell($stampWidth, 4.0, $dccLabel, 0, 0, 'C');
 
         // 6. Kembalikan Setting AutoPageBreak ke Kondisi Semula
         $pdf->SetAutoPageBreak(true, 20.0);
@@ -780,6 +863,19 @@ public function index()
     public function streamFile($id)
     {
         $document = Document::findOrFail($id);
+        $user = Auth::user();
+
+        if ($user->role !== 'admin') {
+            $isAssigned = \App\Models\DocumentApproval::where('document_id', $document->id)
+                ->where('user_id', $user->id)
+                ->exists();
+            $isActive = ($document->status === 'active');
+
+            if (!$isAssigned && !$isActive) {
+                abort(403, 'Unauthorized access to this document.');
+            }
+        }
+
         $path = storage_path('app/public/' . ($document->file_preview ?? $document->file_lp));
         return response()->file($path);
     }
@@ -845,7 +941,9 @@ public function reject(Request $request, $id)
     // 3. Catat alasan revisi ke Timeline (Ini yang kemarin sudah jalan)
     $document->logs()->create([
         'user_id' => auth()->id(),
-        'action'  => 'revisi',
+        // Ini adalah permintaan revisi dari reviewer, bukan upload revisi baru.
+        // Dibedakan agar tidak dihitung sebagai nomor revisi dokumen.
+        'action'  => 'minta_revisi',
         'notes'   => $request->notes ?? 'Dokumen memerlukan perbaikan.',
     ]);
 

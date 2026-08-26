@@ -113,6 +113,24 @@ class LoginController extends Controller
 
         // 5. FIX LOGIKA REDIRECT: Selama dia BUKAN admin, lempar langsung ke halaman review dokumen!
         if ($user->role !== 'admin') {
+            // Cek apakah user adalah creator dari dokumen ini DAN dokumen memerlukan revisi
+            if ($documentId) {
+                $doc = \App\Models\Document::find($documentId);
+                if ($doc && $doc->status === 'need_revision') {
+                    $isCreator = \App\Models\DocumentApproval::where('document_id', $documentId)
+                        ->where('user_id', $user->id)
+                        ->where('stage', 'creator')
+                        ->exists();
+                    if ($isCreator) {
+                        $buDepartments = ['SPBU', 'LPG PSO', 'LPG NPSO', 'PKSP', 'TRP', 'INMAR (CNGM)', 'CPT & MHM', 'SBS', 'GVI', 'PROCUREMENT', 'WAREHOUSE', 'ASET', 'GA', 'KEUANGAN & ACCOUNTING'];
+                        $creatorRoute = in_array($doc->department, $buDepartments, true)
+                            ? 'admin.BU.creator_revise'
+                            : 'admin.support.creator_revise';
+                        return redirect()->route($creatorRoute, $documentId)
+                            ->with('success', 'Berhasil masuk! Silakan unggah perbaikan dokumen.');
+                    }
+                }
+            }
             return redirect()->route('reviewer.show', $documentId)
                 ->with('success', 'Berhasil masuk otomatis! Silakan tinjau dokumen ini.');
         }

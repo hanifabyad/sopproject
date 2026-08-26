@@ -58,7 +58,10 @@ class LibraryController extends Controller
         // Daftar Departemen Support Lengkap
         $supportDepts = ['HC', 'IT', 'HSE', 'QMS', 'INTERNAL AUDIT', 'LOGISTIC', 'OPS', 'FINANCE', 'LEGAL'];
 
-        return view('library.index', compact('documents', 'category', 'div', 'bu', 'company', 'listDivisions', 'divBuMap', 'supportDepts'));
+        // Ambil folder utama General Library
+        $generalFolders = \App\Models\LibraryFolder::whereNull('parent_id')->orderBy('name')->get();
+
+        return view('library.index', compact('documents', 'category', 'div', 'bu', 'company', 'listDivisions', 'divBuMap', 'supportDepts', 'generalFolders'));
     }
 
     public function storeManual(Request $request)
@@ -122,5 +125,143 @@ class LibraryController extends Controller
         $libraryCard->delete();
 
         return redirect()->back()->with('success', 'Dokumen Sah berhasil dihapus permanen dari sistem E-Library!');
+    }
+
+    // ==========================================
+    // NEW METHODS FOR GENERAL HIERARCHICAL LIBRARY
+    // ==========================================
+
+    public function showFolder($id)
+    {
+        $folder = \App\Models\LibraryFolder::with(['children', 'files.uploader', 'parent'])->findOrFail($id);
+        
+        // Generate breadcrumbs path
+        $breadcrumbs = [];
+        $temp = $folder;
+        while ($temp) {
+            array_unshift($breadcrumbs, $temp);
+            $temp = $temp->parent;
+        }
+
+        return view('library.folder', compact('folder', 'breadcrumbs'));
+    }
+
+    public function createFolder(Request $request)
+    {
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'parent_id' => 'nullable|exists:library_folders,id',
+        ]);
+
+        \App\Models\LibraryFolder::create($request->only('name', 'parent_id'));
+
+        return back()->with('success', 'Folder baru berhasil dibuat!');
+    }
+
+    public function uploadFile(Request $request, $folderId)
+    {
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $request->validate([
+            'file' => 'required|file|max:20480', // max 20MB
+        ]);
+
+        $folder = \App\Models\LibraryFolder::findOrFail($folderId);
+
+        if ($request->hasFile('file')) {
+            $uploadedFile = $request->file('file');
+            $originalName = $uploadedFile->getClientOriginalName();
+            $fileName = time() . '_' . $originalName;
+            $path = $uploadedFile->storeAs('library_general', $fileName, 'public');
+
+            \App\Models\LibraryFile::create([
+                'folder_id'   => $folder->id,
+                'name'        => $originalName,
+                'path'        => $path,
+                'mime_type'   => $uploadedFile->getClientMimeType(),
+                'size'        => $uploadedFile->getSize(),
+                'uploaded_by' => auth()->id(),
+            ]);
+
+            return back()->with('success', 'Berkas berhasil diunggah ke folder!');
+        }
+
+        return back()->with('error', 'Gagal mengunggah berkas.');
+    }
+
+    public function deleteFolder($id)
+    {
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $folder = \App\Models\LibraryFolder::findOrFail($id);
+
+        // Delete all files in this folder (and child folders via DB cascade cascade onDelete)
+        // Let's manually clean the storage files first:
+        $this->deletePhysicalFolderFiles($folder);
+
+        $folder->delete();
+
+        return redirect()->back()->with('success', 'Folder beserta seluruh isinya berhasil dihapus!');
+    }
+
+    public function deleteFile($id)
+    {
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $file = \App\Models\LibraryFile::findOrFail($id);
+
+        if ($file->path && Storage::disk('public')->exists($file->path)) {
+            Storage::disk('public')->delete($file->path);
+        }
+
+        $file->delete();
+
+        return back()->with('success', 'Berkas berhasil dihapus dari folder!');
+    }
+
+    private function deletePhysicalFolderFiles($folder)
+    {
+        foreach ($folder->files as $file) {
+            if ($file->path && Storage::disk('public')->exists($file->path)) {
+                Storage::disk('public')->delete($file->path);
+            }
+        }
+        foreach ($folder->children as $child) {
+            $this->deletePhysicalFolderFiles($child);
+        }
+    }
+
+    public function streamLibraryDoc($id)
+    {
+        $lib = \App\Models\Library::findOrFail($id);
+        
+        $path = storage_path('app/public/' . $lib->file_path);
+        if (!file_exists($path)) {
+            abort(404, 'File tidak ditemukan.');
+        }
+
+        return response()->file($path);
+    }
+
+    public function streamGeneralFile($id)
+    {
+        $file = \App\Models\LibraryFile::findOrFail($id);
+        
+        $path = storage_path('app/public/' . $file->path);
+        if (!file_exists($path)) {
+            abort(404, 'File tidak ditemukan.');
+        }
+
+        return response()->file($path);
     }
 }

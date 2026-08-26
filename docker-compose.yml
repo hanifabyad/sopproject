@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: eqms-app
+    container_name: eqms-app
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.0
+    container_name: eqms-db
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_DATABASE=eqms
+      - MYSQL_ROOT_PASSWORD=secret
+    volumes:
+      - dbdata:/var/lib/mysql
+
+volumes:
+  dbdata:

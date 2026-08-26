@@ -41,6 +41,7 @@ class DocumentApproval extends Model
             'Ka. Div F&A'          => ['stage' => 'reviewer', 'signature_slot' => 'sig07'],
             'Dept. Internal Audit' => ['stage' => 'reviewer', 'signature_slot' => 'sig08'],
             'Direktur Utama'       => ['stage' => 'final',    'signature_slot' => 'sig09'],
+            'Direktur CPT'         => ['stage' => 'final',    'signature_slot' => 'sig09'],
         ];
 
         if (isset($mapping[$role])) {

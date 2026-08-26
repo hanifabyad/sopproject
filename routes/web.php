@@ -24,6 +24,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     
     // Dashboard Utama & Statistik Terpisah (Support vs BU)
     Route::get('/dashboard', [AdminController::class, 'index'])->name('dashboard');
+    // Kelola Logo & Info PT (Dynamic LP logos)
+    Route::get('/logo', [AdminController::class, 'logoIndex'])->name('logo.index');
+    Route::post('/logo/update', [AdminController::class, 'updateCompanyLogo'])->name('logo.update');
     
     // Kelola Pegawai (CRUD User dengan Role Lengkap)
     Route::resource('users', UserController::class)->except(['show']);
@@ -32,6 +35,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     Route::get('/library', [LibraryController::class, 'index'])->name('library.index');
     Route::post('/library/store-manual', [LibraryController::class, 'storeManual'])->name('library.store_manual');
     Route::delete('/library/{id}', [LibraryController::class, 'destroy'])->name('library.destroy');
+    
+    // Admin folder and file management
+    Route::post('/library/folder', [LibraryController::class, 'createFolder'])->name('library.folder.create');
+    Route::post('/library/folder/{id}/upload', [LibraryController::class, 'uploadFile'])->name('library.folder.upload');
+    Route::delete('/library/folder/{id}', [LibraryController::class, 'deleteFolder'])->name('library.folder.destroy');
+    Route::delete('/library/file/{id}', [LibraryController::class, 'deleteFile'])->name('library.file.destroy');
 
     // ------------------------------------------
     // 🏢 MANAJEMEN SOP DEPARTEMEN SUPPORT
@@ -44,7 +53,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
         
         // Audit Trail Dokumen Support
         Route::get('/document/{id}', [SupportController::class, 'documentDetail'])->name('document.detail');
-        Route::put('/update-reviewer/{id}', [SupportController::class, 'updateReviewer'])->name('updateReviewer');
         Route::delete('/document/{id}/delete', [SupportController::class, 'destroy'])->name('document.delete');
 
         // Alur Revisi Support
@@ -73,9 +81,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
         Route::get('/document/{id}', [BusinessUnitController::class, 'documentDetail'])->name('detail');
         Route::delete('/document/{id}/delete', [BusinessUnitController::class, 'destroy'])->name('document.delete');
         
-        // Fitur Oper Kendali (Transfer Dokumen)
-        Route::post('/document/{id}/transfer', [BusinessUnitController::class, 'updateReviewer'])->name('transfer');
-
         // 🛠️ ALUR REVISI PINTAR
         Route::get('/document/{id}/edit-revision', [BusinessUnitController::class, 'editRevision'])->name('edit_revision');
         Route::put('/document/{id}/update-revision', [BusinessUnitController::class, 'updateRevision'])->name('update_revision');
@@ -101,4 +106,19 @@ Route::middleware('auth')->group(function () {
     // Jalur utama menu E-Library
     Route::get('/library', [LibraryController::class, 'index'])->name('library.index');
     Route::post('/library/store-manual', [LibraryController::class, 'storeManual'])->name('library.store_manual');
+    Route::get('/library/folder/{id}', [LibraryController::class, 'showFolder'])->name('library.folder.show');
+    
+    // Secure file streaming routes to bypass storage:link 403 Forbidden errors when hosted
+    Route::get('/library/document/{id}/stream', [LibraryController::class, 'streamLibraryDoc'])->name('library.document.stream');
+    Route::get('/library/file/{id}/stream', [LibraryController::class, 'streamGeneralFile'])->name('library.file.stream');
+});
+
+// ==========================================
+// ✏️ CREATOR REVISION ROUTES (auth only, no admin middleware)
+// ==========================================
+Route::middleware('auth')->group(function () {
+    Route::get('/admin/support/document/{id}/creator-revise', [SupportController::class, 'creatorEditRevision'])->name('admin.support.creator_revise');
+    Route::put('/admin/support/document/{id}/creator-revise', [SupportController::class, 'creatorUpdateRevision'])->name('admin.support.creator_update_revision');
+    Route::get('/admin/BU/document/{id}/creator-revise', [BusinessUnitController::class, 'creatorEditRevision'])->name('admin.BU.creator_revise');
+    Route::put('/admin/BU/document/{id}/creator-revise', [BusinessUnitController::class, 'creatorUpdateRevision'])->name('admin.BU.creator_update_revision');
 });

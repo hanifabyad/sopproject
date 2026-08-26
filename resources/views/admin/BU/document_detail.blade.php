@@ -7,27 +7,27 @@
 <div class="space-y-6">
     
     <!-- TOP HEADER CONTAINER WITH LEFT BACK BUTTON -->
-    <div class="bg-white rounded-lg p-6 shadow-sm border border-[#cfc6ac]/60 flex flex-col gap-3">
+    <div class="bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 flex flex-col gap-3">
         <!-- Baris Tombol Kembali & Breadcrumb di Kiri -->
         <div class="flex items-center gap-3">
             <a href="{{ route('admin.BU.index') }}" 
-               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#cfc6ac] bg-white text-[#4d4633] hover:bg-[#f7f6f2] hover:text-[#1e1c14] text-xs font-semibold transition-colors shadow-sm">
+               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-sand-200 bg-white text-on-surface-variant hover:bg-canvas hover:text-on-surface text-xs font-semibold transition-colors shadow-sm">
                 <span class="material-symbols-outlined text-[16px]">arrow_back</span>
                 <span>Kembali</span>
             </a>
-            <span class="text-[#cfc6ac]">|</span>
-            <div class="flex items-center gap-2 text-xs text-[#4d4633]">
-                <a href="{{ route('admin.BU.index') }}" class="hover:text-[#705d00]">Business Unit</a>
+            <span class="text-sand-200">|</span>
+            <div class="flex items-center gap-2 text-xs text-on-surface-variant">
+                <a href="{{ route('admin.BU.index') }}" class="hover:text-gold-500">Business Unit</a>
                 <span>/</span>
-                <span class="font-medium text-[#1e1c14]">{{ $document->document_number ?? $document->doc_number }}</span>
+                <span class="font-medium text-on-surface">{{ $document->document_number ?? $document->doc_number }}</span>
             </div>
         </div>
 
         <!-- Baris Judul & Status Badge -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-                <h2 class="text-2xl font-bold text-[#1e1c14] tracking-tight">{{ $document->title }}</h2>
-                <p class="text-xs text-[#4d4633] mt-0.5">Versi Revisi: {{ $document->doc_revision ?? '0' }} &bull; Tanggal: {{ $document->doc_date ?? $document->created_at->format('d M Y') }}</p>
+                <h2 class="text-2xl font-bold text-on-surface tracking-tight">{{ $document->title }}</h2>
+                <p class="text-xs text-on-surface-variant mt-0.5">Versi Revisi: {{ $document->doc_revision ?? '0' }} &bull; Tanggal: {{ $document->doc_date ?? $document->created_at->format('d M Y') }}</p>
             </div>
             <!-- Area Status Badge -->
             <div class="flex items-center gap-2">
@@ -39,38 +39,37 @@
     </div>
 
     <!-- MINIMALIST HORIZONTAL STEPPER -->
-    <div class="bg-white rounded-lg p-6 shadow-sm border border-[#cfc6ac]/60 space-y-4">
-        <div class="flex items-center space-x-2 border-b border-[#cfc6ac]/40 pb-3">
-            <span class="material-symbols-outlined text-[#705d00] text-lg">conversion_path</span>
-            <h3 class="text-xs font-extrabold uppercase tracking-wider text-[#1e1c14]">Alur Workflow Persetujuan Multi-Stage</h3>
+    <div class="bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 space-y-4">
+        <div class="flex items-center space-x-2 border-b border-sand-200/40 pb-3">
+            <h3 class="text-xs font-extrabold uppercase tracking-wider text-on-surface">Alur Workflow Persetujuan Multi-Stage</h3>
         </div>
 
         <div class="relative py-2">
             <!-- 1px Connecting Line -->
-            <div class="hidden md:block absolute top-1/2 left-0 right-0 h-[1px] bg-[#cfc6ac] -translate-y-1/2 z-0"></div>
+            <div class="hidden md:block absolute top-1/2 left-0 right-0 h-[1px] bg-sand-200 -translate-y-1/2 z-0"></div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
                 <!-- STAGE 1: PEMBUAT DOKUMEN -->
-                <div class="p-3.5 bg-white rounded-md border border-[#cfc6ac] flex items-center space-x-3 shadow-sm">
+                <div class="p-3.5 bg-white rounded-md border border-sand-200 flex items-center space-x-3 shadow-sm">
                     <div class="w-8 h-8 rounded bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm flex-shrink-0">
                         <span class="material-symbols-outlined text-sm">check</span>
                     </div>
                     <div class="min-w-0">
-                        <span class="text-[9px] font-extrabold uppercase tracking-wider text-[#705d00] block">Stage 1: Inisiator</span>
+                        <span class="text-[9px] font-extrabold uppercase tracking-wider text-gold-500 block">Stage 1: Inisiator</span>
                         @php $creatorApp = $document->approvals->where('stage', 'creator')->first(); @endphp
-                        <p class="text-xs font-bold text-[#1e1c14] truncate">{{ $creatorApp->user->full_name ?? $creatorApp->user->username ?? 'Initiator' }}</p>
+                        <p class="text-xs font-bold text-on-surface truncate">{{ $creatorApp->user->full_name ?? $creatorApp->user->username ?? 'Initiator' }}</p>
                     </div>
                 </div>
 
                 <!-- STAGE 2: DIPERIKSA & DIKETAHUI (PARALEL REVIEWERS) -->
-                <div class="p-3.5 bg-[#fbf9f4] rounded-md border border-[#cfc6ac] space-y-1.5 shadow-sm">
+                <div class="p-3.5 bg-sand-50 rounded-md border border-sand-200 space-y-1.5 shadow-sm">
                     <div class="flex items-center justify-between">
-                        <span class="text-[9px] font-extrabold uppercase tracking-wider text-[#705d00]">Stage 2: Peninjau</span>
-                        <span class="w-2 h-2 rounded-full bg-[#705d00] animate-ping"></span>
+                        <span class="text-[9px] font-extrabold uppercase tracking-wider text-gold-500">Stage 2: Peninjau</span>
+                        <span class="w-2 h-2 rounded-full bg-gold-500 animate-ping"></span>
                     </div>
                     <div class="space-y-1 max-h-20 overflow-y-auto custom-scrollbar">
                         @foreach($document->approvals->where('stage', 'reviewer') as $revApp)
-                            <div class="flex items-center justify-between p-1 bg-white border border-[#cfc6ac]/40 rounded text-[11px] font-semibold text-[#1e1c14]">
+                            <div class="flex items-center justify-between p-1 bg-white border border-sand-200/40 rounded text-[11px] font-semibold text-on-surface">
                                 <span class="truncate">{{ $revApp->user->full_name ?? $revApp->user->username }}</span>
                                 @if($revApp->status === 'approved')
                                     <span class="material-symbols-outlined text-emerald-600 text-sm">check_circle</span>
@@ -85,14 +84,14 @@
                 </div>
 
                 <!-- STAGE 3: DISAHKAN (FINAL APPROVER) -->
-                <div class="p-3.5 bg-white rounded-md border border-[#cfc6ac] flex items-center space-x-3 shadow-sm">
-                    @php $finalApp = $document->approvals->where('stage', 'final')->first(); @endphp
-                    <div class="w-8 h-8 rounded {{ ($finalApp && $finalApp->status === 'approved') ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-600' }} flex items-center justify-center font-bold text-xs shadow-sm flex-shrink-0">
-                        <span class="material-symbols-outlined text-sm">{{ ($finalApp && $finalApp->status === 'approved') ? 'check' : 'draw' }}</span>
+                <div class="p-3.5 bg-white rounded-md border border-sand-200 flex items-center space-x-3 shadow-sm">
+                    @php $finalApps = $document->approvals->where('stage', 'final'); $allFinalApproved = $finalApps->isNotEmpty() && $finalApps->every(fn($app) => $app->status === 'approved'); @endphp
+                    <div class="w-8 h-8 rounded {{ $allFinalApproved ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-600' }} flex items-center justify-center font-bold text-xs shadow-sm flex-shrink-0">
+                        <span class="material-symbols-outlined text-sm">{{ $allFinalApproved ? 'check' : 'draw' }}</span>
                     </div>
                     <div class="min-w-0">
-                        <span class="text-[9px] font-extrabold uppercase tracking-wider text-[#705d00] block">Stage 3: Pengesahan Final</span>
-                        <p class="text-xs font-bold text-[#1e1c14] truncate">{{ $finalApp->user->full_name ?? $finalApp->user->username ?? 'Pimpinan Final' }}</p>
+                        <span class="text-[9px] font-extrabold uppercase tracking-wider text-gold-500 block">Stage 3: Pengesahan Final</span>
+                        <p class="text-xs font-bold text-on-surface">{{ $finalApps->map(fn($app) => $app->user->full_name ?? $app->user->username)->join(', ') ?: 'Pimpinan Final' }}</p>
                     </div>
                 </div>
             </div>
@@ -103,16 +102,16 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         <!-- LEFT COLUMN: PDF VIEWER CONTAINER (COL 8) -->
-        <div class="lg:col-span-8 bg-white rounded-lg p-6 shadow-sm border border-[#cfc6ac]/60 space-y-4">
-            <div class="flex items-center justify-between border-b border-[#cfc6ac]/40 pb-3">
-                <div class="flex items-center space-x-2 text-xs font-bold text-[#1e1c14]">
+        <div class="lg:col-span-8 bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 space-y-4">
+            <div class="flex items-center justify-between border-b border-sand-200/40 pb-3">
+                <div class="flex items-center space-x-2 text-xs font-bold text-on-surface">
                     <span class="material-symbols-outlined text-red-600 text-base">picture_as_pdf</span>
                     <span>Document Stream Player</span>
                 </div>
-                <span class="text-[10px] text-[#4d4633] font-semibold">Dokumen Resmi Terenkripsi</span>
+                <span class="text-[10px] text-on-surface-variant font-semibold">Dokumen Resmi Terenkripsi</span>
             </div>
 
-            <div class="h-[650px] bg-[#f7f6f2] rounded-md overflow-hidden border border-[#cfc6ac]">
+            <div class="h-[650px] bg-canvas rounded-md overflow-hidden border border-sand-200">
                 @php
                     $pathToShow = $pathFinal ?? $document->file_final ?? $document->file_preview ?? $document->file_lp;
                 @endphp
@@ -126,21 +125,21 @@
             <!-- ATTACHMENTS LIST CARD -->
             @php $allAtts = $document->all_attachments; @endphp
             @if($allAtts->count() > 0)
-            <div class="bg-white rounded-lg p-6 shadow-sm border border-[#cfc6ac]/60 space-y-3">
-                <div class="flex items-center space-x-2 border-b border-[#cfc6ac]/40 pb-3">
-                    <span class="material-symbols-outlined text-[#705d00] text-lg">attach_file</span>
-                    <h4 class="font-bold text-xs uppercase tracking-wider text-[#1e1c14]">Berkas Lampiran ({{ $allAtts->count() }})</h4>
+            <div class="bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 space-y-3">
+                <div class="flex items-center space-x-2 border-b border-sand-200/40 pb-3">
+                    <span class="material-symbols-outlined text-gold-500 text-lg">attach_file</span>
+                    <h4 class="font-bold text-xs uppercase tracking-wider text-on-surface">Berkas Lampiran ({{ $allAtts->count() }})</h4>
                 </div>
 
                 <div class="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
                     @foreach($allAtts as $idx => $att)
-                        <a href="{{ asset('storage/' . $att->file_path) }}" target="_blank" class="flex items-center justify-between p-2.5 bg-[#f7f6f2] rounded-md border border-[#cfc6ac] hover:bg-[#fff9ed] transition-all text-xs font-semibold text-[#1e1c14]">
+                        <a href="{{ asset('storage/' . $att->file_path) }}" target="_blank" class="flex items-center justify-between p-2.5 bg-canvas rounded-md border border-sand-200 hover:bg-[#fff9ed] transition-all text-xs font-semibold text-on-surface">
                             <div class="flex items-center gap-2 truncate pr-2">
-                                <span class="text-[#705d00] font-bold text-[10px]">{{ $idx + 1 }}.</span>
+                                <span class="text-gold-500 font-bold text-[10px]">{{ $idx + 1 }}.</span>
                                 <span class="material-symbols-outlined text-red-600 text-sm">picture_as_pdf</span>
                                 <span class="truncate text-[11px]">{{ $att->original_name ?? basename($att->file_path) }}</span>
                             </div>
-                            <span class="material-symbols-outlined text-sm text-[#4d4633]">download</span>
+                            <span class="material-symbols-outlined text-sm text-on-surface-variant">download</span>
                         </a>
                     @endforeach
                 </div>
@@ -148,23 +147,23 @@
             @endif
 
             <!-- TIMELINE AUDIT TRAIL CARD -->
-            <div class="bg-white rounded-lg p-6 shadow-sm border border-[#cfc6ac]/60 space-y-4">
-                <div class="flex items-center space-x-2 border-b border-[#cfc6ac]/40 pb-3">
-                    <span class="material-symbols-outlined text-[#705d00] text-lg">history</span>
-                    <h4 class="font-bold text-xs uppercase tracking-wider text-[#1e1c14]">Timeline Audit Log Aktivitas</h4>
+            <div class="bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 space-y-4">
+                <div class="flex items-center space-x-2 border-b border-sand-200/40 pb-3">
+                    <span class="material-symbols-outlined text-gold-500 text-lg">history</span>
+                    <h4 class="font-bold text-xs uppercase tracking-wider text-on-surface">Timeline Audit Log Aktivitas</h4>
                 </div>
 
                 <div class="max-h-80 overflow-y-auto custom-scrollbar pr-2 space-y-4 relative">
-                    <div class="absolute left-2.5 top-2 bottom-2 w-0.5 bg-[#cfc6ac]"></div>
+                    <div class="absolute left-2.5 top-2 bottom-2 w-0.5 bg-sand-200"></div>
 
                     <!-- Uploaded Node -->
                     <div class="relative flex items-start space-x-3 pl-1">
-                        <div class="relative z-10 w-5 h-5 rounded bg-[#333028] text-[#ffe16e] flex items-center justify-center text-[10px] font-bold ring-2 ring-white">
+                        <div class="relative z-10 w-5 h-5 rounded bg-charcoal-900 text-gold-fixed flex items-center justify-center text-[10px] font-bold ring-2 ring-white">
                             <span class="material-symbols-outlined text-xs">upload</span>
                         </div>
                         <div>
-                            <p class="text-xs font-bold text-[#1e1c14]">Dokumen Dibuat</p>
-                            <p class="text-[10px] text-[#4d4633] font-semibold">{{ $document->created_at->format('d M Y - H:i') }} WIB</p>
+                            <p class="text-xs font-bold text-on-surface">Dokumen Dibuat</p>
+                            <p class="text-[10px] text-on-surface-variant font-semibold">{{ $document->created_at->format('d M Y - H:i') }} WIB</p>
                         </div>
                     </div>
 
@@ -181,13 +180,13 @@
                             {{ $loop->iteration }}
                         </div>
                         <div class="flex-1">
-                            <p class="text-xs font-bold text-[#1e1c14]">
-                                {{ $log->user->username }} <span class="text-[10px] text-[#4d4633] font-normal">({{ $log->user->role }})</span>
+                            <p class="text-xs font-bold text-on-surface">
+                                {{ $log->user->username }} <span class="text-[10px] text-on-surface-variant font-normal">({{ $log->user->role }})</span>
                             </p>
-                            <div class="mt-1 p-2.5 bg-[#f7f6f2] rounded-md border border-[#cfc6ac] text-xs text-[#1e1c14]">
+                            <div class="mt-1 p-2.5 bg-canvas rounded-md border border-sand-200 text-xs text-on-surface">
                                 <p class="italic text-[11px] leading-relaxed">"{{ $log->notes }}"</p>
                             </div>
-                            <p class="text-[10px] text-[#4d4633] font-semibold mt-1">{{ $log->created_at->format('d M Y - H:i') }} WIB</p>
+                            <p class="text-[10px] text-on-surface-variant font-semibold mt-1">{{ $log->created_at->format('d M Y - H:i') }} WIB</p>
                         </div>
                     </div>
                     @endforeach
@@ -204,7 +203,7 @@
                     <p class="text-[11px] text-red-600 leading-relaxed">
                         Dokumen ini memerlukan perbaikan berdasarkan hasil tinjauan reviewer. Klik tombol di bawah untuk mengunggah draf perbaikan.
                     </p>
-                    <a href="{{ route('admin.BU.edit_revision', $document->id) }}" 
+                    <a href="{{ auth()->user()->role === 'admin' ? route('admin.BU.edit_revision', $document->id) : route('admin.BU.creator_revise', $document->id) }}" 
                        class="w-full inline-flex items-center justify-center bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-4 rounded-md shadow-sm transition-all text-xs uppercase tracking-wider gap-2">
                         <span class="material-symbols-outlined text-base">build</span>
                         <span>Upload Revisi Dokumen</span>
@@ -213,7 +212,7 @@
             @endif
 
             <!-- DOWNLOAD & DELETE ACTIONS -->
-            <div class="bg-white rounded-lg p-6 shadow-sm border border-[#cfc6ac]/60 space-y-3">
+            <div class="bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 space-y-3">
                 @if($document->status == 'active' && ($pathFinal || $document->file_final))
                     <a href="{{ asset('storage/' . ($document->file_final ?? $pathFinal)) }}" 
                        download 
@@ -238,4 +237,4 @@
 </div>
 @endsection
 
-
+
