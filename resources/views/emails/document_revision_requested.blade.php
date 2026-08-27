@@ -1,72 +1,90 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dokumen Memerlukan Revisi</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Dokumen Memerlukan Revisi - e-QMS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
-<body style="font-family: 'Poppins', Arial, sans-serif; background-color: #F4F5F6; margin: 0; padding: 30px 20px; color: #1a1a1a;">
+<body style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; background-color: #F4F5F6; margin: 0; padding: 30px 15px; color: #1A1A1A;">
     <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);">
+        
         <!-- LOGO HEADER -->
         <tr>
-            <td align="center" style="padding: 25px 20px; background-color: #ffffff; border-bottom: 1px solid #F4F5F6;">
-                <img src="{{ $message->embed(public_path('img/logopkm.png')) }}" style="height: 48px; display: block;" alt="PKM Group Logo">
+            <td align="center" style="padding: 24px 20px; background-color: #ffffff; border-bottom: 1px solid #F4F5F6;">
+                <img src="{{ $message->embed(public_path('img/logopkm.png')) }}" style="height: 46px; display: block;" alt="PKM Group Logo">
             </td>
         </tr>
 
-        <!-- COLOR ACCENT BAR -->
+        <!-- COLOR ACCENT BAR (RED) -->
         <tr>
             <td height="4" bgcolor="#DC2626"></td>
         </tr>
         
         <!-- BODY CONTENT -->
         <tr>
-            <td style="padding: 40px 30px;">
-                <h2 style="font-size: 18px; font-weight: 700; margin-top: 0; color: #1a1a1a; letter-spacing: -0.02em;">Halo, {{ $user->full_name ?? $user->username }}</h2>
-                <p style="font-size: 13px; line-height: 1.6; color: #4B5563; margin-bottom: 25px;">
-                    Dokumen yang Anda ajukan atau kelola di bawah ini telah dikembalikan oleh Peninjau untuk dilakukan revisi atau perbaikan berkas.
+            <td style="padding: 36px 28px;">
+                <!-- STATUS BADGE -->
+                <div style="margin-bottom: 16px;">
+                    <span style="display: inline-block; padding: 4px 12px; background-color: #FFF1F2; border: 1px solid #FECDD3; border-radius: 20px; font-size: 11px; font-weight: 700; color: #DC2626; text-transform: uppercase; letter-spacing: 0.5px;">
+                        {{ !empty($isCreator) ? 'PERMINTAAN REVISI (DOKUMEN TERKUNCI)' : 'PEMBERITAHUAN DOKUMEN TERKUNCI REVISI' }}
+                    </span>
+                </div>
+
+                <h2 style="font-size: 18px; font-weight: 700; margin: 0 0 10px 0; color: #1A1A1A; letter-spacing: -0.01em;">
+                    Halo, {{ $user->full_name ?? $user->username }}
+                </h2>
+                <p style="font-size: 13px; line-height: 1.6; color: #4B5563; margin: 0 0 24px 0;">
+                    @if(!empty($isCreator))
+                        Dokumen SOP berikut dikembalikan oleh Peninjau untuk dilakukan perbaikan. Status dokumen saat ini dikunci sementara (<code>need_revision</code>) hingga berkas revisi baru Anda unggah.
+                    @else
+                        Dokumen SOP berikut dikembalikan oleh Peninjau untuk dilakukan perbaikan oleh Pembuat Dokumen. Status dokumen saat ini dikunci sementara (<code>need_revision</code>).
+                    @endif
                 </p>
 
                 <!-- METADATA TABLE -->
-                <table width="100%" cellpadding="12" cellspacing="0" style="border-collapse: collapse; border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 30px; overflow: hidden;">
+                <table width="100%" cellpadding="12" cellspacing="0" style="border-collapse: collapse; border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">
                     <tr bgcolor="#F9FAFB">
-                        <td colspan="2" style="font-size: 11px; font-weight: 700; text-transform: uppercase; tracking-wider; color: #DC2626; border-bottom: 1px solid #E5E7EB;">
+                        <td colspan="2" style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #DC2626; border-bottom: 1px solid #E5E7EB;">
                             Detail Permintaan Revisi
                         </td>
                     </tr>
                     <tr>
                         <td width="35%" style="font-size: 12px; font-weight: 600; color: #6B7280; border-bottom: 1px solid #F3F4F6;">Judul Dokumen</td>
-                        <td style="font-size: 12px; color: #1a1a1a; border-bottom: 1px solid #F3F4F6; font-weight: 500;">{{ $document->title }}</td>
+                        <td style="font-size: 12px; color: #1A1A1A; border-bottom: 1px solid #F3F4F6; font-weight: 600;">{{ $document->title }}</td>
                     </tr>
                     <tr>
                         <td style="font-size: 12px; font-weight: 600; color: #6B7280; border-bottom: 1px solid #F3F4F6;">Nomor Dokumen</td>
-                        <td style="font-size: 12px; color: #1a1a1a; border-bottom: 1px solid #F3F4F6; font-weight: 500;">{{ $document->doc_number ?? '-' }}</td>
+                        <td style="font-size: 12px; color: #1A1A1A; border-bottom: 1px solid #F3F4F6; font-weight: 600;">{{ $document->doc_number ?? '-' }}</td>
                     </tr>
                     <tr>
                         <td style="font-size: 12px; font-weight: 600; color: #6B7280; border-bottom: 1px solid #F3F4F6;">Diminta Oleh</td>
-                        <td style="font-size: 12px; color: #1a1a1a; border-bottom: 1px solid #F3F4F6; font-weight: 500;">{{ $requester->full_name ?? $requester->username }} ({{ $requester->role }})</td>
+                        <td style="font-size: 12px; color: #1A1A1A; border-bottom: 1px solid #F3F4F6; font-weight: 600;">{{ $requester->full_name ?? $requester->username }} <span style="font-size: 11px; color: #6B7280;">({{ $requester->role }})</span></td>
                     </tr>
                     <tr>
-                        <td style="font-size: 12px; font-weight: 600; color: #6B7280; border-bottom: 1px solid #F3F4F6;">Catatan Revisi</td>
-                        <td style="font-size: 12px; color: #DC2626; font-weight: 600; border-bottom: 1px solid #F3F4F6; line-height: 1.5;">{{ $notes }}</td>
+                        <td style="font-size: 12px; font-weight: 600; color: #6B7280; border-bottom: 1px solid #F3F4F6;">Versi Dokumen</td>
+                        <td style="font-size: 12px; color: #DC2626; border-bottom: 1px solid #F3F4F6; font-weight: 700;">Revisi {{ $document->doc_revision ?? '0' }}</td>
                     </tr>
                     <tr>
-                        <td style="font-size: 12px; font-weight: 600; color: #6B7280;">Status Dokumen</td>
-                        <td style="font-size: 12px; color: #DC2626; font-weight: 700; text-transform: uppercase;">{{ $document->status }} (Need Revision)</td>
+                        <td style="font-size: 12px; font-weight: 600; color: #6B7280;">Catatan Revisi</td>
+                        <td style="font-size: 12px; color: #DC2626; font-weight: 600; line-height: 1.5;">{{ $notes }}</td>
                     </tr>
                 </table>
 
-                <p style="font-size: 13px; line-height: 1.6; color: #4B5563; margin-bottom: 30px;">
-                    Silakan klik tombol di bawah ini untuk mengakses detail dokumen atau mengunggah berkas revisi yang baru.
+                <p style="font-size: 13px; line-height: 1.6; color: #4B5563; margin: 0 0 24px 0;">
+                    @if(!empty($isCreator))
+                        Silakan klik tombol di bawah ini untuk membuka halaman perbaikan dan mengunggah berkas revisi yang baru.
+                    @else
+                        Silakan klik tombol di bawah ini untuk melihat rincian dokumen.
+                    @endif
                 </p>
 
                 <!-- BUTTON CTA -->
                 <table align="center" border="0" cellpadding="0" cellspacing="0">
                     <tr>
-                        <td align="center" bgcolor="#DC2626" style="border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.2);">
-                            <a href="{{ $magicLoginUrl }}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: 12px; font-weight: 600; color: #ffffff; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px;">
-                                Perbaiki Dokumen &rarr;
+                        <td align="center" bgcolor="#DC2626" style="border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.25);">
+                            <a href="{{ $magicLoginUrl }}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: 12px; font-weight: 700; color: #ffffff; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px;">
+                                {{ !empty($isCreator) ? 'PERBAIKI DOKUMEN →' : 'TINJAU BERKAS →' }}
                             </a>
                         </td>
                     </tr>
@@ -76,8 +94,8 @@
 
         <!-- FOOTER -->
         <tr>
-            <td bgcolor="#F9FAFB" style="padding: 25px 30px; border-top: 1px solid #E5E7EB; text-align: center;">
-                <p style="font-size: 11px; color: #374151; margin: 0 0 5px 0; font-weight: 700;">
+            <td bgcolor="#F9FAFB" style="padding: 22px 28px; border-top: 1px solid #E5E7EB; text-align: center;">
+                <p style="font-size: 11px; color: #374151; margin: 0 0 4px 0; font-weight: 700;">
                     PT PUTRA KELANA MAKMUR (PKM GROUP)
                 </p>
                 <p style="font-size: 10px; color: #9CA3AF; margin: 0; line-height: 1.4;">

@@ -245,7 +245,8 @@ class LibraryController extends Controller
     {
         $lib = \App\Models\Library::findOrFail($id);
         
-        $path = storage_path('app/public/' . $lib->file_path);
+        $normalizedPath = str_replace('\\', '/', $lib->file_path);
+        $path = storage_path('app/public/' . $normalizedPath);
         if (!file_exists($path)) {
             abort(404, 'File tidak ditemukan.');
         }
@@ -257,7 +258,8 @@ class LibraryController extends Controller
     {
         $file = \App\Models\LibraryFile::findOrFail($id);
         
-        $path = storage_path('app/public/' . $file->path);
+        $normalizedPath = str_replace('\\', '/', $file->path);
+        $path = storage_path('app/public/' . $normalizedPath);
         if (!file_exists($path)) {
             abort(404, 'File tidak ditemukan.');
         }

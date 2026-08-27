@@ -45,8 +45,8 @@ class LpGeneratorService
         $GRAY_TEXT  = [80, 80, 80];    // dark gray for section label text
 
         // Uniform border constants
-        $LINE_OUTER = 0.5;  // outer page border
-        $LINE_TABLE = 0.35; // all internal table lines
+        $LINE_OUTER = 0.35; // outer page border
+        $LINE_TABLE = 0.20; // all internal table lines
 
         // Draw Outer Border — black, slightly thick
         $pdf->SetDrawColor(...$BLACK);

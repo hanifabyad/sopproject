@@ -286,14 +286,19 @@ public function index()
                                 $this->drawDigitalStamp($pdf, $stamp['x'], $stamp['y'], $stamp['username'], $rowHeight);
                                 $this->drawDateStamp($pdf, $size['width'], $stamp['y'], $dLine1, $dLine2);
                                 
-                                // Get the ultimate final approver's user ID to ensure the DCC Master Document stamp is drawn only once.
+                                // Get the ultimate final approver's user ID to ensure the DCC Master Document stamp is drawn only once when all final approvers have approved.
                                 $ultimateFinalUserId = \DB::table('document_approvals')
                                     ->where('document_id', $document->id)
                                     ->where('stage', 'final')
-                                    ->orderBy('id', 'desc')
+                                    ->orderBy('sequence', 'desc')
                                     ->value('user_id');
 
-                                if ($stamp['stage'] === 'final' && isset($stamp['user_id']) && $stamp['user_id'] == $ultimateFinalUserId) {
+                                $allFinalApproved = \App\Models\DocumentApproval::where('document_id', $document->id)
+                                    ->where('stage', 'final')
+                                    ->where('status', '!=', 'approved')
+                                    ->count() === 0;
+
+                                if ($stamp['stage'] === 'final' && isset($stamp['user_id']) && $stamp['user_id'] == $ultimateFinalUserId && $allFinalApproved) {
                                     $noteAnchorY = null;
                                     try {
                                         $anchorParser = new \Smalot\PdfParser\Parser();
@@ -368,23 +373,20 @@ public function index()
 
                             $statusMsg = 'Dokumen berhasil disetujui Pembuat Dokumen dan diteruskan ke seluruh Reviewer.';
                         } else {
-                            // Jika tidak ada reviewer, langsung aktifkan stage final
-                            $pendingFinalApprovals = \App\Models\DocumentApproval::where('document_id', $document->id)
+                            // Jika tidak ada reviewer, aktifkan Penandatangan Final PERTAMA secara berurutan (sequence terendah)
+                            $firstFinalApproval = \App\Models\DocumentApproval::where('document_id', $document->id)
                                 ->where('stage', 'final')
                                 ->where('status', 'pending')
+                                ->orderBy('sequence', 'asc')
                                 ->with('user')
-                                ->get();
+                                ->first();
 
-                            foreach ($pendingFinalApprovals as $appItem) {
-                                if ($appItem->user) {
-                                    $usersToNotify[] = $appItem->user;
+                            if ($firstFinalApproval) {
+                                $firstFinalApproval->update(['status' => 'current']);
+                                if ($firstFinalApproval->user) {
+                                    $usersToNotify[] = $firstFinalApproval->user;
                                 }
                             }
-
-                            \App\Models\DocumentApproval::where('document_id', $document->id)
-                                ->where('stage', 'final')
-                                ->where('status', 'pending')
-                                ->update(['status' => 'current']);
 
                             $document->update([
                                 'file_preview' => $finalPath,
@@ -401,23 +403,20 @@ public function index()
                             ->count();
 
                         if ($pendingReviewers === 0) {
-                            // Semua reviewer yang ada di dokumen ini sudah 'approved' -> Transisikan Final Approver ke 'current'
-                            $pendingFinalApprovals = \App\Models\DocumentApproval::where('document_id', $document->id)
+                            // Semua reviewer sudah 'approved' -> Aktifkan Penandatangan Final PERTAMA secara berurutan (sequence terendah)
+                            $firstFinalApproval = \App\Models\DocumentApproval::where('document_id', $document->id)
                                 ->where('stage', 'final')
                                 ->where('status', 'pending')
+                                ->orderBy('sequence', 'asc')
                                 ->with('user')
-                                ->get();
+                                ->first();
 
-                            foreach ($pendingFinalApprovals as $appItem) {
-                                if ($appItem->user) {
-                                    $usersToNotify[] = $appItem->user;
+                            if ($firstFinalApproval) {
+                                $firstFinalApproval->update(['status' => 'current']);
+                                if ($firstFinalApproval->user) {
+                                    $usersToNotify[] = $firstFinalApproval->user;
                                 }
                             }
-
-                            \App\Models\DocumentApproval::where('document_id', $document->id)
-                                ->where('stage', 'final')
-                                ->where('status', 'pending')
-                                ->update(['status' => 'current']);
 
                             $document->update([
                                 'file_preview' => $finalPath,
@@ -435,24 +434,45 @@ public function index()
                             $statusMsg = 'Dokumen berhasil disetujui. Menunggu persetujuan Reviewer lainnya.';
                         }
                     } elseif ($stage === 'final') {
-                        $remainingFinalApprovals = \App\Models\DocumentApproval::where('document_id', $document->id)
+                        // STAGE 3: Final approver approved -> Cek apakah ada penandatangan final berikutnya yang 'pending'
+                        $nextFinalApproval = \App\Models\DocumentApproval::where('document_id', $document->id)
                             ->where('stage', 'final')
-                            ->where('status', '!=', 'approved')
-                            ->count();
+                            ->where('status', 'pending')
+                            ->orderBy('sequence', 'asc')
+                            ->with('user')
+                            ->first();
 
-                        if ($remainingFinalApprovals > 0) {
+                        if ($nextFinalApproval) {
+                            // Aktifkan penandatangan final berikutnya (estafet)
+                            $nextFinalApproval->update(['status' => 'current']);
+                            if ($nextFinalApproval->user) {
+                                $usersToNotify[] = $nextFinalApproval->user;
+                            }
+
                             $document->update([
                                 'file_preview' => $finalPath,
-                                'status' => 'waiting',
+                                'status'       => 'waiting',
                             ]);
-                            $statusMsg = 'Persetujuan final Anda berhasil dicatat. Menunggu penandatangan final lainnya.';
+                            $statusMsg = 'Persetujuan final Anda berhasil dicatat. Dokumen diteruskan ke Penandatangan Final berikutnya (' . ($nextFinalApproval->user->full_name ?? $nextFinalApproval->user->username) . ').';
                         } else {
-                        // STAGE 3: seluruh final approver approved -> Dokumen ACTIVE & Masuk E-Library
-                        $document->update([
-                            'file_final'   => $finalPath,
-                            'file_preview' => $finalPath,
-                            'status'       => 'active',
-                        ]);
+                            $remainingFinalApprovals = \App\Models\DocumentApproval::where('document_id', $document->id)
+                                ->where('stage', 'final')
+                                ->where('status', '!=', 'approved')
+                                ->count();
+
+                            if ($remainingFinalApprovals > 0) {
+                                $document->update([
+                                    'file_preview' => $finalPath,
+                                    'status'       => 'waiting',
+                                ]);
+                                $statusMsg = 'Persetujuan final Anda berhasil dicatat. Menunggu penandatangan final lainnya.';
+                            } else {
+                                // STAGE 3 SELESAI: seluruh final approver approved -> Dokumen ACTIVE & Masuk E-Library
+                                $document->update([
+                                    'file_final'   => $finalPath,
+                                    'file_preview' => $finalPath,
+                                    'status'       => 'active',
+                                ]);
 
                         $bu = $document->department;
                         $supportDepts = ['HC', 'IT', 'QMS', 'HSE', 'INTERNAL AUDIT', 'LOGISTIC', 'OPS', 'FINANCE', 'LEGAL'];
@@ -514,6 +534,7 @@ public function index()
                         }
 
                         $statusMsg = 'Dokumen telah disetujui final oleh semua pihak dan resmi masuk E-Library!';
+                            }
                         }
                     }
                 } else {
@@ -879,7 +900,14 @@ public function index()
             }
         }
 
-        $path = storage_path('app/public/' . ($document->file_preview ?? $document->file_lp));
+        $relativeFile = $document->file_preview ?? $document->file_lp;
+        $relativeFile = str_replace('\\', '/', $relativeFile);
+        $path = storage_path('app/public/' . $relativeFile);
+
+        if (!file_exists($path)) {
+            abort(404, 'Berkas PDF tidak ditemukan pada penyimpanan server.');
+        }
+
         return response()->file($path);
     }
 
@@ -890,18 +918,22 @@ public function index()
     {
         $user = Auth::user();
 
-        // Cari semua data di tabel antrean yang pernah disetujui (approved) oleh user ini
-        $approvedByMe = \App\Models\DocumentApproval::where('user_id', $user->id)
-            ->where('status', 'approved') // Hanya mengambil yang sudah diklik approve oleh pimpinan ini
-            ->pluck('document_id'); // Ambil kumpulan ID dokumennya saja
+        // Cari semua data di tabel antrean yang pernah diproses oleh user ini
+        $interactedByMe = \App\Models\DocumentApproval::where('user_id', $user->id)
+            ->whereIn('status', ['approved', 'rejected'])
+            ->pluck('document_id');
 
-        // Tarik data dokumen utamanya dari database berdasarkan kumpulan ID di atas
-        $documents = Document::whereIn('id', $approvedByMe)
-            ->whereIn('status', ['active', 'waiting', 'rejected']) // Biar dokumen yang masih 'waiting' di pimpinan lain tetap kelihatan di riwayat pimpinan sebelumnya!
+        // Tarik data dokumen utamanya dari database
+        $documents = Document::whereIn('id', $interactedByMe)
+            ->whereIn('status', ['active', 'waiting', 'need_revision', 'rejected'])
             ->latest()
             ->get();
 
-        return view('reviewer.history', compact('documents'));
+        // Mengelompokkan dokumen: Masih Berjalan (Atas) dan Sudah Selesai (Bawah)
+        $inProgressDocs = $documents->reject(fn ($doc) => $doc->status === 'active');
+        $completedDocs  = $documents->filter(fn ($doc) => $doc->status === 'active');
+
+        return view('reviewer.history', compact('documents', 'inProgressDocs', 'completedDocs'));
     }
 
 public function reject(Request $request, $id)
@@ -953,7 +985,7 @@ public function reject(Request $request, $id)
         'notes'   => $request->notes ?? 'Dokumen memerlukan perbaikan.',
     ]);
 
-    // Kirim notifikasi email ke pembuat dokumen (creator)
+    // Kirim notifikasi email ke pembuat dokumen (creator) & peninjau lainnya
     try {
         $creatorApproval = \App\Models\DocumentApproval::where('document_id', $document->id)
             ->where('stage', 'creator')
@@ -970,8 +1002,35 @@ public function reject(Request $request, $id)
             );
 
             \Illuminate\Support\Facades\Mail::to($creator->email)->send(
-                new \App\Mail\DocumentRevisionRequestedMail($document, $creator, $user, $request->notes ?? 'Dokumen memerlukan perbaikan.', $magicLoginUrl)
+                new \App\Mail\DocumentRevisionRequestedMail($document, $creator, $user, $request->notes ?? 'Dokumen memerlukan perbaikan.', $magicLoginUrl, true)
             );
+        }
+
+        // Kirim email informatif terkunci ke reviewer lain di stage 'reviewer'
+        $otherReviewers = \App\Models\DocumentApproval::where('document_id', $document->id)
+            ->where('stage', 'reviewer')
+            ->where('user_id', '!=', $user->id)
+            ->with('user')
+            ->get();
+
+        $notifiedOtherIds = [];
+        foreach ($otherReviewers as $otherRev) {
+            $otherUser = $otherRev->user;
+            if ($otherUser && !empty(trim($otherUser->email ?? '')) && !in_array($otherUser->id, $notifiedOtherIds)) {
+                $notifiedOtherIds[] = $otherUser->id;
+                $magicLoginUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                    'login.magic',
+                    now()->addHours(24),
+                    [
+                        'user_id' => $otherUser->id,
+                        'document_id' => $document->id
+                    ]
+                );
+
+                \Illuminate\Support\Facades\Mail::to($otherUser->email)->send(
+                    new \App\Mail\DocumentRevisionRequestedMail($document, $otherUser, $user, $request->notes ?? 'Dokumen memerlukan perbaikan.', $magicLoginUrl, false)
+                );
+            }
         }
     } catch (\Throwable $e) {
         \Log::error("e-QMS Revision Email Notification Error: " . $e->getMessage());

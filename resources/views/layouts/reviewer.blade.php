@@ -184,11 +184,11 @@
                     <span class="sidebar-text">Antrean Review</span>
                 </a>
 
-                <!-- Riwayat Selesai -->
+                <!-- Riwayat -->
                 <a href="{{ route('reviewer.history') }}" 
                    class="sidebar-item flex items-center px-3.5 py-2.5 rounded-lg font-semibold text-xs tracking-wide transition-all duration-150 group {{ request()->routeIs('reviewer.history') ? 'bg-canvas text-[#1677B8] font-extrabold sidebar-item-active' : 'text-white/85 hover:bg-white/10 hover:text-white' }}">
                     <i class="ph ph-clock-counter-clockwise text-lg mr-2.5 {{ request()->routeIs('reviewer.history') ? 'text-[#1677B8]' : 'text-white/90' }}"></i>
-                    <span class="sidebar-text">Riwayat Selesai</span>
+                    <span class="sidebar-text">Riwayat</span>
                 </a>
 
                 <!-- E-Library -->
@@ -211,7 +211,7 @@
                 </div>
 
                 <!-- Logout Button -->
-                <form action="{{ route('logout') }}" method="POST" class="m-0">
+                <form action="{{ route('logout') }}" method="POST" class="m-0" onsubmit="return confirm('Apakah Anda yakin ingin keluar dari sistem?');">
                     @csrf
                     <button type="submit" class="sidebar-logout-btn w-full flex items-center justify-center px-3.5 py-2.5 rounded-sm bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs uppercase tracking-wider transition-all duration-150 group border-none shadow-md cursor-pointer">
                         <i class="ph ph-sign-out text-base mr-2"></i>
@@ -361,8 +361,129 @@
             window.addEventListener('beforeunload', () => {
                 mainContainer.classList.add('page-fade-active');
             });
+
+            // Custom Confirm Modal Logic
+            const modal = document.getElementById('custom-confirm-modal');
+            const card = document.getElementById('custom-confirm-card');
+            const titleEl = document.getElementById('custom-confirm-title');
+            const iconEl = document.getElementById('custom-confirm-icon');
+            const msgEl = document.getElementById('custom-confirm-message');
+            const cancelBtn = document.getElementById('custom-confirm-cancel');
+            const okBtn = document.getElementById('custom-confirm-ok');
+            const closeBtn = document.getElementById('custom-confirm-close');
+            
+            let activeForm = null;
+
+            // Function to convert traditional confirm to custom confirm on submit
+            const initConfirmForms = () => {
+                document.querySelectorAll('form[onsubmit*="confirm("]').forEach(form => {
+                    const onsubmitAttr = form.getAttribute('onsubmit');
+                    const match = onsubmitAttr.match(/confirm\(['"](.*?)['"]\)/);
+                    if (match) {
+                        const message = match[1];
+                        form.removeAttribute('onsubmit');
+                        form.setAttribute('data-confirm', message);
+                    }
+                });
+            };
+
+            // Initialize immediately
+            initConfirmForms();
+
+            // Watch for dynamically added forms
+            const observer = new MutationObserver(() => {
+                initConfirmForms();
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+
+            const showModal = (message, form) => {
+                activeForm = form;
+                msgEl.textContent = message;
+
+                if (message.toLowerCase().includes('keluar') || message.toLowerCase().includes('logout')) {
+                    titleEl.textContent = 'Keluar Sistem';
+                    iconEl.textContent = 'logout';
+                    iconEl.className = 'material-symbols-outlined text-rose-500';
+                    okBtn.textContent = 'Keluar';
+                    okBtn.className = 'flex-1 bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-md font-bold text-xs uppercase shadow-sm cursor-pointer transition-all border-none focus:outline-none';
+                } else {
+                    titleEl.textContent = 'Konfirmasi Hapus';
+                    iconEl.textContent = 'delete';
+                    iconEl.className = 'material-symbols-outlined text-amber-500';
+                    okBtn.textContent = 'Hapus';
+                    okBtn.className = 'flex-1 bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-md font-bold text-xs uppercase shadow-sm cursor-pointer transition-all border-none focus:outline-none';
+                }
+
+                modal.classList.remove('hidden');
+                // Force reflow
+                modal.offsetHeight;
+                modal.style.opacity = '1';
+                card.classList.remove('scale-95', 'opacity-0');
+                card.classList.add('scale-100', 'opacity-100');
+            };
+
+            const hideModal = () => {
+                card.classList.remove('scale-100', 'opacity-100');
+                card.classList.add('scale-95', 'opacity-0');
+                modal.style.opacity = '0';
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    activeForm = null;
+                }, 200);
+            };
+
+            cancelBtn.addEventListener('click', hideModal);
+            closeBtn.addEventListener('click', hideModal);
+            
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) hideModal();
+            });
+
+            okBtn.addEventListener('click', () => {
+                if (activeForm) {
+                    activeForm.setAttribute('data-confirmed', 'true');
+                    activeForm.submit();
+                }
+                hideModal();
+            });
+
+            document.addEventListener('submit', (e) => {
+                const form = e.target;
+                if (form.getAttribute('data-confirmed') === 'true') {
+                    return;
+                }
+
+                const confirmMsg = form.getAttribute('data-confirm');
+                if (confirmMsg) {
+                    e.preventDefault();
+                    showModal(confirmMsg, form);
+                }
+            });
         });
     </script>
+
+    <!-- Custom Premium Confirm Modal -->
+    <div id="custom-confirm-modal" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-200" style="opacity: 0;">
+        <div class="bg-white rounded-lg w-full max-w-md p-6 md:p-8 shadow-2xl border border-sand-200 space-y-4 transform scale-95 opacity-0 transition-all duration-200 ease-out" id="custom-confirm-card">
+            <!-- Header -->
+            <div class="flex justify-between items-center border-b border-sand-200/40 pb-3">
+                <h3 class="text-base font-bold text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-gold-500" id="custom-confirm-icon">warning</span>
+                    <span id="custom-confirm-title">Konfirmasi Aksi</span>
+                </h3>
+                <button type="button" id="custom-confirm-close" class="text-gray-400 hover:text-black text-2xl border-0 bg-transparent cursor-pointer">&times;</button>
+            </div>
+            <!-- Body -->
+            <div class="py-2">
+                <p class="text-xs font-semibold text-on-surface-variant leading-relaxed" id="custom-confirm-message"></p>
+            </div>
+            <!-- Footer -->
+            <div class="flex space-x-3 pt-3">
+                <button type="button" id="custom-confirm-cancel" class="flex-1 py-2.5 bg-sand-50 border border-sand-200 text-on-surface-variant rounded-md font-bold text-xs uppercase cursor-pointer hover:bg-sand-100 transition-all focus:outline-none">Batal</button>
+                <button type="button" id="custom-confirm-ok" class="focus:outline-none"></button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
 

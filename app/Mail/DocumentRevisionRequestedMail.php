@@ -17,19 +17,22 @@ class DocumentRevisionRequestedMail extends Mailable
     public $requester;
     public $notes;
     public $magicLoginUrl;
+    public $isCreator;
 
-    public function __construct(Document $document, User $user, User $requester, $notes, $magicLoginUrl = null)
+    public function __construct(Document $document, User $user, User $requester, $notes, $magicLoginUrl = null, bool $isCreator = true)
     {
         $this->document = $document;
         $this->user = $user;
         $this->requester = $requester;
         $this->notes = $notes ?? 'Dokumen memerlukan perbaikan.';
         $this->magicLoginUrl = $magicLoginUrl ?? route('login');
+        $this->isCreator = $isCreator;
     }
 
     public function build()
     {
-        return $this->subject('⚠️ [e-QMS] Dokumen Memerlukan Revisi - ' . $this->document->title)
+        $subjectPrefix = $this->isCreator ? '[e-QMS] Dokumen Memerlukan Revisi' : '[e-QMS] Pemberitahuan Dokumen Terkunci Revisi';
+        return $this->subject($subjectPrefix . ' - ' . $this->document->title)
                     ->view('emails.document_revision_requested');
     }
 }

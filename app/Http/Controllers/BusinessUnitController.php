@@ -940,21 +940,22 @@ class BusinessUnitController extends Controller
             }
 
             // ================================================================
-            // Kirim notifikasi informatif ke reviewer yang sudah 'approved'
-            // sebelumnya, agar mereka tahu dokumen revisi sudah diupload ulang.
-            // Mereka tidak perlu aksi apapun — hanya informasi status.
+            // Kirim notifikasi informatif ke SEMUA peninjau lainnya (stage = 'reviewer')
+            // agar mereka tahu berkas revisi baru telah diunggah.
+            // Penandatangan Final (stage = 'final') sengaja dikecualikan sampai seluruh reviewer menyetujui.
             // ================================================================
             $activatedUserIds = collect($usersToNotify)->pluck('id')->filter()->toArray();
-            $alreadyApprovedReviewers = DocumentApproval::where('document_id', $document->id)
+            $otherReviewerApprovals = DocumentApproval::where('document_id', $document->id)
                 ->where('stage', 'reviewer')
-                ->where('status', 'approved')
                 ->whereNotIn('user_id', $activatedUserIds)
                 ->with('user')
                 ->get();
 
-            foreach ($alreadyApprovedReviewers as $appItem) {
+            $notifiedOtherUserIds = [];
+            foreach ($otherReviewerApprovals as $appItem) {
                 $notifyUser = $appItem->user;
-                if ($notifyUser && !empty(trim($notifyUser->email ?? ''))) {
+                if ($notifyUser && !empty(trim($notifyUser->email ?? '')) && !in_array($notifyUser->id, $notifiedOtherUserIds)) {
+                    $notifiedOtherUserIds[] = $notifyUser->id;
                     try {
                         $magicLoginUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
                             'login.magic',
@@ -968,40 +969,9 @@ class BusinessUnitController extends Controller
                         Mail::to($notifyUser->email)->send(
                             new \App\Mail\DocumentRevisionResubmittedMail($document, $notifyUser, auth()->user(), $magicLoginUrl)
                         );
-                        \Log::info("e-QMS BU: Notifikasi revisi dikirim ke reviewer yang sudah approve: User ID {$notifyUser->id} ({$notifyUser->username}) untuk Dokumen ID {$document->id}");
+                        \Log::info("e-QMS BU: Notifikasi revisi dikirim ke peninjau: User ID {$notifyUser->id} ({$notifyUser->username}) untuk Dokumen ID {$document->id}");
                     } catch (\Exception $e) {
-                        \Log::error("e-QMS BU Email Revisi (Already Approved) Error for User ID {$notifyUser->id}: " . $e->getMessage());
-                    }
-                }
-            }
-
-            // Kirim notifikasi informatif ke reviewer/final signer yang belum 'approved' (dan bukan giliran aktif saat ini)
-            $pendingOtherReviewers = DocumentApproval::where('document_id', $document->id)
-                ->whereIn('status', ['pending', 'waiting'])
-                ->whereIn('stage', ['reviewer', 'final'])
-                ->whereNotIn('user_id', $activatedUserIds)
-                ->with('user')
-                ->get();
-
-            foreach ($pendingOtherReviewers as $appItem) {
-                $notifyUser = $appItem->user;
-                if ($notifyUser && !empty(trim($notifyUser->email ?? ''))) {
-                    try {
-                        $magicLoginUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
-                            'login.magic',
-                            now()->addHours(24),
-                            [
-                                'user_id' => $notifyUser->id,
-                                'document_id' => $document->id
-                            ]
-                        );
-
-                        Mail::to($notifyUser->email)->send(
-                            new \App\Mail\DocumentRevisionResubmittedMail($document, $notifyUser, auth()->user(), $magicLoginUrl)
-                        );
-                        \Log::info("e-QMS BU: Notifikasi revisi dikirim ke reviewer belum approve (antrean depan): User ID {$notifyUser->id} ({$notifyUser->username})");
-                    } catch (\Exception $e) {
-                        \Log::error("e-QMS BU Email Revisi (Pending Reviewer) Error for User ID {$notifyUser->id}: " . $e->getMessage());
+                        \Log::error("e-QMS BU Email Revisi Error for User ID {$notifyUser->id}: " . $e->getMessage());
                     }
                 }
             }
