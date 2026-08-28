@@ -35,7 +35,7 @@
         /* ── LEFT PANEL ── */
         .panel-left {
             display: none;
-            background: linear-gradient(160deg, #1677B8 0%, #0e5a8a 60%, #0a3d5e 100%);
+            background: linear-gradient(160deg, #1677B8 0%, #00b4d8 100%);
             padding: 3rem;
             flex-direction: column;
             justify-content: space-between;

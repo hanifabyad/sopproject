@@ -11,9 +11,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Memanggil UserSeeder agar dijalankan saat migrate --seed
+        // Memanggil seeders agar dijalankan saat migrate --seed
         $this->call([
             UserSeeder::class,
+            LibraryFolderSeeder::class,
         ]);
     }
 }
