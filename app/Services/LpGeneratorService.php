@@ -60,7 +60,7 @@ class LpGeneratorService
         $pdf->SetDrawColor(...$BLACK);
         $pdf->SetLineWidth($LINE_TABLE);
         $pdf->Line(15, 42, 195, 42);  // Bottom of header
-        $pdf->Line(60, 15, 60, 42);   // Logo | Company text split
+        $pdf->Line(50, 15, 50, 42);   // Logo | Company text split
 
         $companyMap = self::getCompanyMap();
 
@@ -72,12 +72,12 @@ class LpGeneratorService
         $companyAddress = $companyInfo['address'];
         $logoFile = $companyInfo['logo'];
 
-        // --- LOGO (centered inside left cell: X=15..60, Y=15..42) ---
-        // Cell dimensions: width=45mm, height=27mm
+        // --- LOGO (centered inside left cell: X=15..50, Y=15..42) ---
+        // Cell dimensions: width=35mm, height=27mm
         // Logo rendered dynamically based on original aspect ratio to fit inside a larger bounding box
         $logoCellX = 15.0;
         $logoCellY = 15.0;
-        $logoCellW = 45.0;
+        $logoCellW = 35.0;
         $logoCellH = 27.0;
 
         $logoPath = public_path('img/' . $logoFile);
@@ -89,73 +89,93 @@ class LpGeneratorService
         }
 
         $logoDrawn = false;
-        if (file_exists($logoPath) && !is_dir($logoPath)) {
-            $size = @getimagesize($logoPath);
-            if ($size) {
-                $imgW = $size[0];
-                $imgH = $size[1];
-                $aspect = $imgH / $imgW;
+        $defaultLogosToSkip = [
+            'SCK.jpg', 'LBS.jpg', 'BKI.jpg', 'Baintan Anugerah.jpg', 'CNGM New.jpg',
+            'Daya Makmur Sejahtera.jpg', 'Dumas.jpg', 'EPCM.jpg', 'Eka Daya Bahari MAs.jpg',
+            'Era Kencana Laras.jpg', 'Hiswana.jpg', 'Ismadi Salam.jpg', 'LEP.jpg',
+            'MMS.jpg', 'Mitha Kelana Wijaya.jpg', 'Mitra Cipta Nusa Persada.jpg', 'PIMS.jpg',
+            'PKSP.jpg', 'logo RAP.jpg', 'SDRP.jpg', 'SIR.jpg', 'WIMT.jpg'
+        ];
 
-                // Max width is 44.0mm, max height is 25.5mm (maximizes logo size in the 45x27mm cell)
-                $logoW = 44.0;
-                $logoH = $logoW * $aspect;
+        if (in_array($companyCode, ['pkm', 'cpt'], true) || !in_array($logoFile, $defaultLogosToSkip, true)) {
+            if (file_exists($logoPath) && !is_dir($logoPath)) {
+                $size = @getimagesize($logoPath);
+                if ($size) {
+                    $imgW = $size[0];
+                    $imgH = $size[1];
+                    $aspect = $imgH / $imgW;
 
-                if ($logoH > 25.5) {
-                    $logoH = 25.5;
-                    $logoW = $logoH / $aspect;
+                    // Max width is 34.0mm, max height is 25.5mm (maximizes logo size in the 35x27mm cell)
+                    $logoW = 34.0;
+                    $logoH = $logoW * $aspect;
+
+                    if ($logoH > 25.5) {
+                        $logoH = 25.5;
+                        $logoW = $logoH / $aspect;
+                    }
+
+                    $logoX = $logoCellX + ($logoCellW - $logoW) / 2.0;
+                    $logoY = $logoCellY + ($logoCellH - $logoH) / 2.0;
+
+                    $pdf->Image($logoPath, $logoX, $logoY, $logoW, $logoH);
+                    $logoDrawn = true;
                 }
-
-                $logoX = $logoCellX + ($logoCellW - $logoW) / 2.0;
-                $logoY = $logoCellY + ($logoCellH - $logoH) / 2.0;
-
-                $pdf->Image($logoPath, $logoX, $logoY, $logoW, $logoH);
-                $logoDrawn = true;
             }
         }
 
         if (!$logoDrawn) {
             // Fallback text logo (no border rect, just centered text)
-            $pdf->SetFont('Arial', 'B', 11);
-            $pdf->SetTextColor(30, 41, 59);
+            $text = 'PT. ' . strtoupper($companyCode);
+            
+            $fontSize = 16.0;
+            $pdf->SetFont('Arial', 'B', $fontSize);
+            $pdf->SetTextColor(0, 0, 0); // Pure black bold text as requested
+            
+            // Auto-shrink font size if the text is wider than the logo cell (minus padding)
+            while ($pdf->GetStringWidth($text) > ($logoCellW - 4.0) && $fontSize > 8.0) {
+                $fontSize -= 0.5;
+                $pdf->SetFont('Arial', 'B', $fontSize);
+            }
+            
             $pdf->SetXY($logoCellX, $logoCellY);
-            $pdf->Cell($logoCellW, $logoCellH, 'PT. ' . strtoupper($companyCode), 0, 0, 'C');
+            $pdf->Cell($logoCellW, $logoCellH, $text, 0, 0, 'C');
         }
 
         // --- Company name & address, vertically centered in right cell ---
         if ($companyCode === 'cpt') {
             $pdf->SetTextColor(0, 0, 0);
             $pdf->SetFont('Arial', 'B', 11.0);
-            $pdf->SetXY(60, 18.0);
-            $pdf->Cell(135, 4.5, 'PT. CAHAYA PERDANA TRANSALAM', 0, 1, 'C');
+            $pdf->SetXY(50, 18.0);
+            $pdf->Cell(145, 4.5, 'PT. CAHAYA PERDANA TRANSALAM', 0, 1, 'C');
 
             $pdf->SetFont('Arial', 'B', 9.5);
-            $pdf->SetXY(60, 23.5);
-            $pdf->Cell(135, 4.0, 'A SUBSIDIARY OF PKM GROUP', 0, 1, 'C');
+            $pdf->SetXY(50, 23.5);
+            $pdf->Cell(145, 4.0, 'A SUBSIDIARY OF PKM GROUP', 0, 1, 'C');
 
             $pdf->SetFont('Arial', '', 8.5);
             $pdf->SetTextColor(80, 80, 80);
-            $pdf->SetXY(60, 28.5);
-            $pdf->Cell(135, 4.0, 'Jl. K.H. Ahmad Dahlan No. 01, Kelurahan Tanjung Riau,', 0, 1, 'C');
-            $pdf->SetXY(60, 32.5);
-            $pdf->Cell(135, 4.0, 'Kecamatan Sekupang, Batam 29425 Prov Kepulauan Riau', 0, 1, 'C');
+            $pdf->SetXY(50, 28.5);
+            $pdf->Cell(145, 4.0, 'Jl. K.H. Ahmad Dahlan No. 01, Kelurahan Tanjung Riau,', 0, 1, 'C');
+            $pdf->SetXY(50, 32.5);
+            $pdf->Cell(145, 4.0, 'Kecamatan Sekupang, Batam 29425 Prov Kepulauan Riau', 0, 1, 'C');
         } else {
             $pdf->SetTextColor(30, 41, 59);
             $pdf->SetFont('Arial', 'B', 11.0);
 
-            // Auto-fit company name to fit cleanly inside the 135mm cell
+            // Auto-fit company name to fit cleanly inside the 145mm cell
             $companyNameSize = 11.0;
-            while ($pdf->GetStringWidth($companyName) > 131 && $companyNameSize > 8.0) {
+            while ($pdf->GetStringWidth($companyName) > 141 && $companyNameSize > 8.0) {
                 $companyNameSize -= 0.5;
                 $pdf->SetFontSize($companyNameSize);
             }
 
-            $pdf->SetXY(60, 21.0);
-            $pdf->Cell(135, 6, $companyName, 0, 1, 'C');
+            $pdf->SetXY(50, 21.0);
+            $pdf->Cell(145, 6, $companyName, 0, 1, 'C');
 
-            $pdf->SetXY(60, 27.5);
+            $pdf->SetXY(50, 27.5);
             $pdf->SetFont('Arial', '', 11.0);
             $pdf->SetTextColor(80, 80, 80);
-            $pdf->Cell(135, 4.5, $companyAddress, 0, 1, 'C');
+            $pdf->Cell(145, 4.5, $companyAddress, 0, 1, 'C');
         }
 
         // ---------------------------------------------------------

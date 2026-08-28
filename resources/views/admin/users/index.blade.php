@@ -13,7 +13,7 @@
             <p class="text-xs text-white/85 mt-0.5 font-medium">Daftar pengguna terdaftar dan manajemen wewenang peran e-QMS</p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-3">
             <form action="{{ route('admin.users.index') }}" method="GET" class="relative">
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama atau email..." 
                        class="pl-9 pr-3 py-2 bg-white border border-sand-200 rounded-md shadow-sm text-xs font-semibold text-on-surface focus:ring-2 focus:ring-gold-500 outline-none w-64 transition-all placeholder-[#d6cebf]">
@@ -21,7 +21,7 @@
             </form>
             
             <a href="{{ route('admin.users.create') }}" 
-               class="px-4 py-2 bg-[#ffe16e] hover:bg-amber-400 text-charcoal-900 rounded-md font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex items-center gap-2 border-none">
+               class="px-4 py-2 bg-[#ffe16e] hover:bg-amber-400 text-charcoal-900 rounded-md font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex items-center gap-2 border-none whitespace-nowrap">
                 <i class="ph ph-user-plus text-base"></i>
                 <span>Tambah Pegawai</span>
             </a>

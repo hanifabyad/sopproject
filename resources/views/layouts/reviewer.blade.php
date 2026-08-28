@@ -162,7 +162,7 @@
             <!-- Brand Header -->
             <div onclick="handleBrandClick()" class="sidebar-brand-wrapper p-5 flex items-center justify-between border-b border-white/10 text-center relative group transition-all duration-200">
                 <div class="flex items-center space-x-3">
-                    <div class="flex items-center justify-center w-9 h-9 flex-shrink-0">
+                    <div class="flex items-center justify-center w-9 h-9 flex-shrink-0 bg-white rounded-md p-1 shadow-sm">
                         <img src="{{ asset('img/logopkm.png') }}" class="w-full h-full object-contain" alt="Logo PKM Group">
                     </div>
                     <div class="text-left sidebar-logo-text">
@@ -442,6 +442,12 @@
             okBtn.addEventListener('click', () => {
                 if (activeForm) {
                     activeForm.setAttribute('data-confirmed', 'true');
+                    const submitButtons = activeForm.querySelectorAll('button[type="submit"], input[type="submit"]');
+                    submitButtons.forEach(btn => {
+                        btn.disabled = true;
+                        btn.style.opacity = '0.6';
+                        btn.style.cursor = 'not-allowed';
+                    });
                     activeForm.submit();
                 }
                 hideModal();
@@ -449,15 +455,25 @@
 
             document.addEventListener('submit', (e) => {
                 const form = e.target;
-                if (form.getAttribute('data-confirmed') === 'true') {
+                const confirmMsg = form.getAttribute('data-confirm');
+                
+                if (confirmMsg && form.getAttribute('data-confirmed') !== 'true') {
+                    e.preventDefault();
+                    showModal(confirmMsg, form);
                     return;
                 }
 
-                const confirmMsg = form.getAttribute('data-confirm');
-                if (confirmMsg) {
-                    e.preventDefault();
-                    showModal(confirmMsg, form);
-                }
+                // Prevent double submit by disabling buttons immediately
+                const submitButtons = form.querySelectorAll('button[type="submit"], input[type="submit"]');
+                submitButtons.forEach(btn => {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.6';
+                    btn.style.cursor = 'not-allowed';
+                    const span = btn.querySelector('span:last-of-type') || btn.querySelector('span');
+                    if (span) {
+                        span.textContent = 'Memproses...';
+                    }
+                });
             });
         });
     </script>

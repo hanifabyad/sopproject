@@ -12,7 +12,7 @@
         <!-- LOGO HEADER -->
         <tr>
             <td align="center" style="padding: 24px 20px; background-color: #ffffff; border-bottom: 1px solid #F4F5F6;">
-                <img src="{{ $message->embed(public_path('img/logopkm.png')) }}" style="height: 46px; display: block;" alt="PKM Group Logo">
+                <img src="{{ $message->embed(public_path('img/logopkm.png')) }}" style="height: 52px; display: block; margin: 0 auto;" alt="PKM Group Logo">
             </td>
         </tr>
 
