@@ -503,6 +503,21 @@ class SupportController extends Controller
             ]);
 
             $document = Document::with('attachments')->findOrFail($id);
+
+            // Validasi: Wajib mengunggah minimal 1 berkas perbaikan baru atau perubahan
+            $hasNewFile = $request->hasFile('file_cover') 
+                || $request->hasFile('file_isi') 
+                || $request->hasFile('file_lp') 
+                || ($request->hasFile('file_lampiran') && count($request->file('file_lampiran')) > 0);
+            $hasDeletedAttachments = !empty($request->input('deleted_attachments', []));
+            $isTitleChanged = trim($request->input('title', '')) !== trim($document->title);
+
+            if (!$hasNewFile && !$hasDeletedAttachments && !$isTitleChanged) {
+                return back()->withErrors([
+                    'file_isi' => 'Harap unggah minimal 1 berkas perbaikan baru (File Cover, File Isi SOP, atau Lampiran Baru) sebelum mengirim revisi.',
+                ])->withInput();
+            }
+
             $unit = $document->department;
             $nextRevision = (string)((int)$document->doc_revision + 1);
             $revisionDate = now()->toDateString();

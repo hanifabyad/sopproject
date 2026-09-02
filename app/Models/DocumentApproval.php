@@ -21,7 +21,12 @@ class DocumentApproval extends Model
         'signature_anchor',
         'status',
         'notes',
+        'annotations',
         'processed_at'
+    ];
+
+    protected $casts = [
+        'processed_at' => 'datetime',
     ];
 
     /**

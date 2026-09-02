@@ -4,7 +4,7 @@
 @section('header_title', 'Divisi Business Unit PT PKM Group')
 
 @section('content')
-<div class="space-y-6">
+<div class="space-y-6 bu-support-scope">
     
     <!-- HEADER BAR -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#1677B8] to-[#00b4d8] text-white rounded-lg p-6 border border-white/10 shadow-sm">
@@ -37,15 +37,15 @@
                         </td>
                         <td class="py-3.5 px-4">
                             <a href="{{ route('admin.BU.divisi.show', $namaDivisi) }}" class="flex items-center space-x-3 group hover:opacity-85 transition-opacity cursor-pointer">
-                                <div class="w-8 h-8 rounded-md bg-charcoal-900 text-gold-fixed flex items-center justify-center font-bold shadow-sm group-hover:scale-105 transition-transform">
+                                <div class="flex-shrink-0">
                                     @if($namaDivisi == 'RETAIL')
-                                        <i class="ph ph-storefront text-lg"></i>
+                                        <i class="ph ph-gas-pump text-2xl text-[#00b4d8] group-hover:scale-110 transition-transform"></i>
                                     @elseif($namaDivisi == 'KOMERSIL')
-                                        <i class="ph ph-buildings text-lg"></i>
+                                        <i class="ph ph-boat text-2xl text-[#00b4d8] group-hover:scale-110 transition-transform"></i>
                                     @elseif($namaDivisi == 'SCM')
-                                        <i class="ph ph-truck text-lg"></i>
+                                        <i class="ph ph-truck text-2xl text-[#00b4d8] group-hover:scale-110 transition-transform"></i>
                                     @else
-                                        <i class="ph ph-bank text-lg"></i>
+                                        <i class="ph ph-bank text-2xl text-[#00b4d8] group-hover:scale-110 transition-transform"></i>
                                     @endif
                                 </div>
                                 <div>
@@ -77,10 +77,7 @@
                             </span>
                         </td>
                         <td class="py-3.5 px-4 text-right">
-                            <a href="{{ route('admin.BU.divisi.show', $namaDivisi) }}" class="px-4 py-1.5 rounded-md bg-charcoal-900 hover:bg-black text-gold-fixed text-xs font-medium inline-flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer">
-                                <span>Buka Dokumen</span>
-                                <i class="ph ph-arrow-right text-sm"></i>
-                            </a>
+                            <x-interactive-button href="{{ route('admin.BU.divisi.show', $namaDivisi) }}" text="Buka Dokumen" variant="outline" />
                         </td>
                     </tr>
                     @endforeach
@@ -90,4 +87,3 @@
     </div>
 </div>
 @endsection
-

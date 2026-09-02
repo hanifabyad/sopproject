@@ -7,44 +7,43 @@
 <div class="space-y-6">
     
     <!-- HEADER WELCOME CARD -->
-    <div class="bg-gradient-to-r from-[#1677B8] to-[#00b4d8] text-white rounded-sm p-6 shadow-sm relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+    <div class="bg-gradient-to-r from-[#1677B8] to-[#00b4d8] text-white rounded-lg p-6 shadow-sm border border-white/15 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div class="relative z-10">
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm text-[10px] font-extrabold uppercase tracking-wider bg-gold-fixed text-charcoal-900 mb-2.5">
-                <span class="material-symbols-outlined text-xs">assignment_turned_in</span> Reviewer Workspace
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold capitalize tracking-wider bg-gold-fixed text-charcoal-900 mb-2.5 shadow-sm">
+                <i class="ph ph-check-square-offset text-xs"></i> Reviewer Workspace
             </span>
-            <h2 class="text-xl md:text-2xl font-extrabold tracking-tight uppercase">
+            <h2 class="text-xl md:text-2xl font-extrabold tracking-tight capitalize">
                 SOP Menunggu Review Anda
             </h2>
             <p class="text-xs text-white/85 mt-1 max-w-xl font-medium">
                 Daftar dokumen mutu yang memerlukan pemeriksaan, catatan revisi, atau pengesahan tanda tangan digital dari Anda.
             </p>
         </div>
-
     </div>
 
     <!-- SECTION 1: MENUNGGU AKSI SAYA -->
-    <div class="bg-white rounded-sm p-6 shadow-sm border border-sand-200/60 space-y-4">
+    <div class="bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 space-y-4">
         <div class="flex items-center justify-between border-b border-sand-200/40 pb-4">
             <div class="flex items-center space-x-2.5">
-                <div class="w-8 h-8 rounded-sm bg-charcoal-900 text-gold-fixed flex items-center justify-center font-bold">
+                <div class="w-8 h-8 rounded-md bg-charcoal-900 text-gold-fixed flex items-center justify-center font-bold">
                     <i class="ph ph-hourglass text-base"></i>
                 </div>
                 <div>
-                    <h3 class="text-xs font-extrabold text-on-surface uppercase tracking-wider">Menunggu Tindakan Saya</h3>
+                    <h3 class="text-xs font-extrabold text-on-surface capitalize tracking-wider">Menunggu Tindakan Saya</h3>
                     <p class="text-[11px] text-on-surface-variant">Dokumen yang saat ini memerlukan persetujuan atau tanda tangan dari Anda</p>
                 </div>
             </div>
             @if($pendingDocuments->count() > 0)
-            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-sm bg-amber-100 text-amber-800 text-[10px] font-extrabold uppercase tracking-wider border border-amber-200">
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[10px] font-extrabold capitalize tracking-wider border border-amber-200">
                 <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
                 {{ $pendingDocuments->count() }} Antrean
             </span>
             @endif
         </div>
 
-        <div class="overflow-x-auto border border-sand-200/60 rounded-sm">
+        <div class="overflow-x-auto border border-sand-200/60 rounded-md overflow-hidden">
             <table class="w-full text-left border-collapse">
-                <thead class="bg-sand-50 border-b border-sand-200 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+                <thead class="bg-sand-50 border-b border-sand-200 text-[11px] font-bold capitalize tracking-wider text-on-surface-variant">
                     <tr>
                         <th class="py-3 px-4 w-12 text-center">#</th>
                         <th class="py-3 px-4">Judul Dokumen SOP</th>
@@ -60,11 +59,11 @@
                         <td class="py-3.5 px-4">
                             <div class="flex items-center space-x-3">
                                 <i class="ph ph-file-text text-amber-500 text-lg flex-shrink-0"></i>
-                                <span class="font-bold text-on-surface uppercase hover:text-gold-500 transition-colors">{{ $doc->title }}</span>
+                                <span class="font-bold text-on-surface capitalize hover:text-gold-500 transition-colors">{{ $doc->title }}</span>
                             </div>
                         </td>
                         <td class="py-3.5 px-4">
-                            <span class="inline-flex items-center whitespace-nowrap px-2.5 py-1 bg-canvas border border-sand-200/60 rounded-md text-[10px] font-bold uppercase text-charcoal-900">
+                            <span class="inline-flex items-center whitespace-nowrap px-2.5 py-1 bg-canvas border border-sand-200/60 rounded-md text-[10px] font-bold capitalize text-charcoal-900">
                                 {{ $doc->department }}
                             </span>
                         </td>
@@ -73,7 +72,7 @@
                         </td>
                         <td class="py-3.5 px-4 text-center">
                             <a href="{{ route('reviewer.show', $doc->id) }}" 
-                               class="inline-flex items-center justify-center bg-charcoal-900 hover:bg-black text-gold-fixed px-4 py-2 rounded-md font-bold uppercase text-[10px] tracking-wider transition-all gap-1.5 shadow-sm">
+                               class="inline-flex items-center justify-center bg-charcoal-900 hover:bg-black text-gold-fixed px-4 py-2 rounded-md font-bold capitalize text-[10px] tracking-wider transition-all gap-1.5 shadow-sm">
                                 <span>Review</span>
                                 <i class="ph ph-arrow-right text-sm"></i>
                             </a>
@@ -84,7 +83,7 @@
                         <td colspan="5" class="py-12 text-center text-on-surface-variant">
                             <div class="flex flex-col items-center justify-center space-y-2">
                                 <i class="ph ph-check-circle text-4xl text-emerald-500"></i>
-                                <h5 class="text-xs font-bold text-on-surface uppercase tracking-wide">Semua tugas review selesai</h5>
+                                <h5 class="text-xs font-bold text-on-surface capitalize tracking-wide">Semua tugas review selesai</h5>
                                 <p class="text-[11px] text-on-surface-variant max-w-sm">
                                     Saat ini belum ada antrean dokumen yang memerlukan pemeriksaan atau penandatanganan digital Anda.
                                 </p>
@@ -99,25 +98,25 @@
 
     <!-- SECTION 2: SUDAH SAYA PROSES, MASIH BERJALAN -->
     @if($inProgressDocuments->count() > 0)
-    <div class="bg-white rounded-sm p-6 shadow-sm border border-sand-200/60 space-y-4">
+    <div class="bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 space-y-4">
         <div class="flex items-center justify-between border-b border-sand-200/40 pb-4">
             <div class="flex items-center space-x-2.5">
-                <div class="w-8 h-8 rounded-sm bg-[#1677B8] text-white flex items-center justify-center font-bold">
+                <div class="w-8 h-8 rounded-md bg-[#1677B8] text-white flex items-center justify-center font-bold">
                     <i class="ph ph-clock-countdown text-base"></i>
                 </div>
                 <div>
-                    <h3 class="text-xs font-extrabold text-on-surface uppercase tracking-wider">Sudah Saya Setujui — Masih Berjalan</h3>
+                    <h3 class="text-xs font-extrabold text-on-surface capitalize tracking-wider">Sudah Saya Setujui — Masih Berjalan</h3>
                     <p class="text-[11px] text-on-surface-variant">Dokumen yang telah Anda tandatangani namun masih menunggu proses dari pihak lain</p>
                 </div>
             </div>
-            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-sm bg-blue-50 text-blue-700 text-[10px] font-extrabold uppercase tracking-wider border border-blue-200">
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-extrabold capitalize tracking-wider border border-blue-200">
                 {{ $inProgressDocuments->count() }} Dokumen
             </span>
         </div>
 
-        <div class="overflow-x-auto border border-sand-200/60 rounded-sm">
+        <div class="overflow-x-auto border border-sand-200/60 rounded-md overflow-hidden">
             <table class="w-full text-left border-collapse">
-                <thead class="bg-sand-50 border-b border-sand-200 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+                <thead class="bg-sand-50 border-b border-sand-200 text-[11px] font-bold capitalize tracking-wider text-on-surface-variant">
                     <tr>
                         <th class="py-3 px-4 w-12 text-center">#</th>
                         <th class="py-3 px-4">Judul Dokumen SOP</th>
@@ -146,11 +145,11 @@
                         <td class="py-3.5 px-4">
                             <div class="flex items-center space-x-3">
                                 <i class="ph ph-file-check text-emerald-500 text-lg flex-shrink-0"></i>
-                                <span class="font-bold text-on-surface uppercase">{{ $doc->title }}</span>
+                                <span class="font-bold text-on-surface capitalize">{{ $doc->title }}</span>
                             </div>
                         </td>
                         <td class="py-3.5 px-4">
-                            <span class="inline-flex items-center whitespace-nowrap px-2.5 py-1 bg-canvas border border-sand-200/60 rounded-md text-[10px] font-bold uppercase text-charcoal-900">
+                            <span class="inline-flex items-center whitespace-nowrap px-2.5 py-1 bg-canvas border border-sand-200/60 rounded-md text-[10px] font-bold capitalize text-charcoal-900">
                                 {{ $doc->department }}
                             </span>
                         </td>
@@ -158,7 +157,7 @@
                             {{ $approvedAt }}
                         </td>
                         <td class="py-3.5 px-4 text-center">
-                            <span class="px-2.5 py-1 rounded-sm text-[10px] font-bold uppercase border {{ $statusLabel['bg'] }} {{ $statusLabel['text'] }} {{ $statusLabel['border'] }}">
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold capitalize border {{ $statusLabel['bg'] }} {{ $statusLabel['text'] }} {{ $statusLabel['border'] }}">
                                 {{ $statusLabel['label'] }}
                             </span>
                         </td>
@@ -179,4 +178,3 @@
 
 </div>
 @endsection
-

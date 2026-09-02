@@ -6,28 +6,28 @@
 @section('content')
 <div class="space-y-6">
     <!-- HEADER HERO BANNER -->
-    <div class="bg-gradient-to-r from-[#1677B8] to-[#00b4d8] text-white rounded-sm p-6 shadow-sm relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div class="bg-gradient-to-r from-[#1677B8] to-[#00b4d8] text-white rounded-lg p-6 shadow-sm border border-white/15 relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-            <h2 class="text-xl md:text-2xl font-extrabold text-white tracking-tight uppercase">Riwayat Dokumen</h2>
+            <h2 class="text-xl md:text-2xl font-extrabold text-white tracking-tight capitalize">Riwayat Dokumen</h2>
             <p class="text-xs text-white/85 mt-1 font-medium">Dokumen yang pernah Anda setujui atau proses dalam alur e-QMS.</p>
         </div>
         <div class="flex items-center gap-3">
             <div class="flex items-center gap-2 px-3.5 py-2 bg-white/20 border border-white/10 rounded-md text-xs font-bold text-white shadow-inner">
-                <span class="material-symbols-outlined text-base text-[#ffe16e]">history</span>
+                <i class="ph ph-clock-counter-clockwise text-base text-[#ffe16e]"></i>
                 <span>{{ $documents->count() }} Total Dokumen</span>
             </div>
         </div>
     </div>
 
     <!-- KATEGORI 1 (ATAS): DOKUMEN MASIH BERJALAN -->
-    <div class="bg-white rounded-sm shadow-sm border border-sand-200/60 overflow-hidden">
+    <div class="bg-white rounded-lg shadow-sm border border-sand-200/60 overflow-hidden">
         <div class="p-4 sm:p-5 border-b border-sand-200/60 flex items-center justify-between gap-3 bg-amber-50/40">
             <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center font-bold">
                     <span class="material-symbols-outlined text-lg">hourglass_top</span>
                 </div>
                 <div>
-                    <h3 class="text-xs font-extrabold text-on-surface uppercase tracking-wider flex items-center gap-2">
+                    <h3 class="text-xs font-extrabold text-on-surface capitalize tracking-wider flex items-center gap-2">
                         Dokumen Masih Berjalan
                         <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-extrabold">{{ $inProgressDocs->count() }}</span>
                     </h3>
@@ -39,7 +39,7 @@
         @if($inProgressDocs->isNotEmpty())
             <div class="overflow-x-auto">
                 <table class="w-full min-w-0 table-fixed text-left">
-                    <thead class="bg-sand-50 border-b border-sand-200 text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant">
+                    <thead class="bg-sand-50 border-b border-sand-200 text-[10px] font-extrabold capitalize tracking-wider text-on-surface-variant">
                         <tr>
                             <th class="hidden sm:table-cell px-2 py-3 w-8 text-center">No</th>
                             <th class="px-2 sm:px-4 py-3 w-[40%]">Dokumen SOP</th>
@@ -71,17 +71,17 @@
                                     </div>
                                 </td>
                                 <td class="hidden 2xl:table-cell px-3 sm:px-5 py-4">
-                                    <span class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-on-surface-variant">
+                                    <span class="inline-flex items-center gap-1.5 text-[10px] font-bold capitalize tracking-wide text-on-surface-variant">
                                         <span class="material-symbols-outlined text-sm text-[#1677B8]">domain</span>{{ $doc->department ?? '-' }}
                                     </span>
                                 </td>
                                 <td class="px-3 sm:px-5 py-4">
                                     @if($doc->status === 'rejected' || $doc->status === 'need_revision')
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-extrabold uppercase">
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-extrabold capitalize">
                                             <span class="w-1.5 h-1.5 rounded-full bg-rose-600"></span>Perlu Revisi
                                         </span>
                                     @else
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-extrabold uppercase">
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-extrabold capitalize">
                                             <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Proses Review
                                         </span>
                                     @endif
@@ -91,7 +91,7 @@
                                 </td>
                                 <td class="px-3 sm:px-5 py-4">
                                     <div class="flex items-center justify-end gap-1.5 sm:gap-2">
-                                        <a href="{{ route('reviewer.show', $doc->id) }}" class="inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 bg-charcoal-900 text-gold-fixed hover:bg-black rounded-md text-[10px] font-extrabold uppercase tracking-wide transition-colors">
+                                        <a href="{{ route('reviewer.show', $doc->id) }}" class="inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 bg-charcoal-900 text-gold-fixed hover:bg-black rounded-md text-[10px] font-extrabold capitalize tracking-wide transition-colors">
                                             <span class="material-symbols-outlined text-sm">visibility</span>
                                             <span class="hidden sm:inline">Lihat</span>
                                         </a>
@@ -116,14 +116,14 @@
     </div>
 
     <!-- KATEGORI 2 (BAWAH): DOKUMEN SUDAH SELESAI -->
-    <div class="bg-white rounded-sm shadow-sm border border-sand-200/60 overflow-hidden">
+    <div class="bg-white rounded-lg shadow-sm border border-sand-200/60 overflow-hidden">
         <div class="p-4 sm:p-5 border-b border-sand-200/60 flex items-center justify-between gap-3 bg-emerald-50/40">
             <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 flex items-center justify-center font-bold">
                     <span class="material-symbols-outlined text-lg">task_alt</span>
                 </div>
                 <div>
-                    <h3 class="text-xs font-extrabold text-on-surface uppercase tracking-wider flex items-center gap-2">
+                    <h3 class="text-xs font-extrabold text-on-surface capitalize tracking-wider flex items-center gap-2">
                         Dokumen Sudah Selesai
                         <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">{{ $completedDocs->count() }}</span>
                     </h3>
@@ -135,7 +135,7 @@
         @if($completedDocs->isNotEmpty())
             <div class="overflow-x-auto">
                 <table class="w-full min-w-0 table-fixed text-left">
-                    <thead class="bg-sand-50 border-b border-sand-200 text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant">
+                    <thead class="bg-sand-50 border-b border-sand-200 text-[10px] font-extrabold capitalize tracking-wider text-on-surface-variant">
                         <tr>
                             <th class="hidden sm:table-cell px-2 py-3 w-8 text-center">No</th>
                             <th class="px-2 sm:px-4 py-3 w-[40%]">Dokumen SOP</th>
@@ -167,12 +167,12 @@
                                     </div>
                                 </td>
                                 <td class="hidden 2xl:table-cell px-3 sm:px-5 py-4">
-                                    <span class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-on-surface-variant">
+                                    <span class="inline-flex items-center gap-1.5 text-[10px] font-bold capitalize tracking-wide text-on-surface-variant">
                                         <span class="material-symbols-outlined text-sm text-[#1677B8]">domain</span>{{ $doc->department ?? '-' }}
                                     </span>
                                 </td>
                                 <td class="px-3 sm:px-5 py-4">
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-extrabold uppercase">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-extrabold capitalize">
                                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>Selesai / Aktif
                                     </span>
                                 </td>
@@ -181,7 +181,7 @@
                                 </td>
                                 <td class="px-3 sm:px-5 py-4">
                                     <div class="flex items-center justify-end gap-1.5 sm:gap-2">
-                                        <a href="{{ route('reviewer.show', $doc->id) }}" class="inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 bg-charcoal-900 text-gold-fixed hover:bg-black rounded-md text-[10px] font-extrabold uppercase tracking-wide transition-colors">
+                                        <a href="{{ route('reviewer.show', $doc->id) }}" class="inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 bg-charcoal-900 text-gold-fixed hover:bg-black rounded-md text-[10px] font-extrabold capitalize tracking-wide transition-colors">
                                             <span class="material-symbols-outlined text-sm">visibility</span>
                                             <span class="hidden sm:inline">Lihat</span>
                                         </a>
@@ -211,7 +211,7 @@
     <div class="bg-white rounded-lg w-full max-w-xl p-6 shadow-2xl border border-sand-200">
         <div class="flex items-start justify-between gap-4 border-b border-sand-200/60 pb-4">
             <div>
-                <p class="text-[10px] font-extrabold uppercase tracking-wider text-gold-500">Catatan Approval</p>
+                <p class="text-[10px] font-extrabold capitalize tracking-wider text-gold-500">Catatan Approval</p>
                 <h3 id="modalDocTitle" class="text-sm font-extrabold text-on-surface mt-1"></h3>
             </div>
             <button type="button" onclick="closeNotesModal()" class="w-8 h-8 rounded-md bg-canvas text-on-surface-variant hover:text-rose-600 border border-sand-200 flex items-center justify-center">
@@ -222,7 +222,7 @@
             <p id="modalNotesContent" class="text-xs text-on-surface leading-relaxed whitespace-pre-line"></p>
         </div>
         <div class="mt-5 flex justify-end">
-            <button type="button" onclick="closeNotesModal()" class="px-4 py-2 bg-charcoal-900 text-gold-fixed hover:bg-black rounded-md text-[10px] font-extrabold uppercase tracking-wider">Tutup</button>
+            <x-interactive-button type="button" text="Tutup" onclick="closeNotesModal()" class="text-[10px]" />
         </div>
     </div>
 </div>

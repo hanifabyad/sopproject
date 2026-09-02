@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Undangan Review Dokumen Baru - e-QMS</title>
+    <title>Evaluasi SOP Diperlukan - e-QMS</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; background-color: #F4F5F6; margin: 0; padding: 30px 15px; color: #1A1A1A;">
@@ -16,9 +16,9 @@
             </td>
         </tr>
 
-        <!-- COLOR ACCENT BAR (BLUE) -->
+        <!-- COLOR ACCENT BAR (GOLD/YELLOW representing check/evaluation) -->
         <tr>
-            <td height="4" bgcolor="#1677B8"></td>
+            <td height="4" bgcolor="#D97706"></td>
         </tr>
         
         <!-- BODY CONTENT -->
@@ -26,22 +26,22 @@
             <td style="padding: 36px 28px;">
                 <!-- STATUS BADGE -->
                 <div style="margin-bottom: 16px;">
-                    <span style="display: inline-block; padding: 4px 12px; background-color: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 20px; font-size: 11px; font-weight: 700; color: #1677B8; text-transform: capitalize; letter-spacing: 0.5px;">
-                        PERSETUJUAN DOKUMEN BARU
+                    <span style="display: inline-block; padding: 4px 12px; background-color: #FEF3C7; border: 1px solid #FDE68A; border-radius: 20px; font-size: 11px; font-weight: 700; color: #B45309; text-transform: capitalize; letter-spacing: 0.5px;">
+                        EVALUASI DOKUMEN SOP
                     </span>
                 </div>
 
                 <h2 style="font-size: 18px; font-weight: 700; margin: 0 0 10px 0; color: #1A1A1A; letter-spacing: -0.01em;">
-                    Halo, {{ $user->full_name ?? $user->username }}
+                    Halo, Kepala / Penanggung Jawab {{ $document->department }}
                 </h2>
                 <p style="font-size: 13px; line-height: 1.6; color: #4B5563; margin: 0 0 24px 0;">
-                    Terdapat dokumen SOP baru yang membutuhkan peninjauan, verifikasi, serta tanda tangan digital Anda pada alur persetujuan sistem <strong>e-QMS</strong>.
+                    Dokumen SOP berikut telah aktif selama minimal 12 bulan dan memerlukan tinjauan berkala (evaluasi) untuk memastikan relevansi dan keefektifannya dalam operasional di **e-QMS**.
                 </p>
 
                 <!-- METADATA TABLE -->
                 <table width="100%" cellpadding="12" cellspacing="0" style="border-collapse: collapse; border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 24px; overflow: hidden;">
                     <tr bgcolor="#F9FAFB">
-                        <td colspan="2" style="font-size: 11px; font-weight: 700; text-transform: capitalize; letter-spacing: 0.5px; color: #1677B8; border-bottom: 1px solid #E5E7EB;">
+                        <td colspan="2" style="font-size: 11px; font-weight: 700; text-transform: capitalize; letter-spacing: 0.5px; color: #B45309; border-bottom: 1px solid #E5E7EB;">
                             Detail Dokumen SOP
                         </td>
                     </tr>
@@ -54,29 +54,33 @@
                         <td style="font-size: 12px; color: #1A1A1A; border-bottom: 1px solid #F3F4F6; font-weight: 600;">{{ $document->doc_number ?? '-' }}</td>
                     </tr>
                     <tr>
-                        <td style="font-size: 12px; font-weight: 600; color: #6B7280; border-bottom: 1px solid #F3F4F6;">Versi Revisi</td>
+                        <td style="font-size: 12px; font-weight: 600; color: #6B7280; border-bottom: 1px solid #F3F4F6;">Versi / Revisi</td>
                         <td style="font-size: 12px; color: #1677B8; border-bottom: 1px solid #F3F4F6; font-weight: 700;">Revisi {{ $document->doc_revision ?? '0' }}</td>
                     </tr>
                     <tr>
-                        <td style="font-size: 12px; font-weight: 600; color: #6B7280; border-bottom: 1px solid #F3F4F6;">Unit Bisnis (BU)</td>
+                        <td style="font-size: 12px; font-weight: 600; color: #6B7280; border-bottom: 1px solid #F3F4F6;">Unit / Dept</td>
                         <td style="font-size: 12px; color: #1A1A1A; border-bottom: 1px solid #F3F4F6; text-transform: capitalize; font-weight: 600;">{{ $document->department }}</td>
                     </tr>
                     <tr>
-                        <td style="font-size: 12px; font-weight: 600; color: #6B7280;">Status Saat Ini</td>
-                        <td style="font-size: 12px; color: #D97706; font-weight: 700; text-transform: capitalize;">Waiting Review</td>
+                        <td style="font-size: 12px; font-weight: 600; color: #6B7280; border-bottom: 1px solid #F3F4F6;">Tanggal Aktif</td>
+                        <td style="font-size: 12px; color: #1A1A1A; border-bottom: 1px solid #F3F4F6; font-weight: 600;">{{ $document->effective_date ? \Carbon\Carbon::parse($document->effective_date)->format('d F Y') : '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-size: 12px; font-weight: 600; color: #6B7280;">Batas Evaluasi</td>
+                        <td style="font-size: 12px; color: #DC2626; font-weight: 700;">{{ $document->evaluation_due_date ? \Carbon\Carbon::parse($document->evaluation_due_date)->format('d F Y') : '-' }}</td>
                     </tr>
                 </table>
 
                 <p style="font-size: 13px; line-height: 1.6; color: #4B5563; margin: 0 0 24px 0;">
-                    Silakan klik tombol di bawah untuk masuk ke sistem dan meninjau dokumen secara otomatis menggunakan Magic Link Anda yang aktif selama 24 jam.
+                    Silakan klik tombol di bawah untuk meninjau dokumen SOP dan mengisi form evaluasi online di sistem e-QMS.
                 </p>
 
                 <!-- BUTTON CTA -->
                 <table align="center" border="0" cellpadding="0" cellspacing="0">
                     <tr>
-                        <td align="center" bgcolor="#1677B8" style="border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(22, 119, 184, 0.25);">
+                        <td align="center" bgcolor="#D97706" style="border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(217, 119, 6, 0.25);">
                             <a href="{{ $magicLoginUrl }}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: 12px; font-weight: 700; color: #ffffff; text-decoration: none; text-transform: capitalize; letter-spacing: 0.5px;">
-                                TINJAU DOKUMEN &rarr;
+                                TINJAU & EVALUASI SOP &rarr;
                             </a>
                         </td>
                     </tr>

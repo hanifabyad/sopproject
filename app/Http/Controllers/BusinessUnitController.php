@@ -65,6 +65,7 @@ class BusinessUnitController extends Controller
      */
     public function showBU($bu): View
     {
+        $bu = html_entity_decode($bu, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $documents = Document::where('department', $bu)->latest()->get();
         
         $stats = [
@@ -90,6 +91,8 @@ class BusinessUnitController extends Controller
      */
     public function create(string $unit): View
     {
+        // Route values may arrive HTML-encoded when a unit name contains '&'.
+        $unit = html_entity_decode($unit, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $reviewers = User::all();
         return view('admin.BU.create', compact('unit', 'reviewers'));
     }
@@ -100,6 +103,7 @@ class BusinessUnitController extends Controller
      */
     public function store(Request $request, string $unit)
     {
+        $unit = html_entity_decode($unit, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $uploadedNewFiles = [];
 
         try {
@@ -543,6 +547,21 @@ class BusinessUnitController extends Controller
             ]);
 
             $document = Document::with('attachments')->findOrFail($id);
+
+            // Validasi: Wajib mengunggah minimal 1 berkas perbaikan baru atau perubahan
+            $hasNewFile = $request->hasFile('file_cover') 
+                || $request->hasFile('file_isi') 
+                || $request->hasFile('file_lp') 
+                || ($request->hasFile('file_lampiran') && count($request->file('file_lampiran')) > 0);
+            $hasDeletedAttachments = !empty($request->input('deleted_attachments', []));
+            $isTitleChanged = trim($request->input('title', '')) !== trim($document->title);
+
+            if (!$hasNewFile && !$hasDeletedAttachments && !$isTitleChanged) {
+                return back()->withErrors([
+                    'file_isi' => 'Harap unggah minimal 1 berkas perbaikan baru (File Cover, File Isi SOP, atau Lampiran Baru) sebelum mengirim revisi.',
+                ])->withInput();
+            }
+
             $unit = $document->department;
             $nextRevision = (string)((int)$document->doc_revision + 1);
             $revisionDate = now()->toDateString();

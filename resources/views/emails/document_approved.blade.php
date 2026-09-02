@@ -26,7 +26,7 @@
             <td style="padding: 36px 28px;">
                 <!-- STATUS BADGE -->
                 <div style="margin-bottom: 16px;">
-                    <span style="display: inline-block; padding: 4px 12px; background-color: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 20px; font-size: 11px; font-weight: 700; color: #047857; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <span style="display: inline-block; padding: 4px 12px; background-color: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 20px; font-size: 11px; font-weight: 700; color: #047857; text-transform: capitalize; letter-spacing: 0.5px;">
                         DOKUMEN DISETUJUI & E-LIBRARY
                     </span>
                 </div>
@@ -41,7 +41,7 @@
                 <!-- METADATA TABLE -->
                 <table width="100%" cellpadding="12" cellspacing="0" style="border-collapse: collapse; border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 24px; overflow: hidden;">
                     <tr bgcolor="#F9FAFB">
-                        <td colspan="2" style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #10B981; border-bottom: 1px solid #E5E7EB;">
+                        <td colspan="2" style="font-size: 11px; font-weight: 700; text-transform: capitalize; letter-spacing: 0.5px; color: #10B981; border-bottom: 1px solid #E5E7EB;">
                             Informasi Dokumen Aktif
                         </td>
                     </tr>
@@ -59,11 +59,11 @@
                     </tr>
                     <tr>
                         <td style="font-size: 12px; font-weight: 600; color: #6B7280; border-bottom: 1px solid #F3F4F6;">Unit Bisnis (BU)</td>
-                        <td style="font-size: 12px; color: #1A1A1A; border-bottom: 1px solid #F3F4F6; text-transform: uppercase; font-weight: 600;">{{ $document->department }}</td>
+                        <td style="font-size: 12px; color: #1A1A1A; border-bottom: 1px solid #F3F4F6; text-transform: capitalize; font-weight: 600;">{{ $document->department }}</td>
                     </tr>
                     <tr>
                         <td style="font-size: 12px; font-weight: 600; color: #6B7280;">Status Final</td>
-                        <td style="font-size: 12px; color: #10B981; font-weight: 700; text-transform: uppercase;">ACTIVE / E-LIBRARY</td>
+                        <td style="font-size: 12px; color: #10B981; font-weight: 700; text-transform: capitalize;">ACTIVE / E-LIBRARY</td>
                     </tr>
                 </table>
 
@@ -75,7 +75,7 @@
                 <table align="center" border="0" cellpadding="0" cellspacing="0">
                     <tr>
                         <td align="center" bgcolor="#10B981" style="border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.25);">
-                            <a href="{{ $magicLoginUrl }}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: 12px; font-weight: 700; color: #ffffff; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px;">
+                            <a href="{{ $magicLoginUrl }}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: 12px; font-weight: 700; color: #ffffff; text-decoration: none; text-transform: capitalize; letter-spacing: 0.5px;">
                                 BUKA E-LIBRARY &rarr;
                             </a>
                         </td>

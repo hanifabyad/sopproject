@@ -16,12 +16,14 @@ class LibraryController extends Controller
         $div      = $request->div;
         $bu       = $request->bu;
         $company  = $request->company;
+        $search   = $request->search;
+        $year     = $request->year;
 
         $query = Library::query();
 
-        // Standardize div parameter name (KOMERSIL -> COMMERCIAL)
-        if ($div === 'KOMERSIL') {
-            $div = 'COMMERCIAL';
+        // Standardize div parameter name (COMMERCIAL <-> KOMERSIL)
+        if ($div === 'COMMERCIAL') {
+            $div = 'KOMERSIL';
         }
 
         // 2. Logika Filter Dokumen (Agar dokumen muncul sesuai level)
@@ -31,10 +33,17 @@ class LibraryController extends Controller
             if ($category) {
                 $query->where('category', $category);
             }
-            $query->where('business_unit', $bu);
+            if (str_contains(strtoupper($bu), 'INMAR')) {
+                $query->where(function($q) {
+                    $q->where('business_unit', 'like', '%INMAR%');
+                });
+            } else {
+                $query->where('business_unit', $bu);
+            }
         } elseif ($div) {
-            if ($div === 'COMMERCIAL') {
-                $query->whereIn('division_name', ['COMMERCIAL', 'KOMERSIL']);
+            $divUpper = strtoupper($div);
+            if ($divUpper === 'KOMERSIL' || $divUpper === 'COMMERCIAL') {
+                $query->whereIn('division_name', ['KOMERSIL', 'COMMERCIAL']);
             } else {
                 $query->where('division_name', $div);
             }
@@ -42,14 +51,40 @@ class LibraryController extends Controller
             $query->where('category', $category);
         }
 
+        // 3. Pencarian Kata Kunci di Katalog Library
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('business_unit', 'like', "%{$search}%")
+                  ->orWhere('division_name', 'like', "%{$search}%")
+                  ->orWhere('company_name', 'like', "%{$search}%")
+                  ->orWhere('support_type', 'like', "%{$search}%");
+            });
+        }
+
+        // 4. Filter Tahun
+        if ($year && $year !== 'all') {
+            $query->whereYear('created_at', $year);
+        }
+
         $documents = $query->latest()->get();
 
-        // 3. Ambil data Divisi Business Unit Baku (RETAIL, COMMERCIAL, SCM, FA)
-        $listDivisions = ['RETAIL', 'COMMERCIAL', 'SCM', 'FA'];
+        // Pencarian berkas di folder general jika ada search query
+        $matchingFiles = collect([]);
+        if ($search) {
+            $matchingFiles = \App\Models\LibraryFile::with('folder')
+                ->where('name', 'like', "%{$search}%")
+                ->latest()
+                ->get();
+        }
 
-        // Map Business Units per Division jika data DB belum terisi
+        // 5. Ambil data Divisi Business Unit Baku (RETAIL, KOMERSIL, SCM, FA)
+        $listDivisions = ['RETAIL', 'KOMERSIL', 'SCM', 'FA'];
+
+        // Map Business Units per Division
         $divBuMap = [
             'RETAIL'     => ['SPBU', 'LPG PSO', 'LPG NPSO', 'PKSP', 'TRP', 'INMAR (CNGM)'],
+            'KOMERSIL'   => ['CPT & MHM', 'SBS', 'GVI'],
             'COMMERCIAL' => ['CPT & MHM', 'SBS', 'GVI'],
             'SCM'        => ['PROCUREMENT', 'WAREHOUSE', 'ASET', 'GA'],
             'FA'         => ['KEUANGAN & ACCOUNTING'],
@@ -61,7 +96,19 @@ class LibraryController extends Controller
         // Ambil folder utama General Library
         $generalFolders = \App\Models\LibraryFolder::whereNull('parent_id')->orderBy('name')->get();
 
-        return view('library.index', compact('documents', 'category', 'div', 'bu', 'company', 'listDivisions', 'divBuMap', 'supportDepts', 'generalFolders'));
+        // Ambil tahun yang tersedia di katalog library
+        $availableYears = Library::selectRaw('YEAR(created_at) as year')
+            ->distinct()
+            ->orderBy('year', 'desc')
+            ->pluck('year')
+            ->filter()
+            ->values();
+
+        return view('library.index', compact(
+            'documents', 'category', 'div', 'bu', 'company', 
+            'listDivisions', 'divBuMap', 'supportDepts', 'generalFolders',
+            'search', 'year', 'availableYears', 'matchingFiles'
+        ));
     }
 
     public function storeManual(Request $request)

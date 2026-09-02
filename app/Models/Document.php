@@ -13,8 +13,19 @@ class Document extends Model
         'title', 'department', 'reviewer_id', 'file_cover', 
         'file_lp', 'file_isi', 'file_lampiran', 'status', 
         'file_final', 'file_preview',
-        'doc_number', 'doc_revision', 'doc_date', 'company_header'
+        'doc_number', 'doc_revision', 'doc_date', 'company_header',
+        'effective_date', 'evaluation_status', 'evaluation_due_date', 'evaluation_id'
     ];
+
+    public function evaluations()
+    {
+        return $this->hasMany(Evaluation::class, 'document_id');
+    }
+
+    public function latestEvaluation()
+    {
+        return $this->hasOne(Evaluation::class, 'document_id')->latestOfMany();
+    }
 
     // RELASI INI YANG PALING PENTING!
     // Kita sebutkan modelnya secara lengkap dan kolom foreign key-nya
@@ -22,6 +33,19 @@ class Document extends Model
     {
         return $this->hasMany(\App\Models\DocumentApproval::class, 'document_id', 'id')
                     ->orderBy('sequence', 'asc');
+    }
+
+    public function latestRejectedApproval()
+    {
+        return $this->hasOne(\App\Models\DocumentApproval::class, 'document_id', 'id')
+                    ->whereIn('status', ['rejected', 'need_revision'])
+                    ->latestOfMany('id');
+    }
+
+    public function getLatestAnnotationsAttribute()
+    {
+        $rej = $this->latestRejectedApproval;
+        return $rej ? $rej->annotations : null;
     }
 
     public function attachments()

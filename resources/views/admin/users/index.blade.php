@@ -21,7 +21,7 @@
             </form>
             
             <a href="{{ route('admin.users.create') }}" 
-               class="px-4 py-2 bg-[#ffe16e] hover:bg-amber-400 text-charcoal-900 rounded-md font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex items-center gap-2 border-none whitespace-nowrap">
+               class="px-4 py-2 bg-[#ffe16e] hover:bg-amber-400 text-charcoal-900 rounded-md font-bold text-xs capitalize tracking-wider shadow-sm transition-all flex items-center gap-2 border-none whitespace-nowrap">
                 <i class="ph ph-user-plus text-base"></i>
                 <span>Tambah Pegawai</span>
             </a>
@@ -32,7 +32,7 @@
     <div class="border border-sand-200/70 rounded-md bg-white overflow-hidden shadow-sm">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-body-main">
-                <thead class="bg-sand-50 border-b border-sand-200 text-[12px] font-semibold uppercase tracking-wider text-on-surface-variant">
+                <thead class="bg-sand-50 border-b border-sand-200 text-[12px] font-semibold capitalize tracking-wider text-on-surface-variant">
                     <tr>
                         <th class="py-3 px-4">Profil Pegawai</th>
                         <th class="py-3 px-4">Jabatan / Role</th>
@@ -45,7 +45,7 @@
                     <tr class="hover:bg-canvas transition-colors border-b border-[#e8e2d6]">
                         <td class="py-3 px-4">
                             <div class="flex items-center space-x-3">
-                                <div class="w-8 h-8 rounded-md bg-charcoal-900 text-gold-fixed flex items-center justify-center font-bold text-xs shadow-sm uppercase">
+                                <div class="w-8 h-8 rounded-md bg-charcoal-900 text-gold-fixed flex items-center justify-center font-bold text-xs shadow-sm capitalize">
                                     {{ strtoupper(substr($user->full_name ?: $user->username, 0, 1)) }}
                                 </div>
                                 <div>

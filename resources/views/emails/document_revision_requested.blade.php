@@ -26,7 +26,7 @@
             <td style="padding: 36px 28px;">
                 <!-- STATUS BADGE -->
                 <div style="margin-bottom: 16px;">
-                    <span style="display: inline-block; padding: 4px 12px; background-color: #FFF1F2; border: 1px solid #FECDD3; border-radius: 20px; font-size: 11px; font-weight: 700; color: #DC2626; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <span style="display: inline-block; padding: 4px 12px; background-color: #FFF1F2; border: 1px solid #FECDD3; border-radius: 20px; font-size: 11px; font-weight: 700; color: #DC2626; text-transform: capitalize; letter-spacing: 0.5px;">
                         {{ !empty($isCreator) ? 'PERMINTAAN REVISI (DOKUMEN TERKUNCI)' : 'PEMBERITAHUAN DOKUMEN TERKUNCI REVISI' }}
                     </span>
                 </div>
@@ -45,7 +45,7 @@
                 <!-- METADATA TABLE -->
                 <table width="100%" cellpadding="12" cellspacing="0" style="border-collapse: collapse; border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">
                     <tr bgcolor="#F9FAFB">
-                        <td colspan="2" style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #DC2626; border-bottom: 1px solid #E5E7EB;">
+                        <td colspan="2" style="font-size: 11px; font-weight: 700; text-transform: capitalize; letter-spacing: 0.5px; color: #DC2626; border-bottom: 1px solid #E5E7EB;">
                             Detail Permintaan Revisi
                         </td>
                     </tr>
@@ -83,7 +83,7 @@
                 <table align="center" border="0" cellpadding="0" cellspacing="0">
                     <tr>
                         <td align="center" bgcolor="#DC2626" style="border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.25);">
-                            <a href="{{ $magicLoginUrl }}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: 12px; font-weight: 700; color: #ffffff; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px;">
+                            <a href="{{ $magicLoginUrl }}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: 12px; font-weight: 700; color: #ffffff; text-decoration: none; text-transform: capitalize; letter-spacing: 0.5px;">
                                 {{ !empty($isCreator) ? 'PERBAIKI DOKUMEN →' : 'TINJAU BERKAS →' }}
                             </a>
                         </td>

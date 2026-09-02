@@ -8,6 +8,7 @@ use App\Http\Controllers\SupportController;
 use App\Http\Controllers\ReviewerController;
 use App\Http\Controllers\BusinessUnitController;
 use App\Http\Controllers\LibraryController;
+use App\Http\Controllers\EvaluationController;
 
 // ==========================================
 // 🔑 HALAMAN OTENTIKASI
@@ -24,6 +25,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     
     // Dashboard Utama & Statistik Terpisah (Support vs BU)
     Route::get('/dashboard', [AdminController::class, 'index'])->name('dashboard');
+    // Tracking SOP & Siklus Dokumen
+    Route::get('/tracking', [AdminController::class, 'tracking'])->name('tracking');
     // Kelola Logo & Info PT (Dynamic LP logos)
     Route::get('/logo', [AdminController::class, 'logoIndex'])->name('logo.index');
     Route::post('/logo/update', [AdminController::class, 'updateCompanyLogo'])->name('logo.update');
@@ -85,6 +88,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
         Route::get('/document/{id}/edit-revision', [BusinessUnitController::class, 'editRevision'])->name('edit_revision');
         Route::put('/document/{id}/update-revision', [BusinessUnitController::class, 'updateRevision'])->name('update_revision');
     });
+
+    // Kelola Evaluasi SOP oleh Admin
+    Route::get('/evaluations', [EvaluationController::class, 'adminIndex'])->name('evaluations.index');
+    Route::get('/evaluations/{id}', [EvaluationController::class, 'adminShow'])->name('evaluations.show');
+    Route::post('/evaluations/{id}/resolve', [EvaluationController::class, 'adminResolve'])->name('evaluations.resolve');
 });
 
 // ==========================================
@@ -97,6 +105,16 @@ Route::prefix('reviewer')->name('reviewer.')->middleware('auth')->group(function
     Route::post('/document/{id}/approve', [ReviewerController::class, 'approve'])->name('approve');
     Route::post('/document/{id}/reject', [ReviewerController::class, 'reject'])->name('reject');
     Route::get('/history', [ReviewerController::class, 'history'])->name('history');
+});
+
+// ==========================================
+// 📋 EVALUASI SOP GROUP (EVALUATOR)
+// ==========================================
+Route::prefix('evaluations')->name('evaluations.')->middleware('auth')->group(function () {
+    Route::get('/', [EvaluationController::class, 'index'])->name('index');
+    Route::get('/{id}', [EvaluationController::class, 'show'])->name('show');
+    Route::get('/{id}/stream', [EvaluationController::class, 'streamFile'])->name('stream');
+    Route::post('/{id}/submit', [EvaluationController::class, 'submit'])->name('submit');
 });
 
 // ==========================================

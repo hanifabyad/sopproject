@@ -4,34 +4,32 @@
 @section('header_title', 'Detail & Audit Trail Dokumen SOP')
 
 @section('content')
-<div class="space-y-6">
+<div class="space-y-6 bu-support-scope">
     
     <!-- TOP HEADER CONTAINER WITH LEFT BACK BUTTON -->
-    <div class="bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 flex flex-col gap-3">
+    <div class="bg-gradient-to-r from-[#1677B8] to-[#00b4d8] text-white rounded-lg p-6 shadow-sm border border-white/10 flex flex-col gap-3">
         <!-- Baris Tombol Kembali & Breadcrumb di Kiri -->
         <div class="flex items-center gap-3">
-            <a href="{{ route('admin.BU.index') }}" 
-               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-sand-200 bg-white text-on-surface-variant hover:bg-canvas hover:text-on-surface text-xs font-semibold transition-colors shadow-sm">
-                <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-                <span>Kembali</span>
-            </a>
-            <span class="text-sand-200">|</span>
-            <div class="flex items-center gap-2 text-xs text-on-surface-variant">
-                <a href="{{ route('admin.BU.index') }}" class="hover:text-gold-500">Business Unit</a>
+            <x-back-button href="{{ route('admin.BU.show', $document->department) }}" variant="light" />
+            <span class="text-white/30">|</span>
+            <div class="flex items-center gap-2 text-xs text-white/80">
+                <a href="{{ route('admin.BU.index') }}" class="hover:text-[#ffe16e] font-medium">Business Unit</a>
                 <span>/</span>
-                <span class="font-medium text-on-surface">{{ $document->document_number ?? $document->doc_number }}</span>
+                <a href="{{ route('admin.BU.show', $document->department) }}" class="hover:text-[#ffe16e] font-medium">{{ $document->department }}</a>
+                <span>/</span>
+                <span class="font-bold text-white">{{ $document->document_number ?? $document->doc_number }}</span>
             </div>
         </div>
 
         <!-- Baris Judul & Status Badge -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-                <h2 class="text-2xl font-bold text-on-surface tracking-tight">{{ $document->title }}</h2>
-                <p class="text-xs text-on-surface-variant mt-0.5">Versi Revisi: {{ $document->doc_revision ?? '0' }} &bull; Tanggal: {{ $document->doc_date ?? $document->created_at->format('d M Y') }}</p>
+                <h2 class="text-2xl font-extrabold tracking-tight text-white">{{ $document->title }}</h2>
+                <p class="text-xs text-white/85 mt-0.5 font-medium">Versi Revisi: Rev {{ $document->doc_revision ?? '0' }} &bull; Tanggal: {{ $document->doc_date ?? $document->created_at->format('d M Y') }}</p>
             </div>
             <!-- Area Status Badge -->
             <div class="flex items-center gap-2">
-                <span class="px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider {{ $document->status === 'active' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : ($document->status === 'need_revision' ? 'bg-rose-100 text-rose-800 border border-rose-300' : 'bg-amber-100 text-amber-800 border border-amber-300') }}">
+                <span class="px-3 py-1 rounded-md text-xs font-bold capitalize tracking-wider {{ $document->status === 'active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : ($document->status === 'need_revision' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-amber-50 text-amber-700 border border-amber-200') }}">
                     {{ strtoupper(str_replace('_', ' ', $document->status)) }}
                 </span>
             </div>
@@ -41,7 +39,7 @@
     <!-- MINIMALIST HORIZONTAL STEPPER -->
     <div class="bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 space-y-4">
         <div class="flex items-center space-x-2 border-b border-sand-200/40 pb-3">
-            <h3 class="text-xs font-extrabold uppercase tracking-wider text-on-surface">Alur Workflow Persetujuan Multi-Stage</h3>
+            <h3 class="text-xs font-extrabold capitalize tracking-wider text-on-surface">Alur Workflow Persetujuan Multi-Stage</h3>
         </div>
 
         <div class="relative py-2">
@@ -55,7 +53,7 @@
                         <span class="material-symbols-outlined text-sm">check</span>
                     </div>
                     <div class="min-w-0">
-                        <span class="text-[9px] font-extrabold uppercase tracking-wider text-gold-500 block">Stage 1: Inisiator</span>
+                        <span class="text-[9px] font-extrabold capitalize tracking-wider text-gold-500 block">Stage 1: Inisiator</span>
                         @php $creatorApp = $document->approvals->where('stage', 'creator')->first(); @endphp
                         <p class="text-xs font-bold text-on-surface truncate">{{ $creatorApp->user->full_name ?? $creatorApp->user->username ?? 'Initiator' }}</p>
                     </div>
@@ -64,7 +62,7 @@
                 <!-- STAGE 2: DIPERIKSA & DIKETAHUI (PARALEL REVIEWERS) -->
                 <div class="p-3.5 bg-sand-50 rounded-md border border-sand-200 space-y-1.5 shadow-sm">
                     <div class="flex items-center justify-between">
-                        <span class="text-[9px] font-extrabold uppercase tracking-wider text-gold-500">Stage 2: Peninjau</span>
+                        <span class="text-[9px] font-extrabold capitalize tracking-wider text-gold-500">Stage 2: Peninjau</span>
                         <span class="w-2 h-2 rounded-full bg-gold-500 animate-ping"></span>
                     </div>
                     <div class="space-y-1 max-h-20 overflow-y-auto custom-scrollbar">
@@ -90,7 +88,7 @@
                         <span class="material-symbols-outlined text-sm">{{ $allFinalApproved ? 'check' : 'draw' }}</span>
                     </div>
                     <div class="min-w-0">
-                        <span class="text-[9px] font-extrabold uppercase tracking-wider text-gold-500 block">Stage 3: Pengesahan Final</span>
+                        <span class="text-[9px] font-extrabold capitalize tracking-wider text-gold-500 block">Stage 3: Pengesahan Final</span>
                         <p class="text-xs font-bold text-on-surface">{{ $finalApps->map(fn($app) => $app->user->full_name ?? $app->user->username)->join(', ') ?: 'Pimpinan Final' }}</p>
                     </div>
                 </div>
@@ -99,10 +97,10 @@
     </div>
 
     <!-- MAIN SPLIT VIEW (COL 8 PDF VIEWER & COL 4 METADATA/TIMELINE) -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         
         <!-- LEFT COLUMN: PDF VIEWER CONTAINER (COL 8) -->
-        <div class="lg:col-span-8 bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 space-y-4">
+        <div class="lg:col-span-8 bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 flex flex-col space-y-4">
             <div class="flex items-center justify-between border-b border-sand-200/40 pb-3">
                 <div class="flex items-center space-x-2 text-xs font-bold text-on-surface">
                     <span class="material-symbols-outlined text-red-600 text-base">picture_as_pdf</span>
@@ -111,11 +109,11 @@
                 <span class="text-[10px] text-on-surface-variant font-semibold">Dokumen Resmi Terenkripsi</span>
             </div>
 
-            <div class="h-[650px] bg-canvas rounded-md overflow-hidden border border-sand-200">
+            <div class="flex-1 min-h-[750px] bg-canvas rounded-md overflow-hidden border border-sand-200">
                 @php
                     $pathToShow = $pathFinal ?? $document->file_final ?? $document->file_preview ?? $document->file_lp;
                 @endphp
-                <iframe src="{{ asset('storage/' . $pathToShow) }}#toolbar=0" class="w-full h-full border-none"></iframe>
+                <iframe src="{{ asset('storage/' . $pathToShow) }}#toolbar=0" class="w-full h-full min-h-[750px] border-none"></iframe>
             </div>
         </div>
 
@@ -127,15 +125,15 @@
             @if($allAtts->count() > 0)
             <div class="bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 space-y-3">
                 <div class="flex items-center space-x-2 border-b border-sand-200/40 pb-3">
-                    <span class="material-symbols-outlined text-gold-500 text-lg">attach_file</span>
-                    <h4 class="font-bold text-xs uppercase tracking-wider text-on-surface">Berkas Lampiran ({{ $allAtts->count() }})</h4>
+                    <span class="material-symbols-outlined text-[#00b4d8] text-lg">attach_file</span>
+                    <h4 class="font-bold text-xs capitalize tracking-wider text-on-surface">Berkas Lampiran ({{ $allAtts->count() }})</h4>
                 </div>
 
                 <div class="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
                     @foreach($allAtts as $idx => $att)
                         <a href="{{ asset('storage/' . $att->file_path) }}" target="_blank" class="flex items-center justify-between p-2.5 bg-canvas rounded-md border border-sand-200 hover:bg-[#fff9ed] transition-all text-xs font-semibold text-on-surface">
                             <div class="flex items-center gap-2 truncate pr-2">
-                                <span class="text-gold-500 font-bold text-[10px]">{{ $idx + 1 }}.</span>
+                                <span class="text-[#00b4d8] font-bold text-[10px]">{{ $idx + 1 }}.</span>
                                 <span class="material-symbols-outlined text-red-600 text-sm">picture_as_pdf</span>
                                 <span class="truncate text-[11px]">{{ $att->original_name ?? basename($att->file_path) }}</span>
                             </div>
@@ -149,8 +147,8 @@
             <!-- TIMELINE AUDIT TRAIL CARD -->
             <div class="bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 space-y-4">
                 <div class="flex items-center space-x-2 border-b border-sand-200/40 pb-3">
-                    <span class="material-symbols-outlined text-gold-500 text-lg">history</span>
-                    <h4 class="font-bold text-xs uppercase tracking-wider text-on-surface">Timeline Audit Log Aktivitas</h4>
+                    <span class="material-symbols-outlined text-[#00b4d8] text-lg">history</span>
+                    <h4 class="font-bold text-xs capitalize tracking-wider text-on-surface">Timeline Audit Log Aktivitas</h4>
                 </div>
 
                 <div class="max-h-80 overflow-y-auto custom-scrollbar pr-2 space-y-4 relative">
@@ -158,9 +156,7 @@
 
                     <!-- Uploaded Node -->
                     <div class="relative flex items-start space-x-3 pl-1">
-                        <div class="relative z-10 w-5 h-5 rounded bg-charcoal-900 text-gold-fixed flex items-center justify-center text-[10px] font-bold ring-2 ring-white">
-                            <span class="material-symbols-outlined text-xs">upload</span>
-                        </div>
+                        <span class="material-symbols-outlined text-[#00b4d8] text-base relative z-10 bg-white">upload</span>
                         <div>
                             <p class="text-xs font-bold text-on-surface">Dokumen Dibuat</p>
                             <p class="text-[10px] text-on-surface-variant font-semibold">{{ $document->created_at->format('d M Y - H:i') }} WIB</p>
@@ -204,9 +200,16 @@
                         Dokumen ini memerlukan perbaikan berdasarkan hasil tinjauan reviewer. Klik tombol di bawah untuk mengunggah draf perbaikan.
                     </p>
                     <a href="{{ auth()->user()->role === 'admin' ? route('admin.BU.edit_revision', $document->id) : route('admin.BU.creator_revise', $document->id) }}" 
-                       class="w-full inline-flex items-center justify-center bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-4 rounded-md shadow-sm transition-all text-xs uppercase tracking-wider gap-2">
-                        <span class="material-symbols-outlined text-base">build</span>
-                        <span>Upload Revisi Dokumen</span>
+                       class="w-full btn-interactive btn-interactive-danger font-extrabold capitalize tracking-wider py-3">
+                        <span class="btn-interactive-default">
+                            <span class="btn-interactive-dot"></span>
+                            <span>Upload Revisi Dokumen</span>
+                        </span>
+                        <span class="btn-interactive-hover">
+                            <span>Upload Revisi Dokumen</span>
+                            <i class="ph ph-arrow-right text-sm"></i>
+                        </span>
+                        <span class="btn-interactive-bg"></span>
                     </a>
                 </div>
             @endif
@@ -216,7 +219,7 @@
                 @if($document->status == 'active' && ($pathFinal || $document->file_final))
                     <a href="{{ asset('storage/' . ($document->file_final ?? $pathFinal)) }}" 
                        download 
-                       class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-bold text-xs uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-2">
+                       class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-bold text-xs capitalize tracking-wider transition-all shadow-sm flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-base">download_for_offline</span>
                         <span>Unduh Dokumen Sah Final</span>
                     </a>
@@ -236,5 +239,3 @@
     </div>
 </div>
 @endsection
-
-

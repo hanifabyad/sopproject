@@ -32,6 +32,94 @@ class AdminController extends Controller
         return view('admin.dashboard', compact('stats', 'revisiDocs', 'inProgressDocs', 'activeDocs'));
     }
 
+    public function tracking(Request $request)
+    {
+        $selectedYear = $request->query('year');
+        $selectedUnit = $request->query('unit');
+        $selectedStatus = $request->query('status');
+        $search = $request->query('search');
+
+        // Query dokumen
+        $query = Document::with(['approvals.user', 'reviewer']);
+
+        if ($selectedYear && $selectedYear !== 'all') {
+            $query->whereYear('created_at', $selectedYear);
+        }
+
+        if ($selectedUnit && $selectedUnit !== 'all') {
+            $query->where('department', $selectedUnit);
+        }
+
+        if ($selectedStatus && $selectedStatus !== 'all') {
+            $query->where('status', $selectedStatus);
+        }
+
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('doc_number', 'like', "%{$search}%")
+                  ->orWhere('department', 'like', "%{$search}%");
+            });
+        }
+
+        $documents = $query->latest()->paginate(15)->withQueryString();
+
+        // Rekapitulasi Statistik Global / Sesuai Filter Kurun Waktu
+        $baseQuery = Document::query();
+        if ($selectedYear && $selectedYear !== 'all') {
+            $baseQuery->whereYear('created_at', $selectedYear);
+        }
+        if ($selectedUnit && $selectedUnit !== 'all') {
+            $baseQuery->where('department', $selectedUnit);
+        }
+
+        $stats = [
+            'total'          => (clone $baseQuery)->count(),
+            'active'         => (clone $baseQuery)->where('status', 'active')->count(),
+            'need_revision'  => (clone $baseQuery)->where('status', 'need_revision')->count(),
+            'waiting'        => (clone $baseQuery)->where('status', 'waiting')->count(),
+            'obsolete'       => (clone $baseQuery)->where('status', 'obsolete')->count(),
+            // SOP Evaluation metrics
+            'eval_due'       => (clone $baseQuery)->where('status', 'active')->where('evaluation_status', 'due')->count(),
+            'eval_overdue'   => (clone $baseQuery)->where('status', 'active')->where('evaluation_status', 'overdue')->count(),
+            'eval_in_review' => (clone $baseQuery)->where('status', 'active')->whereIn('evaluation_status', ['in_review', 'submitted'])->count(),
+            'eval_completed' => (clone $baseQuery)->where('evaluation_status', 'completed')->count(),
+        ];
+
+        // Daftar tahun yang ada dalam database untuk filter kurun tahun
+        $availableYears = Document::selectRaw('YEAR(created_at) as year')
+            ->distinct()
+            ->orderBy('year', 'desc')
+            ->pluck('year')
+            ->filter()
+            ->values();
+
+        if ($availableYears->isEmpty()) {
+            $availableYears = collect([date('Y')]);
+        }
+
+        // Rekapitulasi per Tahun (Lifecycle Trend)
+        $yearlyStats = Document::selectRaw('YEAR(created_at) as year, count(*) as total, SUM(CASE WHEN status = "active" THEN 1 ELSE 0 END) as active_count, SUM(CASE WHEN status = "need_revision" THEN 1 ELSE 0 END) as revision_count')
+            ->groupBy('year')
+            ->orderBy('year', 'desc')
+            ->get();
+
+        // Daftar semua unit/departemen untuk dropdown filter
+        $units = Document::select('department')->distinct()->orderBy('department')->pluck('department')->filter()->values();
+
+        return view('admin.tracking', compact(
+            'documents',
+            'stats',
+            'availableYears',
+            'yearlyStats',
+            'units',
+            'selectedYear',
+            'selectedUnit',
+            'selectedStatus',
+            'search'
+        ));
+    }
+
     public function logoIndex()
     {
         $companyMap = \App\Services\LpGeneratorService::getCompanyMap();

@@ -4,34 +4,32 @@
 @section('header_title', 'Audit Trail & Detail Dokumen BU')
 
 @section('content')
-<div class="space-y-6">
+<div class="space-y-6 bu-support-scope">
     
     <!-- TOP HEADER CONTAINER WITH LEFT BACK BUTTON -->
-    <div class="bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 flex flex-col gap-3">
+    <div class="bg-gradient-to-r from-[#1677B8] to-[#00b4d8] text-white rounded-lg p-6 shadow-sm border border-white/10 flex flex-col gap-3">
         <!-- Baris Tombol Kembali & Breadcrumb di Kiri -->
         <div class="flex items-center gap-3">
-            <a href="{{ route('admin.BU.index') }}" 
-               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-sand-200 bg-white text-on-surface-variant hover:bg-canvas hover:text-on-surface text-xs font-semibold transition-colors shadow-sm">
-                <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-                <span>Kembali</span>
-            </a>
-            <span class="text-sand-200">|</span>
-            <div class="flex items-center gap-2 text-xs text-on-surface-variant">
-                <a href="{{ route('admin.BU.index') }}" class="hover:text-gold-500">Business Unit</a>
+            <x-back-button href="{{ route('admin.BU.show', $document->department) }}" variant="light" />
+            <span class="text-white/30">|</span>
+            <div class="flex items-center gap-2 text-xs text-white/80">
+                <a href="{{ route('admin.BU.index') }}" class="hover:text-[#ffe16e] font-medium">Business Unit</a>
                 <span>/</span>
-                <span class="font-medium text-on-surface">{{ $document->document_number ?? $document->doc_number }}</span>
+                <a href="{{ route('admin.BU.show', $document->department) }}" class="hover:text-[#ffe16e] font-medium">{{ $document->department }}</a>
+                <span>/</span>
+                <span class="font-bold text-white">{{ $document->document_number ?? $document->doc_number }}</span>
             </div>
         </div>
 
         <!-- Baris Judul & Status Badge -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-                <h2 class="text-2xl font-bold text-on-surface tracking-tight">{{ $document->title }}</h2>
-                <p class="text-xs text-on-surface-variant mt-0.5">Versi Revisi: {{ $document->doc_revision ?? '0' }} &bull; Tanggal: {{ $document->doc_date ?? $document->created_at->format('d M Y') }}</p>
+                <h2 class="text-2xl font-extrabold tracking-tight text-white">{{ $document->title }}</h2>
+                <p class="text-xs text-white/85 mt-0.5 font-medium">Versi Revisi: Rev {{ $document->doc_revision ?? '0' }} &bull; Tanggal: {{ $document->doc_date ?? $document->created_at->format('d M Y') }}</p>
             </div>
             <!-- Area Status Badge -->
             <div class="flex items-center gap-2">
-                <span class="px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider {{ $document->status === 'active' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : ($document->status === 'need_revision' ? 'bg-rose-100 text-rose-800 border border-rose-300' : 'bg-amber-100 text-amber-800 border border-amber-300') }}">
+                <span class="px-3 py-1 rounded-md text-xs font-bold capitalize tracking-wider {{ $document->status === 'active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : ($document->status === 'need_revision' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-amber-50 text-amber-700 border border-amber-200') }}">
                     {{ strtoupper(str_replace('_', ' ', $document->status)) }}
                 </span>
             </div>
@@ -42,15 +40,15 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         <!-- PDF PREVIEW PLAYER (8 COLS) -->
-        <div class="lg:col-span-8 bg-white rounded-3xl p-6 shadow-sm border border-[#e5dfd3] space-y-4">
-            <div class="flex items-center justify-between border-b border-[#e5dfd3] pb-3">
+        <div class="lg:col-span-8 bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 space-y-4">
+            <div class="flex items-center justify-between border-b border-sand-200/40 pb-3">
                 <div class="flex items-center space-x-2 text-xs font-bold text-on-surface">
                     <span class="material-symbols-outlined text-red-600">picture_as_pdf</span>
                     <span>Preview Dokumen SOP Terintegrasi</span>
                 </div>
             </div>
             
-            <div class="rounded-2xl overflow-hidden border border-[#e5dfd3] bg-canvas shadow-inner">
+            <div class="rounded-md overflow-hidden border border-sand-200 bg-canvas shadow-inner">
                 @php
                     $pathToShow = $document->file_final ?? $document->file_preview ?? $document->file_lp;
                 @endphp
@@ -65,10 +63,10 @@
         <div class="lg:col-span-4 space-y-6">
             
             <!-- TIMELINE CARD -->
-            <div class="bg-white rounded-3xl p-6 shadow-sm border border-[#e5dfd3] space-y-4">
-                <div class="border-b border-[#e5dfd3] pb-3 flex items-center space-x-2">
-                    <span class="material-symbols-outlined text-gold-500 text-lg">history</span>
-                    <h3 class="text-xs font-extrabold text-on-surface uppercase tracking-wider">Timeline Persetujuan</h3>
+            <div class="bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 space-y-4">
+                <div class="border-b border-sand-200/40 pb-3 flex items-center space-x-2">
+                    <span class="material-symbols-outlined text-[#00b4d8] text-lg">history</span>
+                    <h3 class="text-xs font-extrabold text-on-surface capitalize tracking-wider">Timeline Persetujuan</h3>
                 </div>
                 
                 <div class="space-y-4 relative pl-2">
@@ -81,7 +79,7 @@
                             <span class="text-on-surface-variant font-normal text-[11px]">({{ $log->user->role }})</span>
                         </p>
                         
-                        <div class="p-3 bg-canvas rounded-xl border border-[#e5dfd3] text-xs text-on-surface-variant font-medium leading-relaxed">
+                        <div class="p-3 bg-canvas rounded-lg border border-sand-200 text-xs text-on-surface-variant font-medium leading-relaxed">
                             "{{ $log->notes ?? 'tidak ada catatan tinjauan khusus' }}"
                         </div>
                         <p class="text-[10px] text-on-surface-variant font-semibold">{{ $log->created_at->format('d M Y - H:i') }} WIB</p>
@@ -95,47 +93,22 @@
                 </div>
             </div>
 
-
-            <!-- NEED REVISION ACTION CARD -->
+            <!-- ACTION PERBAIKAN -->
             @if($document->status === 'need_revision')
-                <div class="p-5 bg-red-50 border border-red-200 rounded-3xl space-y-3">
-                    <div class="flex items-center gap-2 text-red-700 font-bold text-xs">
-                        <span class="material-symbols-outlined text-base">warning</span>
-                        <span>Atensi Perbaikan Berkas</span>
-                    </div>
-                    <p class="text-xs text-red-600 leading-relaxed">
-                        Silakan pelajari catatan penolakan pada log timeline di atas, kemudian klik tombol di bawah untuk mengunggah draf perbaikan.
-                    </p>
-                    <a href="{{ route('admin.BU.edit_revision', $document->id) }}" 
-                       class="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl shadow-md transition-all text-xs uppercase tracking-wider flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined text-base">build</span>
-                        <span>Perbaiki & Upload Revisi</span>
-                    </a>
-                </div>
-            @endif
-
-            <!-- ACTION FOOTER CARD -->
-            <div class="bg-white rounded-3xl p-4 shadow-sm border border-[#e5dfd3] space-y-3">
-                @if($document->status == 'active' && $document->file_final)
-                    <a href="{{ asset('storage/' . $document->file_final) }}" 
-                       download 
-                       class="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl font-bold text-xs uppercase tracking-wider shadow-md transition-all text-center flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined text-base">download</span>
-                        <span>Unduh Dokumen Sah Final</span>
-                    </a>
-                @endif
-
-                <form action="{{ route('admin.BU.document.delete', $document->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus dokumen ini secara permanen dari server database?')">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="w-full py-2.5 text-red-600 hover:bg-red-50 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5">
-                        <span class="material-symbols-outlined text-base">delete</span>
-                        <span>Hapus Dokumen Dari Server</span>
-                    </button>
-                </form>
+            <div class="bg-[#fff9ed] rounded-lg p-6 border border-sand-200/80 space-y-3">
+                <h4 class="text-xs font-bold text-charcoal-900">Perbaikan Dokumen</h4>
+                <p class="text-xs text-charcoal-700 leading-relaxed">
+                    Dokumen ini membutuhkan revisi. Silakan periksa catatan peninjau di atas dan unggah berkas perbaikan.
+                </p>
+                <a href="{{ route('admin.BU.edit_revision', $document->id) }}" 
+                   class="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-[#1677B8] hover:bg-[#125d91] text-white font-bold text-xs shadow-sm transition-colors cursor-pointer">
+                    <i class="ph ph-note-pencil text-sm"></i>
+                    <span>Unggah Berkas Revisi</span>
+                </a>
             </div>
-
+            @endif
+            
         </div>
     </div>
 </div>
-@endsection
+@endsection

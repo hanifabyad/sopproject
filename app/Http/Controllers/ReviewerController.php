@@ -59,7 +59,7 @@ public function index()
 
     public function show($id)
     {
-        $document = Document::with('approvals.user')->findOrFail($id);
+        $document = Document::with(['approvals.user', 'logs.user'])->findOrFail($id);
         $user = Auth::user();
 
         if ($user->role !== 'admin') {
@@ -940,7 +940,8 @@ public function reject(Request $request, $id)
 {
     // 1. Validasi agar reviewer wajib mengisi alasan penolakan
     $request->validate([
-        'notes' => 'required|string|max:500'
+        'notes'       => 'required|string|max:1000',
+        'annotations' => 'nullable|string',
     ]);
 
     $document = Document::findOrFail($id);
@@ -952,17 +953,21 @@ public function reject(Request $request, $id)
     // ================================================================
     // 🔥 PERBAIKAN UTAMA 1: MATIKAN ANTREAN CURRENT DI SISI REVIEWER
     // ================================================================
-    // Kita cari antrean milik reviewer ini yang statusnya sedang 'current'
+    // Kita cari antrean milik reviewer ini yang statusnya sedang 'current' atau milik user ini
     $currentApproval = \App\Models\DocumentApproval::where('document_id', $document->id)
         ->where('user_id', $user->id)
         ->where('status', 'current')
-        ->first();
+        ->first()
+        ?: \App\Models\DocumentApproval::where('document_id', $document->id)
+            ->where('user_id', $user->id)
+            ->first();
 
     if ($currentApproval) {
         // Ubah status antrean pimpinan ini menjadi 'rejected' agar dokumen HILANG dari antreannya
         $currentApproval->update([
-            'status' => 'rejected', 
-            'notes' => $request->notes,
+            'status'       => 'rejected', 
+            'notes'        => $request->notes,
+            'annotations'  => $request->filled('annotations') ? $request->input('annotations') : null,
             'processed_at' => now()
         ]);
     }

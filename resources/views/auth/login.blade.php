@@ -61,35 +61,48 @@
         .panel-left-brand {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.85rem;
             position: relative;
             z-index: 1;
         }
 
-        .panel-left-brand img {
-            width: 36px;
-            height: 36px;
+        .panel-left-logo-box {
+            width: 44px;
+            height: 44px;
+            background: #ffffff;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+            flex-shrink: 0;
+        }
+
+        .panel-left-logo-box img {
+            width: 100%;
+            height: 100%;
             object-fit: contain;
-            filter: brightness(10);
         }
 
         .panel-left-brand-text {
-            line-height: 1;
+            line-height: 1.2;
         }
 
         .panel-left-brand-text .name {
-            font-size: 13px;
-            font-weight: 700;
-            color: white;
-            letter-spacing: 0.02em;
+            font-size: 14px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.01em;
         }
 
         .panel-left-brand-text .sub {
-            font-size: 10px;
-            color: rgba(255,255,255,0.5);
-            margin-top: 3px;
+            font-size: 10.5px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 2px;
             letter-spacing: 0.04em;
             text-transform: uppercase;
+            font-weight: 700;
         }
 
         .panel-left-content {
@@ -98,24 +111,26 @@
         }
 
         .panel-left-content h1 {
-            font-size: clamp(2rem, 3.5vw, 3rem);
+            font-size: clamp(2.25rem, 3.8vw, 3.25rem);
             font-weight: 800;
-            color: white;
-            line-height: 1.1;
-            letter-spacing: -0.03em;
+            color: #ffffff;
+            line-height: 1.15;
+            letter-spacing: -0.02em;
             margin-bottom: 1.25rem;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         }
 
         .panel-left-content h1 span {
-            color: rgba(255,255,255,0.35);
+            color: #ffffff;
+            opacity: 1;
         }
 
         .panel-left-content p {
-            font-size: 13px;
-            color: rgba(255,255,255,0.55);
-            line-height: 1.75;
-            max-width: 340px;
-            font-weight: 400;
+            font-size: 13.5px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.7;
+            max-width: 380px;
+            font-weight: 500;
         }
 
         .panel-left-footer {
@@ -187,7 +202,7 @@
         .mobile-brand-text .sub {
             font-size: 10px;
             color: #9e9e9e;
-            text-transform: uppercase;
+            text-transform: capitalize;
             letter-spacing: 0.04em;
             margin-top: 2px;
         }
@@ -362,7 +377,9 @@
         <div class="deco-circle deco-3"></div>
 
         <div class="panel-left-brand">
-            <img src="{{ asset('img/logopkm.svg') }}" alt="PKM">
+            <div class="panel-left-logo-box">
+                <img src="{{ asset('img/logopkm.png') }}" alt="PKM Group Logo">
+            </div>
             <div class="panel-left-brand-text">
                 <div class="name">e-QMS Portal</div>
                 <div class="sub">PT PKM Group</div>
@@ -385,10 +402,12 @@
 
             <!-- Mobile brand -->
             <div class="mobile-brand">
-                <img src="{{ asset('img/logopkm.svg') }}" alt="PKM">
+                <div class="w-10 h-10 bg-white rounded-lg p-1.5 shadow-sm flex items-center justify-center flex-shrink-0 border border-slate-200">
+                    <img src="{{ asset('img/logopkm.png') }}" alt="PKM" class="w-full h-full object-contain">
+                </div>
                 <div class="mobile-brand-text">
-                    <div class="name">e-QMS Portal</div>
-                    <div class="sub">PT PKM Group</div>
+                    <div class="name text-sm font-extrabold text-slate-900">e-QMS Portal</div>
+                    <div class="sub text-[10px] text-slate-500 font-bold uppercase tracking-wider">PT PKM Group</div>
                 </div>
             </div>
 
@@ -412,7 +431,7 @@
                 @csrf
 
                 <div class="form-group">
-                    <label for="username" class="form-label">Username</label>
+                    <label for="username" class="form-label">Username / Email</label>
                     <div class="input-wrap">
                         <span class="material-symbols-outlined input-icon">person</span>
                         <input
@@ -420,7 +439,7 @@
                             type="text"
                             name="username"
                             class="form-input"
-                            placeholder="Masukkan username"
+                            placeholder="Masukkan username atau email"
                             value="{{ old('username') }}"
                             autocomplete="username"
                             required

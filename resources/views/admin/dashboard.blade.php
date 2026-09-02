@@ -15,7 +15,7 @@
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-3">
                     <div>
-                        <h2 class="text-xl font-extrabold text-white tracking-tight uppercase mt-1">Ringkasan Sistem Dokumen e-QMS</h2>
+                        <h2 class="text-xl font-extrabold text-white tracking-tight capitalize mt-1">Ringkasan Sistem Dokumen e-QMS</h2>
                     </div>
                 </div>
                 <div class="w-9 h-9 rounded-sm bg-white/20 text-white flex items-center justify-center shadow-sm">
@@ -29,7 +29,7 @@
                 <div class="bg-white/85 p-5 rounded-md shadow-sm border border-white/80 h-full flex flex-col justify-between hover:bg-white hover:shadow transition-all group">
                     <div class="flex items-start justify-between">
                         <div class="min-w-0 flex-1">
-                            <span class="text-[9px] font-extrabold uppercase tracking-wider text-on-surface-variant block whitespace-nowrap">Total SOP</span>
+                            <span class="text-[9px] font-extrabold capitalize tracking-wider text-on-surface-variant block whitespace-nowrap">Total SOP</span>
                             <h3 class="text-3xl font-black text-on-surface mt-1">{{ $stats['total_sop'] }}</h3>
                         </div>
                         <div class="w-8 h-8 rounded-full bg-gold-500/10 text-gold-500 flex items-center justify-center flex-shrink-0">
@@ -37,7 +37,7 @@
                         </div>
                     </div>
                     <div class="mt-4 pt-3 border-t border-on-surface/10 flex items-center justify-between">
-                        <span class="text-[9px] font-bold text-gold-500 uppercase tracking-wider">SOP Terdaftar</span>
+                        <span class="text-[9px] font-bold text-gold-500 capitalize tracking-wider">SOP Terdaftar</span>
                         <span class="w-1.5 h-1.5 rounded-full bg-gold-500/60"></span>
                     </div>
                 </div>
@@ -46,7 +46,7 @@
                 <a href="{{ route('admin.support.index') }}" class="bg-white/85 p-5 rounded-md shadow-sm border border-white/80 h-full flex flex-col justify-between hover:bg-white hover:shadow transition-all group">
                     <div class="flex items-start justify-between">
                         <div class="min-w-0 flex-1">
-                            <span class="text-[9px] font-extrabold uppercase tracking-wider text-on-surface-variant block whitespace-nowrap">SOP Support</span>
+                            <span class="text-[9px] font-extrabold capitalize tracking-wider text-on-surface-variant block whitespace-nowrap">SOP Support</span>
                             <h3 class="text-3xl font-black text-on-surface mt-1 group-hover:text-gold-500 transition-colors">{{ $stats['sop_support'] }}</h3>
                         </div>
                         <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center flex-shrink-0">
@@ -54,7 +54,7 @@
                         </div>
                     </div>
                     <div class="mt-4 pt-3 border-t border-on-surface/10 flex items-center justify-between">
-                        <span class="text-[9px] font-bold text-purple-700 uppercase tracking-wider group-hover:underline">Lihat Detail</span>
+                        <span class="text-[9px] font-bold text-purple-700 capitalize tracking-wider group-hover:underline">Lihat Detail</span>
                         <span class="material-symbols-outlined text-xs text-purple-700 transform group-hover:translate-x-1 transition-transform">arrow_forward</span>
                     </div>
                 </a>
@@ -63,7 +63,7 @@
                 <a href="{{ route('admin.BU.index') }}" class="bg-white/85 p-5 rounded-md shadow-sm border border-white/80 h-full flex flex-col justify-between hover:bg-white hover:shadow transition-all group">
                     <div class="flex items-start justify-between">
                         <div class="min-w-0 flex-1">
-                            <span class="text-[9px] font-extrabold uppercase tracking-wider text-on-surface-variant block whitespace-nowrap">SOP Unit Bisnis</span>
+                            <span class="text-[9px] font-extrabold capitalize tracking-wider text-on-surface-variant block whitespace-nowrap">SOP Unit Bisnis</span>
                             <h3 class="text-3xl font-black text-on-surface mt-1 group-hover:text-gold-500 transition-colors">{{ $stats['sop_divisi'] }}</h3>
                         </div>
                         <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
@@ -71,7 +71,7 @@
                         </div>
                     </div>
                     <div class="mt-4 pt-3 border-t border-on-surface/10 flex items-center justify-between">
-                        <span class="text-[9px] font-bold text-emerald-700 uppercase tracking-wider group-hover:underline">Lihat Detail</span>
+                        <span class="text-[9px] font-bold text-emerald-700 capitalize tracking-wider group-hover:underline">Lihat Detail</span>
                         <span class="material-symbols-outlined text-xs text-emerald-700 transform group-hover:translate-x-1 transition-transform">arrow_forward</span>
                     </div>
                 </a>
@@ -80,7 +80,7 @@
                 <div class="bg-white/85 p-5 rounded-md shadow-sm border border-white/80 h-full flex flex-col justify-between hover:bg-white hover:shadow transition-all group">
                     <div class="flex items-start justify-between">
                         <div class="min-w-0 flex-1">
-                            <span class="text-[9px] font-extrabold uppercase tracking-wider text-on-surface-variant block whitespace-nowrap">In Approval</span>
+                            <span class="text-[9px] font-extrabold capitalize tracking-wider text-on-surface-variant block whitespace-nowrap">In Approval</span>
                             <h3 class="text-3xl font-black text-on-surface mt-1">{{ $stats['pending_review'] }}</h3>
                         </div>
                         <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0">
@@ -88,7 +88,7 @@
                         </div>
                     </div>
                     <div class="mt-4 pt-3 border-t border-on-surface/10 flex items-center justify-between">
-                        <span class="text-[9px] font-bold text-amber-700 uppercase tracking-wider">Antrean Review</span>
+                        <span class="text-[9px] font-bold text-amber-700 capitalize tracking-wider">Antrean Review</span>
                         <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
                     </div>
                 </div>
@@ -97,7 +97,7 @@
                 <a href="{{ route('admin.logo.index') }}" class="bg-[#FFF9EE] p-5 rounded-md shadow-sm border border-gold-500/25 h-full flex flex-col justify-between hover:bg-[#FFFDF9] hover:shadow transition-all group">
                     <div class="flex items-start justify-between">
                         <div class="min-w-0 flex-1">
-                            <span class="text-[9px] font-extrabold uppercase tracking-wider text-gold-700 block whitespace-nowrap">Logo & Info PT</span>
+                            <span class="text-[9px] font-extrabold capitalize tracking-wider text-gold-700 block whitespace-nowrap">Logo & Info PT</span>
                             <h3 class="text-2xl font-black text-gold-600 mt-1 group-hover:text-gold-700 transition-colors">Kelola</h3>
                         </div>
                         <div class="w-8 h-8 rounded-full bg-gold-500/15 text-gold-600 flex items-center justify-center flex-shrink-0">
@@ -105,7 +105,7 @@
                         </div>
                     </div>
                     <div class="mt-4 pt-3 border-t border-gold-500/15 flex items-center justify-between">
-                        <span class="text-[9px] font-bold text-gold-600 uppercase tracking-wider group-hover:underline">Atur Logo</span>
+                        <span class="text-[9px] font-bold text-gold-600 capitalize tracking-wider group-hover:underline">Atur Logo</span>
                         <span class="material-symbols-outlined text-xs text-gold-600 transform group-hover:translate-x-1 transition-transform">arrow_forward</span>
                     </div>
                 </a>
@@ -129,7 +129,7 @@
 
             <!-- 1. DOKUMEN REVISI -->
             <div class="space-y-2">
-                <div class="flex items-center space-x-2 text-red-700 font-extrabold text-[11px] uppercase tracking-wider">
+                <div class="flex items-center space-x-2 text-red-700 font-extrabold text-[11px] capitalize tracking-wider">
                     <span class="w-2 h-2 rounded-full bg-red-600"></span>
                     <span>1. Dokumen Perlu Revisi</span>
                 </div>
@@ -192,7 +192,7 @@
 
             <!-- 2. DOKUMEN IN PROGRESS -->
             <div class="space-y-2 pt-2">
-                <div class="flex items-center space-x-2 text-amber-700 font-extrabold text-[11px] uppercase tracking-wider">
+                <div class="flex items-center space-x-2 text-amber-700 font-extrabold text-[11px] capitalize tracking-wider">
                     <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
                     <span>2. Dokumen Sedang Diproses / In Progress</span>
                 </div>
@@ -255,7 +255,7 @@
 
             <!-- 3. DOKUMEN AKTIF -->
             <div class="space-y-2 pt-2">
-                <div class="flex items-center space-x-2 text-emerald-700 font-extrabold text-[11px] uppercase tracking-wider">
+                <div class="flex items-center space-x-2 text-emerald-700 font-extrabold text-[11px] capitalize tracking-wider">
                     <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                     <span>3. Dokumen Aktif & Sah / Active</span>
                 </div>
@@ -324,7 +324,7 @@
 <div id="libraryModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm transition-all">
     <div class="bg-white rounded-lg shadow-2xl w-full max-w-md p-6 border border-sand-200">
         <div class="flex justify-between items-center border-b border-sand-200 pb-3 mb-4">
-            <h3 class="text-sm font-bold text-on-surface uppercase tracking-wider flex items-center gap-2">
+            <h3 class="text-sm font-bold text-on-surface capitalize tracking-wider flex items-center gap-2">
                 <span class="material-symbols-outlined text-gold-500">archive</span> Pindahkan ke E-Library
             </h3>
             <button onclick="closeLibraryModal()" class="text-on-surface-variant hover:text-red-600 text-xl font-bold transition-colors">&times;</button>
@@ -333,7 +333,7 @@
         <form id="libraryForm" action="" method="POST" class="space-y-4">
             @csrf
             <div>
-                <label class="block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">Pilih Kategori Utama</label>
+                <label class="block text-[10px] font-bold capitalize tracking-wider text-on-surface-variant mb-1">Pilih Kategori Utama</label>
                 <select name="category" id="selectCategory" onchange="toggleHierarchy()" class="w-full bg-sand-50 border border-sand-200 rounded-md p-2.5 font-semibold text-xs text-on-surface focus:bg-white focus:ring-2 focus:ring-gold-500 outline-none transition-all" required>
                     <option value="">-- Pilih Kategori --</option>
                     <option value="divisi">DIVISI</option>
@@ -343,21 +343,21 @@
 
             <div id="divisiFields" class="hidden space-y-4">
                 <div>
-                    <label class="block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">Pilih Divisi Besar</label>
+                    <label class="block text-[10px] font-bold capitalize tracking-wider text-on-surface-variant mb-1">Pilih Divisi Besar</label>
                     <select name="division" id="selectDivision" onchange="updateSubDivision()" class="w-full bg-sand-50 border border-sand-200 rounded-md p-2.5 font-semibold text-xs text-on-surface focus:bg-white focus:ring-2 focus:ring-gold-500 outline-none transition-all">
                         <option value="">-- Pilih Divisi --</option>
                     </select>
                 </div>
                 
                 <div>
-                    <label class="block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">Pilih Unit Bisnis</label>
+                    <label class="block text-[10px] font-bold capitalize tracking-wider text-on-surface-variant mb-1">Pilih Unit Bisnis</label>
                     <select name="sub_division" id="selectSubDivision" onchange="updateCompany()" class="w-full bg-sand-50 border border-sand-200 rounded-md p-2.5 font-semibold text-xs text-on-surface focus:bg-white focus:ring-2 focus:ring-gold-500 outline-none transition-all">
                         <option value="">-- Pilih Unit Bisnis --</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">Pilih Entitas PT</label>
+                    <label class="block text-[10px] font-bold capitalize tracking-wider text-on-surface-variant mb-1">Pilih Entitas PT</label>
                     <select name="company_name" id="selectCompany" class="w-full bg-sand-50 border border-sand-200 rounded-md p-2.5 font-semibold text-xs text-on-surface focus:bg-white focus:ring-2 focus:ring-gold-500 outline-none transition-all">
                         <option value="">-- Pilih PT --</option>
                     </select>
@@ -365,8 +365,8 @@
             </div>
 
             <div class="pt-4 flex space-x-3 border-t border-sand-200">
-                <button type="button" onclick="closeLibraryModal()" class="flex-1 font-bold uppercase tracking-wider text-on-surface-variant text-[10px] hover:text-black transition-colors">Batal</button>
-                <button type="submit" class="flex-1 bg-charcoal-900 text-gold-fixed py-2.5 rounded-md font-bold uppercase tracking-wider text-[10px] shadow-sm hover:bg-black transition-all">Simpan Dokumen</button>
+                <button type="button" onclick="closeLibraryModal()" class="flex-1 font-bold capitalize tracking-wider text-on-surface-variant text-[10px] hover:text-black transition-colors">Batal</button>
+                <x-interactive-button text="Simpan Dokumen" class="flex-1 text-[10px]" />
             </div>
         </form>
     </div>
@@ -449,4 +449,4 @@
 
 </script>
 @endsection
-
+

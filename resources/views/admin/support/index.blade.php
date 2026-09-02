@@ -4,7 +4,7 @@
 @section('header_title', 'Monitoring Departemen Support e-QMS')
 
 @section('content')
-<div class="space-y-6">
+<div class="space-y-6 bu-support-scope">
     
     <!-- HEADER BAR -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#1677B8] to-[#00b4d8] text-white rounded-lg p-6 border border-white/10 shadow-sm">
@@ -36,9 +36,7 @@
                         </td>
                         <td class="py-3.5 px-4">
                             <a href="{{ route('admin.support.show', $dept) }}" class="flex items-center space-x-3 group hover:opacity-85 transition-opacity cursor-pointer">
-                                <div class="w-8 h-8 rounded-md bg-charcoal-900 text-gold-fixed flex items-center justify-center font-bold shadow-sm group-hover:scale-105 transition-transform">
-                                    <i class="ph ph-folder text-lg"></i>
-                                </div>
+                                <i class="ph ph-folder text-2xl text-[#00b4d8] group-hover:scale-110 group-hover:text-[#1677B8] transition-all flex-shrink-0"></i>
                                 <div>
                                     <span class="font-semibold text-on-surface text-xs hover:underline group-hover:text-[#1677B8] transition-colors">{{ $dept }} DEPT.</span>
                                     <span class="text-[11px] text-on-surface-variant font-normal block leading-tight">Support Unit</span>
@@ -63,10 +61,7 @@
                             </span>
                         </td>
                         <td class="py-3.5 px-4 text-right">
-                            <a href="{{ route('admin.support.show', $dept) }}" class="px-4 py-1.5 rounded-md bg-charcoal-900 hover:bg-black text-gold-fixed text-xs font-medium inline-flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer">
-                                <span>Buka Dokumen</span>
-                                <i class="ph ph-arrow-right text-sm"></i>
-                            </a>
+                            <x-interactive-button href="{{ route('admin.support.show', $dept) }}" text="Buka Dokumen" variant="outline" />
                         </td>
                     </tr>
                     @endforeach
@@ -76,4 +71,3 @@
     </div>
 </div>
 @endsection
-

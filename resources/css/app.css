@@ -1,6 +1,6 @@
 @import 'tailwindcss';
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -9,7 +9,9 @@
 
 @theme {
     --color-primary: #1677B8;
-    --font-sans: 'Poppins', system-ui, -apple-system, sans-serif;
+    --font-sans: 'Geist Variable', system-ui, -apple-system, sans-serif;
+    --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+
 
     --color-sand-0: #f8fafc;
     --color-sand-50: #f1f5f9;
@@ -59,6 +61,52 @@
     background: transparent;
 }
 
+.section-theme-header {
+    background: linear-gradient(110deg, #1677B8 0%, #00a8cc 100%);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+.section-theme-header .text-on-surface,
+.section-theme-header .text-on-surface-variant,
+.section-theme-header a,
+.section-theme-header span {
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.section-theme-header h2,
+.section-theme-header .font-medium,
+.section-theme-header .font-extrabold {
+    color: #ffffff;
+}
+
+.section-theme-header a:hover {
+    color: #ffe16e;
+}
+
+.section-theme-header > div:first-child > a {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.24);
+}
+
+/* Icon tiles on BU and Support pages use color, not a second filled box. */
+.bu-support-scope [class*="bg-charcoal-900"]:has(> .material-symbols-outlined),
+.bu-support-scope [class*="bg-charcoal-900"]:has(> i.ph) {
+    background-color: transparent !important;
+    color: #00a8cc !important;
+    box-shadow: none !important;
+}
+
+.bu-support-scope [class*="bg-charcoal-900"]:has(> .material-symbols-outlined) > *,
+.bu-support-scope [class*="bg-charcoal-900"]:has(> i.ph) > * {
+    color: #00a8cc !important;
+}
+
+.bu-support-scope [class*="bg-charcoal-900"]:has(> .material-symbols-outlined):hover > *,
+.bu-support-scope [class*="bg-charcoal-900"]:has(> i.ph):hover > * {
+    color: #1677B8 !important;
+}
+
 /* Responsive PDF Preview Modal padding matching the sidebar state on Desktop */
 @media (min-width: 1024px) {
     #main-container.lg\:pl-64 #pdfModal {
@@ -69,4 +117,180 @@
     }
 }
 
+/* ==========================================================================
+   21st.dev / Magic UI — Interactive Hover Button Component
+   ========================================================================== */
+.btn-interactive {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+    border-radius: 0.5rem;
+    font-weight: 500 !important;
+    font-size: 0.6875rem !important;
+    letter-spacing: 0.025em;
+    padding: 0.625rem 1.25rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 0;
+    text-align: center;
+    background-color: #002b5c;
+    color: #00b4d8;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
 
+.btn-interactive:focus-visible {
+    outline: 3px solid rgba(22, 119, 184, 0.35);
+    outline-offset: 2px;
+}
+
+.btn-interactive:disabled,
+.btn-interactive[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.btn-interactive-default {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transform: translateX(0);
+    opacity: 1;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1;
+}
+
+.btn-interactive-dot {
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 9999px;
+    background-color: currentColor;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-interactive-hover {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transform: translateX(2rem);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 2;
+    color: #ffffff;
+}
+
+.btn-interactive-bg {
+    position: absolute;
+    left: 15%;
+    top: 40%;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background-color: #00b4d8;
+    opacity: 0;
+    transform: scale(1);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Hover state transitions */
+.btn-interactive:hover .btn-interactive-default {
+    transform: translateX(2rem);
+    opacity: 0;
+}
+
+.btn-interactive:hover .btn-interactive-hover {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.btn-interactive:hover .btn-interactive-bg {
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    transform: scale(2.2);
+    opacity: 1;
+    border-radius: 0.5rem;
+}
+
+/* Variant: Blue Theme (#1677B8) */
+.btn-interactive-blue {
+    background-color: #1677B8;
+    color: #ffffff;
+}
+.btn-interactive-blue .btn-interactive-dot {
+    background-color: #ffe16e;
+}
+.btn-interactive-blue .btn-interactive-bg {
+    background-color: #1260a0;
+}
+.btn-interactive-blue .btn-interactive-hover {
+    color: #ffffff;
+}
+
+/* Variant: Danger / Red (#dc2626) */
+.btn-interactive-danger {
+    background-color: #dc2626;
+    color: #ffffff;
+}
+.btn-interactive-danger .btn-interactive-dot {
+    background-color: #ffffff;
+}
+.btn-interactive-danger .btn-interactive-bg {
+    background-color: #b91c1c;
+}
+.btn-interactive-danger .btn-interactive-hover {
+    color: #ffffff;
+}
+
+/* Variant: Success / Green (#059669) */
+.btn-interactive-success {
+    background-color: #059669;
+    color: #ffffff;
+}
+.btn-interactive-success .btn-interactive-dot {
+    background-color: #ffffff;
+}
+.btn-interactive-success .btn-interactive-bg {
+    background-color: #047857;
+}
+.btn-interactive-success .btn-interactive-hover {
+    color: #ffffff;
+}
+
+/* Secondary navigation action: keeps the hover animation without a filled base. */
+.btn-interactive-outline {
+    background-color: transparent;
+    color: #00a8cc;
+    border: 1px solid #00a8cc;
+    box-shadow: none;
+}
+
+.btn-interactive-outline .btn-interactive-bg {
+    background-color: #00a8cc;
+}
+
+.btn-interactive-outline .btn-interactive-hover {
+    color: #ffffff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .btn-interactive,
+    .btn-interactive-default,
+    .btn-interactive-hover,
+    .btn-interactive-bg,
+    .btn-interactive-dot {
+        transition: none;
+    }
+}

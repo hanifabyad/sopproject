@@ -25,15 +25,23 @@ class LoginController extends Controller
     }
 
     /**
-     * Menangani proses autentikasi dengan fitur Remember Me otomatis.
+     * Menangani proses autentikasi dengan fitur Remember Me otomatis (Bisa Username atau Email).
      */
     public function login(Request $request)
     {
         // Validasi input
-        $credentials = $request->validate([
-            'username' => 'required',
-            'password' => 'required',
+        $input = $request->validate([
+            'username' => 'required|string',
+            'password' => 'required|string',
         ]);
+
+        $loginInput = $input['username'];
+        $fieldType = filter_var($loginInput, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+
+        $credentials = [
+            $fieldType => $loginInput,
+            'password' => $input['password'],
+        ];
 
         // KUNCI PERBAIKAN: Tambahkan parameter 'true' sebagai argumen kedua
         // Ini akan mengaktifkan cookie 'remember_me' secara otomatis
@@ -111,11 +119,39 @@ class LoginController extends Controller
         \Auth::login($user, true); // Ditambah true agar mengaktifkan 'Remember Me'
         $request->session()->regenerate();
 
-        // 5. FIX LOGIKA REDIRECT: Selama dia BUKAN admin, lempar langsung ke halaman review dokumen!
+        // 5. FIX LOGIKA REDIRECT
         if ($user->role !== 'admin') {
-            // Cek apakah user adalah creator dari dokumen ini DAN dokumen memerlukan revisi
+            $evaluationId = $request->evaluation_id;
+            $type = $request->type;
+
+            // A. Jika link berasal dari notifikasi evaluasi SOP (atau membawa evaluation_id / type=evaluation)
+            if ($type === 'evaluation' || $evaluationId) {
+                if ($evaluationId) {
+                    return redirect()->route('evaluations.show', $evaluationId)
+                        ->with('success', 'Berhasil masuk! Silakan isi formulir evaluasi berkala SOP.');
+                }
+                if ($documentId) {
+                    $eval = \App\Models\Evaluation::where('document_id', $documentId)->latest()->first();
+                    if ($eval) {
+                        return redirect()->route('evaluations.show', $eval->id)
+                            ->with('success', 'Berhasil masuk! Silakan isi formulir evaluasi berkala SOP.');
+                    }
+                }
+            }
+
             if ($documentId) {
                 $doc = \App\Models\Document::find($documentId);
+
+                // B. Jika dokumen aktif dan memiliki evaluasi yang 'due' / 'in_review' / 'overdue'
+                if ($doc && $doc->status === 'active' && in_array($doc->evaluation_status, ['due', 'in_review', 'overdue', 'submitted'])) {
+                    $eval = \App\Models\Evaluation::where('document_id', $documentId)->latest()->first();
+                    if ($eval) {
+                        return redirect()->route('evaluations.show', $eval->id)
+                            ->with('success', 'Berhasil masuk! Silakan isi formulir evaluasi berkala SOP.');
+                    }
+                }
+
+                // C. Cek apakah user adalah creator dari dokumen ini DAN dokumen memerlukan revisi
                 if ($doc && $doc->status === 'need_revision') {
                     $isCreator = \App\Models\DocumentApproval::where('document_id', $documentId)
                         ->where('user_id', $user->id)
@@ -131,6 +167,8 @@ class LoginController extends Controller
                     }
                 }
             }
+
+            // D. Default: Halaman review persetujuan reviewer
             return redirect()->route('reviewer.show', $documentId)
                 ->with('success', 'Berhasil masuk otomatis! Silakan tinjau dokumen ini.');
         }

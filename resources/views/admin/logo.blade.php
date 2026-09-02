@@ -7,24 +7,20 @@
 <div class="max-w-4xl mx-auto space-y-6">
     
     <!-- TOP HEADER CONTAINER WITH LEFT BACK BUTTON -->
-    <div class="bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 flex flex-col gap-3">
+    <div class="bg-gradient-to-r from-[#1677B8] to-[#00b4d8] text-white rounded-lg p-6 shadow-sm border border-white/10 flex flex-col gap-3">
         <div class="flex items-center gap-3">
-            <a href="{{ route('admin.dashboard') }}" 
-               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-sand-200 bg-white text-on-surface-variant hover:bg-canvas hover:text-on-surface text-xs font-semibold transition-colors shadow-sm">
-                <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-                <span>Kembali ke Dashboard</span>
-            </a>
-            <span class="text-sand-200">|</span>
-            <div class="flex items-center gap-2 text-xs text-on-surface-variant">
-                <a href="{{ route('admin.dashboard') }}" class="hover:text-gold-500">Dashboard</a>
+            <x-back-button href="{{ route('admin.dashboard') }}" variant="light" text="Kembali" />
+            <span class="text-white/30">|</span>
+            <div class="flex items-center gap-2 text-xs text-white/80">
+                <a href="{{ route('admin.dashboard') }}" class="hover:text-[#ffe16e] font-medium">Dashboard</a>
                 <span>/</span>
-                <span class="font-medium text-on-surface">Kelola Logo PT</span>
+                <span class="font-bold text-white">Kelola Logo PT</span>
             </div>
         </div>
 
         <div>
-            <h2 class="text-xl font-extrabold text-on-surface uppercase tracking-tight">Kelola Informasi & Logo Perusahaan (PT)</h2>
-            <p class="text-xs text-on-surface-variant mt-0.5">Sesuaikan nama resmi, alamat kantor, dan logo yang akan dicetak di Lembar Pengesahan (LP) PDF secara dinamis</p>
+            <h2 class="text-xl font-extrabold tracking-tight text-white">Kelola Informasi & Logo Perusahaan (PT)</h2>
+            <p class="text-xs text-white/85 mt-0.5 font-medium">Sesuaikan nama resmi, alamat kantor, dan logo yang akan dicetak di Lembar Pengesahan (LP) PDF secara dinamis</p>
         </div>
     </div>
 
@@ -54,7 +50,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Left: Select Company Dropdown -->
             <div class="space-y-2">
-                <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Pilih Entitas Perusahaan</label>
+                <label class="block text-xs font-bold capitalize tracking-wider text-on-surface-variant mb-1">Pilih Entitas Perusahaan</label>
                 <select id="select_company_code" onchange="loadCompanyData()" class="w-full bg-sand-50 border border-sand-200 rounded-md p-2.5 font-semibold text-xs text-on-surface focus:bg-white focus:ring-2 focus:ring-gold-500 outline-none transition-all">
                     <option value="">-- Pilih Perusahaan --</option>
                     @foreach($companyMap as $code => $info)
@@ -71,17 +67,17 @@
                     
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Nama Resmi Perusahaan</label>
+                            <label class="block text-xs font-bold capitalize tracking-wider text-on-surface-variant mb-1">Nama Resmi Perusahaan</label>
                             <input type="text" name="name" id="company_name_input" required class="w-full bg-sand-50 border border-sand-200 rounded-md p-2.5 font-semibold text-xs text-on-surface focus:bg-white focus:ring-2 focus:ring-gold-500 outline-none transition-all">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Unggah Logo Baru (Opsional)</label>
-                            <input type="file" name="logo" accept="image/*" class="w-full bg-sand-50 border border-sand-200 rounded-md p-2 font-semibold text-xs text-on-surface focus:bg-white focus:ring-2 focus:ring-gold-500 outline-none transition-all">
+                            <label class="block text-xs font-bold capitalize tracking-wider text-on-surface-variant mb-1">Unggah Logo Baru (Opsional)</label>
+                            <x-file-input name="logo" accept="image/*" label="Pilih logo baru" hint="Format gambar, maksimal 10 MB" />
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Alamat Kantor</label>
+                        <label class="block text-xs font-bold capitalize tracking-wider text-on-surface-variant mb-1">Alamat Kantor</label>
                         <input type="text" name="address" id="company_address_input" required class="w-full bg-sand-50 border border-sand-200 rounded-md p-2.5 font-semibold text-xs text-on-surface focus:bg-white focus:ring-2 focus:ring-gold-500 outline-none transition-all">
                     </div>
 
@@ -90,13 +86,13 @@
                             <img id="current_logo_img" src="" alt="Logo" class="max-w-full max-h-full object-contain hidden">
                         </div>
                         <div>
-                            <span class="block text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">File Logo Saat Ini</span>
+                            <span class="block text-[9px] font-bold capitalize tracking-wider text-on-surface-variant">File Logo Saat Ini</span>
                             <span id="current_logo_text" class="text-xs font-semibold text-on-surface"></span>
                         </div>
                     </div>
 
                     <div class="flex justify-end">
-                        <button type="submit" class="bg-charcoal-900 text-gold-fixed px-6 py-2.5 rounded-md font-bold uppercase tracking-wider text-[10px] shadow-sm hover:bg-black transition-all">Simpan Perubahan</button>
+                        <x-interactive-button text="Simpan Perubahan" class="text-[10px]" />
                     </div>
                 </form>
             </div>
