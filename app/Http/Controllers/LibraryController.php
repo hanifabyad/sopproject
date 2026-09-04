@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Library;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Document; 
 
@@ -129,10 +130,69 @@ class LibraryController extends Controller
             ->filter()
             ->values();
 
+        // 6. Data Khusus Register Kontrak & SPMP BU CPT (Hanya untuk BU CPT & MHM)
+        $isCptScope = ($bu && str_contains(strtoupper($bu), 'CPT'));
+        
+        // Auto-check expired contracts & send background notification if needed
+        if ($isCptScope) {
+            \App\Console\Commands\CheckExpiredCptContracts::processExpiredNotifications();
+        }
+
+        $currentUser = Auth::user();
+        $isCptDesignatedPic = $currentUser && ($currentUser->can_manage_cpt_contracts == true);
+        $canAssignCptPic = $currentUser && ($currentUser->role === 'admin');
+        $canManageCptContracts = $isCptDesignatedPic;
+        $canViewCptContracts = $isCptDesignatedPic || $canAssignCptPic;
+        $currentCptPic = \App\Models\User::where('can_manage_cpt_contracts', true)->first();
+        $allUsers = \App\Models\User::where('status', true)->orderBy('username')->get();
+
+        if ($isCptDesignatedPic) {
+            $cptContractsQuery = \App\Models\CptContract::query();
+            $cptTotalCount = \App\Models\CptContract::count();
+            $cptActiveCount = \App\Models\CptContract::where('status', 'active')->count();
+            $cptExpiredCount = \App\Models\CptContract::where('status', 'expired')->count();
+            $cptStillNotYetCount = \App\Models\CptContract::where('status', 'still_not_yet')->count();
+            $cptCompletedCount = \App\Models\CptContract::where('status', 'completed')->count();
+            $cptCustomers = \App\Models\CptContract::distinct()->pluck('customer')->filter()->values();
+
+            $cptSearch = $request->cpt_search;
+            if ($cptSearch) {
+                $cptContractsQuery->where(function($q) use ($cptSearch) {
+                    $q->where('customer', 'like', "%{$cptSearch}%")
+                      ->orWhere('project_title', 'like', "%{$cptSearch}%")
+                      ->orWhere('project_name', 'like', "%{$cptSearch}%")
+                      ->orWhere('project_number', 'like', "%{$cptSearch}%")
+                      ->orWhere('notes', 'like', "%{$cptSearch}%");
+                });
+            }
+
+            if ($request->filled('cpt_status')) {
+                $cptContractsQuery->where('status', $request->cpt_status);
+            }
+
+            if ($request->filled('cpt_customer')) {
+                $cptContractsQuery->where('customer', $request->cpt_customer);
+            }
+
+            $cptContracts = $cptContractsQuery->orderBy('id', 'asc')->get();
+        } else {
+            $cptContracts = collect();
+            $cptTotalCount = 0;
+            $cptActiveCount = 0;
+            $cptExpiredCount = 0;
+            $cptStillNotYetCount = 0;
+            $cptCompletedCount = 0;
+            $cptCustomers = collect();
+        }
+
         return view('library.index', compact(
             'documents', 'category', 'div', 'bu', 'company', 
             'listDivisions', 'divBuMap', 'supportDepts', 'generalFolders', 'departmentFolders',
-            'search', 'year', 'availableYears', 'matchingFiles'
+            'search', 'year', 'availableYears', 'matchingFiles',
+            'cptContracts', 'cptTotalCount', 'cptActiveCount', 'cptExpiredCount', 
+            'cptStillNotYetCount', 'cptCompletedCount', 'cptCustomers', 'isCptScope',
+            'canManageCptContracts', 'isCptDesignatedPic', 'canAssignCptPic', 'canViewCptContracts',
+            'currentCptPic', 'allUsers'
         ));
     }
 

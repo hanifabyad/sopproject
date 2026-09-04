@@ -239,6 +239,7 @@ Artisan::command('eqms:purge-obsolete', function () {
 // Schedule tasks
 Schedule::command('eqms:check-evaluations')->weekdays()->at('08:00')->withoutOverlapping(30);
 Schedule::command('eqms:send-periodic-quizzes')->weekdays()->at('08:15')->withoutOverlapping(30);
+Schedule::command('cpt:check-expired')->dailyAt('08:20')->withoutOverlapping(30);
 Schedule::command('eqms:purge-obsolete')->daily();
 
 /*

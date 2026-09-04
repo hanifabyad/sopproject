@@ -121,8 +121,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     Route::post('/sop-requests/{id}/mark-in-progress', [\App\Http\Controllers\NewSopRequestController::class, 'adminMarkInProgress'])->name('sop_requests.mark_in_progress');
 
     // Pengaturan Logo Perusahaan
-    Route::get('/company-logos', [\App\Http\Controllers\CompanyLogoController::class, 'index'])->name('company_logos.index');
-    Route::post('/company-logos', [\App\Http\Controllers\CompanyLogoController::class, 'update'])->name('company_logos.update');
+    Route::get('/company-logos', [AdminController::class, 'logoIndex'])->name('company_logos.index');
+    Route::post('/company-logos', [AdminController::class, 'updateCompanyLogo'])->name('company_logos.update');
 
     // Verifikasi & Penolakan Bukti Sosialisasi oleh Admin
     Route::get('/socializations/{id}', [\App\Http\Controllers\SocializationAndRevisionController::class, 'showAdminSocialization'])->name('socializations.show');
@@ -204,6 +204,17 @@ Route::middleware('auth')->group(function () {
     // Secure file streaming routes to bypass storage:link 403 Forbidden errors when hosted
     Route::get('/library/document/{id}/stream', [LibraryController::class, 'streamLibraryDoc'])->name('library.document.stream');
     Route::get('/library/file/{id}/stream', [LibraryController::class, 'streamGeneralFile'])->name('library.file.stream');
+
+    // 📑 REGISTER KONTRAK & SPMP BU CPT (E-LIBRARY)
+    Route::post('/library/cpt-contracts/assign-pic', [\App\Http\Controllers\CptContractController::class, 'assignPic'])->name('cpt_contracts.assign_pic');
+    Route::post('/library/cpt-contracts/check-all-expired', [\App\Http\Controllers\CptContractController::class, 'checkAllExpired'])->name('cpt_contracts.check_all_expired');
+    Route::post('/library/cpt-contracts/{id}/notify-expired', [\App\Http\Controllers\CptContractController::class, 'notifyExpired'])->name('cpt_contracts.notify_expired');
+    Route::get('/library/cpt-contracts/template', [\App\Http\Controllers\CptContractController::class, 'downloadTemplate'])->name('cpt_contracts.template');
+    Route::post('/library/cpt-contracts/import', [\App\Http\Controllers\CptContractController::class, 'import'])->name('cpt_contracts.import');
+    Route::post('/library/cpt-contracts', [\App\Http\Controllers\CptContractController::class, 'store'])->name('cpt_contracts.store');
+    Route::put('/library/cpt-contracts/{id}', [\App\Http\Controllers\CptContractController::class, 'update'])->name('cpt_contracts.update');
+    Route::delete('/library/cpt-contracts/{id}', [\App\Http\Controllers\CptContractController::class, 'destroy'])->name('cpt_contracts.destroy');
+    Route::get('/library/cpt-contracts/{id}/document', [\App\Http\Controllers\CptContractController::class, 'viewDocument'])->name('cpt_contracts.document');
 });
 
 // ==========================================

@@ -16,6 +16,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'can_manage_cpt_contracts',
         'status',
         'whatsapp_number',
     ];
@@ -30,6 +31,7 @@ class User extends Authenticatable
         return [
             'password' => 'hashed',
             'status' => 'boolean',
+            'can_manage_cpt_contracts' => 'boolean',
         ];
     }
 }
