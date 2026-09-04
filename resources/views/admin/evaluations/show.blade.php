@@ -252,18 +252,7 @@
                         </div>
 
                         <!-- SUBMIT RESOLVE -->
-                        <button type="submit" onclick="return confirm('Apakah Anda yakin ingin menetapkan keputusan evaluasi ini? Tindakan ini akan merubah status operasional dokumen.')"
-                                class="w-full btn-interactive btn-interactive-blue font-extrabold capitalize tracking-wider py-3 cursor-pointer">
-                            <span class="btn-interactive-default">
-                                <span class="btn-interactive-dot"></span>
-                                <span>Simpan Keputusan Evaluasi</span>
-                            </span>
-                            <span class="btn-interactive-hover">
-                                <span>Simpan Keputusan Evaluasi</span>
-                                <i class="ph ph-arrow-right text-sm"></i>
-                            </span>
-                            <span class="btn-interactive-bg"></span>
-                        </button>
+                        <x-interactive-button text="Konfirmasi" variant="blue" icon="ph ph-check-circle text-base" type="submit" onclick="return confirm('Apakah Anda yakin ingin menetapkan keputusan evaluasi ini? Tindakan ini akan merubah status operasional dokumen.')" class="w-full justify-center py-3" />
                     </form>
                 @endif
             </div>

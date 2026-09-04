@@ -34,14 +34,21 @@
         </div>
     </div>
 
+    @php
+        $myApproval = $document->approvals->where('user_id', Auth::id())->sortByDesc('sequence')->first();
+        $isMyTurn = ($myApproval && $myApproval->status === 'current') || (Auth::user()->role === 'admin' && $document->status !== 'active' && $document->status !== 'need_revision');
+        $hasApproved = $myApproval && $myApproval->status === 'approved';
+        $isPendingTurn = $myApproval && $myApproval->status === 'pending';
+    @endphp
+
     <!-- MAIN WORKSPACE SPLIT-SCREEN (VIEWER LEFT, ACTION PANEL RIGHT) -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         <!-- LEFT: INTERACTIVE VISUAL PDF ANNOTATOR & MARKUP TOOL -->
         <div class="lg:col-span-8 space-y-3 w-full">
             <x-pdf-annotator 
-                :pdf-url="route('reviewer.stream.file', $document->id)"
-                :read-only="false"
+                :pdf-url="route('reviewer.stream.file', $document->id) . '?t=' . ($document->updated_at ? $document->updated_at->timestamp : time())"
+                :read-only="!$isMyTurn"
                 input-name="annotations"
                 form-id="review-form"
                 height="720px"
@@ -59,9 +66,23 @@
                         <i class="ph ph-gavel text-lg"></i>
                         <h4 class="font-extrabold text-xs capitalize tracking-wider text-on-surface">Keputusan Peninjauan</h4>
                     </div>
-                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                        Waiting Review
-                    </span>
+                    @if($document->status === 'active')
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Dokumen Aktif & Sah
+                        </span>
+                    @elseif($hasApproved)
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Sudah Anda Setujui
+                        </span>
+                    @elseif($isPendingTurn)
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                            Menunggu Giliran
+                        </span>
+                    @else
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            Menunggu Tindakan Anda
+                        </span>
+                    @endif
                 </div>
                 
                 @if($document->status === 'need_revision')
@@ -69,6 +90,43 @@
                         <i class="ph ph-lock-key text-3xl text-amber-500 block mx-auto animate-pulse"></i>
                         <h5 class="font-bold text-[11px]">Dokumen Ditangguhkan / Terkunci</h5>
                         <p class="text-[10px] text-on-surface-variant leading-relaxed">Salah satu reviewer meminta perbaikan (revisi). Proses persetujuan ditangguhkan sampai Pembuat Dokumen mengunggah berkas revisi baru.</p>
+                    </div>
+                @elseif($document->status === 'active')
+                    <div class="p-4 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-900 rounded-r-md text-xs space-y-2">
+                        <div class="flex items-center gap-2 font-bold text-[11px] text-emerald-800">
+                            <i class="ph ph-check-circle text-lg text-emerald-600"></i>
+                            <span>Dokumen Telah Sah & Aktif</span>
+                        </div>
+                        <p class="text-[11px] text-emerald-700 leading-relaxed">Seluruh tahapan persetujuan dan pengesahan telah selesai. Stempel digital resmi telah disematkan pada dokumen.</p>
+                    </div>
+                @elseif($hasApproved && !$isMyTurn)
+                    <div class="p-4 bg-emerald-50/90 border border-emerald-200 text-emerald-950 rounded-lg text-xs space-y-2">
+                        <div class="flex items-center gap-2 font-bold text-[11.5px] text-emerald-800">
+                            <i class="ph ph-seal-check text-xl text-emerald-600"></i>
+                            <span>Persetujuan Anda Berhasil Disimpan</span>
+                        </div>
+                        <p class="text-[11px] text-emerald-800/90 leading-relaxed">
+                            Anda telah memberikan persetujuan pada dokumen ini
+                            @if($myApproval && $myApproval->processed_at)
+                                pada <strong>{{ \Carbon\Carbon::parse($myApproval->processed_at)->timezone('Asia/Jakarta')->format('d M Y, H:i \W\I\B') }}</strong>.
+                            @else
+                                .
+                            @endif
+                        </p>
+                        <div class="p-2.5 bg-white/80 rounded border border-emerald-200/60 text-[10.5px] text-emerald-700 flex items-center gap-1.5">
+                            <i class="ph ph-info text-sm flex-shrink-0"></i>
+                            <span>Dokumen saat ini sedang menunggu penyelesaian persetujuan oleh peninjau lainnya. Stempel digital Anda telah dibubuhkan pada lembar pratinjau.</span>
+                        </div>
+                    </div>
+                @elseif($isPendingTurn)
+                    <div class="p-4 bg-slate-50 border border-slate-200 text-slate-800 rounded-lg text-xs space-y-2">
+                        <div class="flex items-center gap-2 font-bold text-[11px] text-slate-700">
+                            <i class="ph ph-hourglass-simple text-lg text-slate-500"></i>
+                            <span>Menunggu Giliran Peninjauan</span>
+                        </div>
+                        <p class="text-[11px] text-slate-600 leading-relaxed">
+                            Giliran peninjauan Anda belum aktif. Akses persetujuan akan otomatis terbuka setelah peninjau pada tahap sebelumnya selesai memberikan keputusan.
+                        </p>
                     </div>
                 @else
                     <!-- DECISION FORM -->

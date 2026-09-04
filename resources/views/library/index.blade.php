@@ -49,15 +49,20 @@
             <p class="text-xs text-white/85 mt-0.5 font-medium">Pusat repositori dokumen mutu, SOP sah, job description, dan instrumen kerja e-QMS.</p>
         </div>
 
-        <div class="flex items-center gap-3">
-            @if(request('bu') && Auth::user()?->role === 'admin')
-                <x-interactive-button type="button" text="Tambah SOP Manual" icon="ph ph-cloud-arrow-up text-sm" onclick="openUploadManualModal()" class="self-start md:self-auto" />
-            @endif
-
-            @if(request('category') == 'general' && Auth::user()?->role === 'admin')
-                <x-interactive-button type="button" text="Buat Folder Baru" icon="ph ph-folder-plus text-sm" onclick="openCreateFolderModal()" class="self-start md:self-auto" />
+        @if(Auth::user()?->role === 'admin')
+        <div class="flex items-center gap-2.5">
+            <button type="button" onclick="openCreateFolderModal()" class="px-3.5 py-2 bg-white/10 hover:bg-white/20 border border-white/25 text-white rounded-[2px] font-bold text-xs capitalize tracking-wider shadow-sm transition-all flex items-center gap-1.5 cursor-pointer">
+                <i class="ph ph-folder-plus text-base text-[#ffe16e]"></i>
+                <span>Buat Folder</span>
+            </button>
+            @if(request('bu'))
+            <button type="button" onclick="openUploadManualModal()" class="px-3.5 py-2 bg-white text-[#1677B8] hover:bg-slate-100 rounded-[2px] font-extrabold text-xs capitalize tracking-wider shadow-md transition-all flex items-center gap-1.5 cursor-pointer">
+                <i class="ph ph-cloud-arrow-up text-base"></i>
+                <span>Unggah Berkas / Dokumen</span>
+            </button>
             @endif
         </div>
+        @endif
     </div>
 
     <!-- SEARCH & FILTER BAR E-LIBRARY -->
@@ -348,50 +353,105 @@
 
         <!-- LEVEL 4: DOKUMEN MUTU & SUBFOLDER TAB (Jika di level Unit/BU atau Search Mode) -->
         @else
-            <!-- TABS SUBFOLDER STANDAR ISO -->
-            @if(request('bu'))
-            <div class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-sand-200/60 custom-scrollbar">
-                <button type="button" onclick="filterFolderTab('all')" id="tab-btn-all" class="folder-tab-btn px-4 py-2 rounded-md font-bold text-xs capitalize tracking-wider bg-[#1677B8] text-white shadow-sm transition-all flex items-center gap-1.5 cursor-pointer">
-                    <i class="ph ph-folder-open text-sm"></i>
-                    <span>Semua Dokumen</span>
-                </button>
-                <button type="button" onclick="filterFolderTab('dokumen-mutu')" id="tab-btn-dokumen-mutu" class="folder-tab-btn px-4 py-2 rounded-md font-bold text-xs capitalize tracking-wider bg-sand-50 text-on-surface-variant hover:bg-[#fff9ed] hover:text-[#1677B8] border border-sand-200 transition-all flex items-center gap-1.5 cursor-pointer">
-                    <i class="ph ph-seal-check text-sm"></i>
-                    <span>1. Dokumen Mutu</span>
-                </button>
-                <button type="button" onclick="filterFolderTab('sop')" id="tab-btn-sop" class="folder-tab-btn px-4 py-2 rounded-md font-bold text-xs capitalize tracking-wider bg-sand-50 text-on-surface-variant hover:bg-[#fff9ed] hover:text-[#1677B8] border border-sand-200 transition-all flex items-center gap-1.5 cursor-pointer">
-                    <i class="ph ph-files text-sm"></i>
-                    <span>2. SOP Sah</span>
-                </button>
-                <button type="button" onclick="filterFolderTab('jobdesk')" id="tab-btn-jobdesk" class="folder-tab-btn px-4 py-2 rounded-md font-bold text-xs capitalize tracking-wider bg-sand-50 text-on-surface-variant hover:bg-[#fff9ed] hover:text-[#1677B8] border border-sand-200 transition-all flex items-center gap-1.5 cursor-pointer">
-                    <i class="ph ph-identification-card text-sm"></i>
-                    <span>3. Jobdesk</span>
-                </button>
-                <button type="button" onclick="filterFolderTab('kpi')" id="tab-btn-kpi" class="folder-tab-btn px-4 py-2 rounded-md font-bold text-xs capitalize tracking-wider bg-sand-50 text-on-surface-variant hover:bg-[#fff9ed] hover:text-[#1677B8] border border-sand-200 transition-all flex items-center gap-1.5 cursor-pointer">
-                    <i class="ph ph-target text-sm"></i>
-                    <span>4. KPI & Target</span>
-                </button>
-                <button type="button" onclick="filterFolderTab('ik-forms')" id="tab-btn-ik-forms" class="folder-tab-btn px-4 py-2 rounded-md font-bold text-xs capitalize tracking-wider bg-sand-50 text-on-surface-variant hover:bg-[#fff9ed] hover:text-[#1677B8] border border-sand-200 transition-all flex items-center gap-1.5 cursor-pointer">
-                    <i class="ph ph-clipboard-text text-sm"></i>
-                    <span>5. IK & Formulir</span>
-                </button>
-            </div>
+            <!-- TABS SUBFOLDER STANDAR ISO & FOLDER DEPARTEMEN -->
+            @if(request('bu') || (request('category') === 'support' && request('bu')) || (request('category') === 'divisi' && request('bu')))
+                @php
+                    $currentScopeName = request('bu') ?: (request('div') ?: request('category'));
+                @endphp
+
+                <!-- SECTION FOLDER DIREKTORI DEPARTEMEN / UNIT -->
+                <div class="space-y-3 pb-2 border-b border-sand-200/60">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i class="ph ph-folders text-lg text-[#1677B8]"></i>
+                            <h3 class="text-xs font-black text-slate-800 uppercase tracking-wider">Folder & Direktori {{ $currentScopeName }}</h3>
+                        </div>
+                    </div>
+
+                    @if(isset($departmentFolders) && $departmentFolders->count() > 0)
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                            @foreach($departmentFolders as $df)
+                                <div class="p-3.5 bg-sand-50 hover:bg-sky-50/50 rounded-[2px] border border-sand-200 hover:border-[#00b4d8]/60 transition-all flex items-center justify-between shadow-xs group">
+                                    <a href="{{ route('library.folder.show', $df->id) }}" class="flex items-center space-x-3 flex-1 min-w-0">
+                                        <i class="ph ph-folder text-2xl text-[#00b4d8] group-hover:scale-110 transition-transform flex-shrink-0"></i>
+                                        <div class="min-w-0 flex-1">
+                                            <span class="font-bold text-xs text-slate-900 group-hover:text-[#1677B8] truncate block">{{ $df->name }}</span>
+                                            <span class="text-[10px] text-slate-500 font-medium">
+                                                {{ $df->files->count() }} Berkas
+                                                @if($df->children->count() > 0)
+                                                    &bull; {{ $df->children->count() }} Subfolder
+                                                @endif
+                                            </span>
+                                        </div>
+                                    </a>
+                                    @if(Auth::user()?->role === 'admin')
+                                        <form action="{{ route('admin.library.folder.destroy', $df->id) }}" method="POST" class="inline" onsubmit="return confirm('Hapus folder ini beserta seluruh isinya?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="w-6 h-6 bg-white hover:bg-rose-50 text-rose-600 rounded border border-slate-200 flex items-center justify-center transition-all cursor-pointer opacity-0 group-hover:opacity-100" title="Hapus Folder">
+                                                <i class="ph ph-trash text-xs"></i>
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="p-3 bg-slate-50 rounded-[2px] border border-dashed border-slate-300 flex items-center justify-between text-xs text-slate-500">
+                            <span class="flex items-center gap-1.5 font-medium">
+                                <i class="ph ph-folder-dashed text-base text-slate-400"></i>
+                                <span>Belum ada sub-folder khusus di departemen ini. Buat folder untuk mengelompokkan formulir, panduan, atau berkas pendukung.</span>
+                            </span>
+                        </div>
+                    @endif
+                </div>
+
+                <!-- TABS SUBFOLDER STANDAR ISO -->
+                <div class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-sand-200/60 custom-scrollbar">
+                    <button type="button" onclick="filterFolderTab('all')" id="tab-btn-all" class="folder-tab-btn px-4 py-2 rounded-[2px] font-bold text-xs capitalize tracking-wider bg-[#1677B8] text-white shadow-xs transition-all flex items-center gap-1.5 cursor-pointer">
+                        <i class="ph ph-folder-open text-sm"></i>
+                        <span>Semua Dokumen SOP</span>
+                    </button>
+                    <button type="button" onclick="filterFolderTab('dokumen-mutu')" id="tab-btn-dokumen-mutu" class="folder-tab-btn px-4 py-2 rounded-[2px] font-bold text-xs capitalize tracking-wider bg-sand-50 text-on-surface-variant hover:bg-[#fff9ed] hover:text-[#1677B8] border border-sand-200 transition-all flex items-center gap-1.5 cursor-pointer">
+                        <i class="ph ph-seal-check text-sm"></i>
+                        <span>1. Dokumen Mutu</span>
+                    </button>
+                    <button type="button" onclick="filterFolderTab('sop')" id="tab-btn-sop" class="folder-tab-btn px-4 py-2 rounded-[2px] font-bold text-xs capitalize tracking-wider bg-sand-50 text-on-surface-variant hover:bg-[#fff9ed] hover:text-[#1677B8] border border-sand-200 transition-all flex items-center gap-1.5 cursor-pointer">
+                        <i class="ph ph-files text-sm"></i>
+                        <span>2. SOP Sah</span>
+                    </button>
+                    <button type="button" onclick="filterFolderTab('jobdesk')" id="tab-btn-jobdesk" class="folder-tab-btn px-4 py-2 rounded-[2px] font-bold text-xs capitalize tracking-wider bg-sand-50 text-on-surface-variant hover:bg-[#fff9ed] hover:text-[#1677B8] border border-sand-200 transition-all flex items-center gap-1.5 cursor-pointer">
+                        <i class="ph ph-identification-card text-sm"></i>
+                        <span>3. Jobdesk</span>
+                    </button>
+                    <button type="button" onclick="filterFolderTab('kpi')" id="tab-btn-kpi" class="folder-tab-btn px-4 py-2 rounded-[2px] font-bold text-xs capitalize tracking-wider bg-sand-50 text-on-surface-variant hover:bg-[#fff9ed] hover:text-[#1677B8] border border-sand-200 transition-all flex items-center gap-1.5 cursor-pointer">
+                        <i class="ph ph-target text-sm"></i>
+                        <span>4. KPI & Target</span>
+                    </button>
+                    <button type="button" onclick="filterFolderTab('ik-forms')" id="tab-btn-ik-forms" class="folder-tab-btn px-4 py-2 rounded-[2px] font-bold text-xs capitalize tracking-wider bg-sand-50 text-on-surface-variant hover:bg-[#fff9ed] hover:text-[#1677B8] border border-sand-200 transition-all flex items-center gap-1.5 cursor-pointer">
+                        <i class="ph ph-clipboard-text text-sm"></i>
+                        <span>5. IK & Formulir</span>
+                    </button>
+                </div>
             @endif
 
             <!-- 3-COLUMN DOCUMENT CARDS GRID -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="documentsGrid">
                 @forelse($documents as $doc)
                 @php
-                    $docTitleLower = strtolower($doc->title);
-                    $tabCategory = 'sop';
-                    if (str_contains($docTitleLower, 'visi') || str_contains($docTitleLower, 'misi') || str_contains($docTitleLower, 'kebijakan') || str_contains($docTitleLower, 'mutu') || str_contains($docTitleLower, 'peta proses')) {
-                        $tabCategory = 'dokumen-mutu';
-                    } elseif (str_contains($docTitleLower, 'job') || str_contains($docTitleLower, 'desk') || str_contains($docTitleLower, 'uraian jabatan')) {
-                        $tabCategory = 'jobdesk';
-                    } elseif (str_contains($docTitleLower, 'kpi') || str_contains($docTitleLower, 'target') || str_contains($docTitleLower, 'kinerja')) {
-                        $tabCategory = 'kpi';
-                    } elseif (str_contains($docTitleLower, 'ik') || str_contains($docTitleLower, 'instruksi') || str_contains($docTitleLower, 'form') || str_contains($docTitleLower, 'formulir')) {
-                        $tabCategory = 'ik-forms';
+                    $tabCategory = $doc->doc_type ?? null;
+                    if (!$tabCategory) {
+                        $docTitleLower = strtolower($doc->title);
+                        $tabCategory = 'sop';
+                        if (str_contains($docTitleLower, 'visi') || str_contains($docTitleLower, 'misi') || str_contains($docTitleLower, 'kebijakan') || str_contains($docTitleLower, 'mutu') || str_contains($docTitleLower, 'peta proses') || str_contains($docTitleLower, 'pedoman')) {
+                            $tabCategory = 'dokumen-mutu';
+                        } elseif (str_contains($docTitleLower, 'job') || str_contains($docTitleLower, 'desk') || str_contains($docTitleLower, 'uraian jabatan') || str_contains($docTitleLower, 'job description')) {
+                            $tabCategory = 'jobdesk';
+                        } elseif (str_contains($docTitleLower, 'kpi') || str_contains($docTitleLower, 'target') || str_contains($docTitleLower, 'kinerja') || str_contains($docTitleLower, 'sasaran')) {
+                            $tabCategory = 'kpi';
+                        } elseif (str_contains($docTitleLower, 'ik') || str_contains($docTitleLower, 'instruksi') || str_contains($docTitleLower, 'form') || str_contains($docTitleLower, 'formulir')) {
+                            $tabCategory = 'ik-forms';
+                        }
                     }
                 @endphp
                 <div class="doc-card p-5 bg-sand-50 rounded-lg border border-sand-200/70 hover:border-gold-500/40 transition-all flex flex-col justify-between h-60 shadow-sm relative group" data-tab-category="{{ $tabCategory }}">
@@ -423,7 +483,7 @@
                         </div>
                     </div>
 
-                    <x-interactive-button text="Lihat Dokumen Sah" type="button" icon="ph ph-eye text-sm" onclick="viewPDF('{{ route('library.document.stream', $doc->id) }}')" class="w-full" />
+                    <x-interactive-button text="Lihat Dokumen Sah" type="button" icon="ph ph-eye text-sm" onclick="viewPDF('{{ route('library.document.stream', $doc->id) }}', '{{ addslashes($doc->title) }}')" class="w-full" />
                 </div>
                 @empty
                 <div class="col-span-full py-16 flex flex-col items-center justify-center text-center space-y-3">
@@ -432,7 +492,7 @@
                     <p class="text-xs text-on-surface-variant max-w-sm">Dokumen aktif akan otomatis masuk ke E-Library setelah seluruh alur tanda tangan selesai.</p>
                     
                     <div class="flex items-center gap-3 pt-2">
-                        <x-back-button href="{{ request()->is('admin/*') ? route('admin.library.index') : route('library.index') }}" text="Kembali ke Depan" />
+                        <x-back-button href="{{ request()->is('admin/*') ? route('admin.library.index') : route('library.index') }}" text="Kembali" />
                         @if(Auth::user()?->role === 'admin' && request('bu'))
                         <x-interactive-button type="button" text="Upload Sekarang" onclick="openUploadManualModal()" />
                         @endif
@@ -445,57 +505,97 @@
 @endif
 </div>
 
-<!-- MODAL PDF VIEWER -->
-<div id="pdfModal" class="fixed inset-0 z-[100] hidden bg-black/80 backdrop-blur-sm flex flex-col p-6 transition-all">
-    <div class="flex justify-between items-center text-white mb-4">
-        <div class="flex items-center gap-2">
-            <span class="bg-[#ffd92f] text-charcoal-900 text-[10px] px-2.5 py-0.5 rounded font-extrabold capitalize tracking-wider">e-QMS SYSTEM</span>
-            <h3 class="font-bold text-sm tracking-wide">Digital Document Control Viewer</h3>
-        </div>
-        <div class="flex items-center gap-2">
-            <a id="pdfOpenNewTab" href="#" target="_blank" 
-               class="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-bold rounded-md transition-colors">
-                <i class="ph ph-arrow-square-out text-sm"></i>
-                <span>Buka di Tab Baru</span>
-            </a>
-            <button onclick="closePDF()" class="bg-white/20 hover:bg-white/30 text-white w-8 h-8 rounded-md flex items-center justify-center font-bold text-lg cursor-pointer">&times;</button>
-        </div>
-    </div>
-    <div class="flex-1 bg-white rounded-lg shadow-2xl overflow-hidden relative">
-        <iframe id="pdfFrame" src="" class="w-full h-full border-0"></iframe>
-    </div>
-</div>
+<!-- PROTECTED PDF VIEWER COMPONENT (CANVAS / NO DOWNLOAD) -->
+<x-protected-pdf-viewer />
 
 
-<!-- MODAL UPLOAD MANUAL ADMIN -->
+<!-- MODAL UPLOAD BERKAS & DOKUMEN E-LIBRARY ADMIN -->
 @if(Auth::user()?->role === 'admin')
-<div id="uploadManualModal" class="fixed inset-0 z-[100] hidden bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
-    <div class="bg-white rounded-lg w-full max-w-md p-6 md:p-8 shadow-2xl border border-sand-200 space-y-4">
-        <div class="flex justify-between items-center border-b border-sand-200/40 pb-3">
-            <h3 class="text-base font-bold text-on-surface flex items-center gap-2">
-                <span class="material-symbols-outlined text-gold-500">cloud_upload</span>
-                <span>Upload SOP Manual</span>
-            </h3>
-            <button onclick="closeUploadManualModal()" class="text-gray-400 hover:text-black text-2xl cursor-pointer">&times;</button>
+<div id="uploadManualModal" class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl w-full max-w-lg shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div class="bg-gradient-to-r from-[#1677B8] to-[#00b4d8] text-white p-5 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center font-bold">
+                    <i class="ph ph-cloud-arrow-up text-lg text-white"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black">Unggah Dokumen / Berkas E-Library</h3>
+                    <p class="text-[10px] text-white/85 font-medium">Unggah dokumen ke Tab Kategori SOP atau ke Folder Direktori</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeUploadManualModal()" class="text-white/80 hover:text-white text-lg cursor-pointer">
+                <i class="ph ph-x"></i>
+            </button>
         </div>
-        <form action="{{ route('library.store_manual') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+
+        <form action="{{ route('admin.library.upload') }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
             @csrf
+            
             <input type="hidden" name="category" value="{{ request('category') }}">
-            <input type="hidden" name="division_name" value="{{ request('div') }}">
-            <input type="hidden" name="business_unit" value="{{ request('bu') }}">
-            
+            <input type="hidden" name="division" value="{{ request('div') }}">
+            <input type="hidden" name="department" value="{{ request('category') === 'support' ? request('bu') : '' }}">
+            <input type="hidden" name="business_unit" value="{{ request('category') === 'divisi' ? request('bu') : '' }}">
+
+            <!-- PILIH TUJUAN UNGGAHAN (TAB KATEGORI / FOLDER) -->
             <div>
-                <label class="text-[10px] font-bold text-on-surface-variant capitalize tracking-wider mb-1 block">Judul SOP Resmi</label>
-                <input type="text" name="title" class="w-full bg-sand-50 border border-sand-200 rounded-md p-2.5 font-semibold text-xs text-on-surface focus:bg-white focus:ring-2 focus:ring-gold-500 outline-none" placeholder="Ketik nama dokumen lengkap..." required>
+                <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1 block">Pilih Folder / Tab Kategori Tujuan <span class="text-rose-500">*</span></label>
+                <select name="folder_id" id="upload_folder_select" onchange="toggleNewFolderInput()" class="w-full text-xs p-2.5 rounded-[2px] border border-slate-300 focus:ring-1 focus:ring-[#1677B8] font-bold text-slate-800 bg-white outline-none">
+                    <optgroup label="📋 Tab Kategori Dokumen Mutu & SOP">
+                        <option value="tab:sop" selected>2. SOP Sah (Standard Operating Procedure)</option>
+                        <option value="tab:dokumen-mutu">1. Dokumen Mutu (Manual / Pedoman Mutu)</option>
+                        <option value="tab:jobdesk">3. Jobdesk (Uraian Jabatan)</option>
+                        <option value="tab:kpi">4. KPI & Target (Sasaran Mutu)</option>
+                        <option value="tab:ik-forms">5. IK & Formulir Standar</option>
+                    </optgroup>
+
+                    <optgroup label="📁 Folder / Direktori Khusus {{ request('bu') ?: (request('div') ?: 'Departemen') }}">
+                        <option value="">-- Direktori Utama (Root {{ request('bu') ?: (request('div') ?: 'Departemen') }}) --</option>
+                        @if(isset($departmentFolders) && $departmentFolders->count() > 0)
+                            @foreach($departmentFolders as $df)
+                                <option value="{{ $df->id }}">{{ $df->name }}</option>
+                                @foreach($df->children as $sub)
+                                    <option value="{{ $sub->id }}">&nbsp;&nbsp;↳ {{ $sub->name }}</option>
+                                @endforeach
+                            @endforeach
+                        @endif
+                    </optgroup>
+
+                    <option value="__create_new__">+ Buat Folder Baru Sekaligus...</option>
+                </select>
             </div>
+
+            <!-- INPUT NAMA FOLDER BARU (JIKA PILIH BUAT BARU) -->
+            <div id="field_new_folder_inline" class="hidden">
+                <label class="text-[11px] font-bold text-[#1677B8] uppercase tracking-wider mb-1 block">Nama Folder Baru Yang Ingin Dibuat</label>
+                <input type="text" name="new_folder_name" placeholder="Ketik nama folder baru..." class="w-full bg-slate-50 border border-blue-300 rounded-[2px] p-2 font-bold text-xs text-slate-900 focus:bg-white focus:ring-1 focus:ring-[#1677B8] outline-none">
+            </div>
+
+            <!-- NOMOR DOKUMEN (OPSIONAL) -->
             <div>
-                <label class="text-[10px] font-bold text-on-surface-variant capitalize tracking-wider mb-1 block">Lampirkan File PDF Dokumen (Maks 10MB)</label>
-                <x-file-input name="file" accept=".pdf" label="Pilih file SOP" hint="PDF, maksimal 10 MB" :required="true" />
+                <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1 block">Nomor Dokumen <span class="text-slate-400 font-normal">(Opsional)</span></label>
+                <input type="text" name="doc_number" class="w-full bg-slate-50 border border-slate-300 rounded-[2px] p-2.5 font-bold text-xs text-slate-900 focus:bg-white focus:ring-1 focus:ring-[#1677B8] outline-none" placeholder="Contoh: SOP-PKM-HC-001">
+            </div>
+
+            <!-- JUDUL / NAMA BERKAS -->
+            <div>
+                <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1 block">Judul Dokumen / Nama Berkas <span class="text-rose-500">*</span></label>
+                <input type="text" name="custom_name" required class="w-full bg-slate-50 border border-slate-300 rounded-[2px] p-2.5 font-bold text-xs text-slate-900 focus:bg-white focus:ring-1 focus:ring-[#1677B8] outline-none" placeholder="Ketik judul lengkap dokumen / berkas...">
+            </div>
+
+            <!-- PILIH FILE -->
+            <div>
+                <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1 block">Pilih Berkas File <span class="text-rose-500">*</span></label>
+                <x-file-input name="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.zip" label="Pilih berkas dokumen" hint="PDF, Word, Excel, PPT, Gambar, ZIP (Maksimal 30 MB)" :required="true" :maxSize="30" />
             </div>
             
-            <div class="flex space-x-3 pt-3">
-                <button type="button" onclick="closeUploadManualModal()" class="flex-1 py-2.5 bg-sand-50 border border-sand-200 text-on-surface-variant rounded-md font-bold text-xs capitalize cursor-pointer">Batal</button>
-                <x-interactive-button text="Simpan SOP" class="flex-1" />
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeUploadManualModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-[2px] transition-all cursor-pointer">
+                    Batal
+                </button>
+                <button type="submit" class="px-5 py-2 bg-[#1677B8] hover:bg-[#125d91] text-white font-bold text-xs rounded-[2px] transition-all shadow-xs flex items-center gap-1.5 cursor-pointer">
+                    <i class="ph ph-cloud-arrow-up"></i>
+                    <span>Unggah Dokumen</span>
+                </button>
             </div>
         </form>
     </div>
@@ -504,24 +604,38 @@
 
 <!-- MODAL CREATE FOLDER -->
 @if(Auth::user()?->role === 'admin')
-<div id="createFolderModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden">
-    <div class="bg-white rounded-lg p-6 max-w-md w-full border border-sand-200 shadow-lg">
-        <div class="flex items-center justify-between border-b border-sand-200/40 pb-3 mb-4">
-            <h3 class="font-extrabold text-sm text-on-surface capitalize tracking-wider">Buat Folder Baru</h3>
-            <button onclick="closeCreateFolderModal()" class="text-gray-400 hover:text-gray-600 cursor-pointer">
-                <span class="material-symbols-outlined text-lg">close</span>
+<div id="createFolderModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-md bg-blue-50 text-[#1677B8] flex items-center justify-center font-bold">
+                    <i class="ph ph-folder-plus text-base"></i>
+                </div>
+                <h3 class="font-extrabold text-sm text-slate-900 capitalize tracking-wider">
+                    Buat Folder Baru {{ request('bu') ? 'di ' . request('bu') : (request('div') ? 'di ' . request('div') : '') }}
+                </h3>
+            </div>
+            <button onclick="closeCreateFolderModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer text-lg">
+                <i class="ph ph-x"></i>
             </button>
         </div>
         <form action="{{ route('admin.library.folder.create') }}" method="POST" class="space-y-4">
             @csrf
             <input type="hidden" name="parent_id" value="">
+            <input type="hidden" name="category" value="{{ request('category') }}">
+            <input type="hidden" name="division" value="{{ request('div') }}">
+            <input type="hidden" name="department" value="{{ request('category') === 'support' ? request('bu') : '' }}">
+            <input type="hidden" name="business_unit" value="{{ request('category') === 'divisi' ? request('bu') : '' }}">
+
             <div>
-                <label class="text-[10px] font-bold text-on-surface-variant capitalize tracking-wider mb-1 block">Nama Folder</label>
-                <input type="text" name="name" class="w-full bg-sand-50 border border-sand-200 rounded-md p-2.5 font-semibold text-xs text-on-surface focus:bg-white focus:ring-2 focus:ring-gold-500 outline-none" placeholder="Ketik nama folder..." required>
+                <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1 block">Nama Folder <span class="text-rose-500">*</span></label>
+                <input type="text" name="name" class="w-full bg-slate-50 border border-slate-300 rounded-[2px] p-2.5 font-bold text-xs text-slate-900 focus:bg-white focus:ring-1 focus:ring-[#1677B8] outline-none" placeholder="Contoh: Formulir {{ request('bu') ?? 'HC' }}, Materi Training, Kebijakan Internal..." required>
             </div>
-            <div class="flex space-x-3 pt-3">
-                <button type="button" onclick="closeCreateFolderModal()" class="flex-1 py-2.5 bg-sand-50 border border-sand-200 text-on-surface-variant rounded-md font-bold text-xs capitalize cursor-pointer">Batal</button>
-                <x-interactive-button text="Buat Folder" class="flex-1" />
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button type="button" onclick="closeCreateFolderModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-[2px] transition-all cursor-pointer">Batal</button>
+                <button type="submit" class="px-5 py-2 bg-[#1677B8] hover:bg-[#125d91] text-white font-bold text-xs rounded-[2px] transition-all shadow-xs cursor-pointer">
+                    Buat Folder
+                </button>
             </div>
         </form>
     </div>
@@ -529,18 +643,43 @@
 @endif
 
 <script>
-    function viewPDF(url) {
-        document.getElementById('pdfFrame').src = url;
-        document.getElementById('pdfOpenNewTab').href = url;
-        document.getElementById('pdfModal').classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
+    function toggleNewFolderInput() {
+        const select = document.getElementById('upload_folder_select');
+        const inlineField = document.getElementById('field_new_folder_inline');
+        if (select && inlineField) {
+            if (select.value === '__create_new__') {
+                inlineField.classList.remove('hidden');
+            } else {
+                inlineField.classList.add('hidden');
+            }
+        }
     }
-    function closePDF() {
-        document.getElementById('pdfModal').classList.add('hidden');
-        document.getElementById('pdfFrame').src = "";
-        document.getElementById('pdfOpenNewTab').href = "#";
-        document.body.style.overflow = 'auto';
+</script>
+
+<script>
+    function toggleUploadCategoryFields() {
+        const catType = document.getElementById('upload_category_type').value;
+        const fGeneral = document.getElementById('field_general_folder');
+        const fBu = document.getElementById('field_bu_selector');
+        const fSupport = document.getElementById('field_support_selector');
+
+        if (catType === 'general') {
+            fGeneral.classList.remove('hidden');
+            fBu.classList.add('hidden');
+            fSupport.classList.add('hidden');
+        } else if (catType === 'bu') {
+            fGeneral.classList.add('hidden');
+            fBu.classList.remove('hidden');
+            fSupport.classList.add('hidden');
+        } else if (catType === 'support') {
+            fGeneral.classList.add('hidden');
+            fBu.classList.add('hidden');
+            fSupport.classList.remove('hidden');
+        }
     }
+</script>
+
+<script>
     function openUploadManualModal() {
         document.getElementById('uploadManualModal').classList.remove('hidden');
     }
@@ -578,5 +717,14 @@
             }
         });
     }
+
+    // ESC Key to close any open modal
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' || e.keyCode === 27) {
+            closePDF();
+            if (typeof closeUploadManualModal === 'function') closeUploadManualModal();
+            if (typeof closeCreateFolderModal === 'function') closeCreateFolderModal();
+        }
+    });
 </script>
 @endsection

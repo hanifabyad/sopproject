@@ -641,7 +641,7 @@ class LpGeneratorService
         
         return [
             'pkm' => [
-                'name' => 'PT PRIMA KARYA MANUNGGAL (PKM) GROUP',
+                'name' => 'PT PUTRA KELANA MAKMUR (PKM) GROUP',
                 'address' => 'Jl. Budi Kemuliaan No. 3 Seraya, Batam',
                 'logo' => 'PKM.jpg',
             ],

@@ -5,7 +5,7 @@
 ])
 
 @php
-    $baseClasses = "group relative inline-flex items-center justify-center overflow-hidden rounded-md text-xs font-bold transition-all shadow-sm cursor-pointer select-none h-9 px-4 min-w-[105px]";
+    $baseClasses = "group relative inline-flex items-center justify-center overflow-hidden rounded-md text-xs font-bold transition-all shadow-sm cursor-pointer select-none h-9 pl-8 pr-4 min-w-[105px]";
     
     $variantClasses = match($variant) {
         'light'   => 'bg-white/15 hover:bg-white/25 text-white border border-white/20',
@@ -25,7 +25,7 @@
 @endphp
 
 <a href="{{ $href }}" {{ $attributes->merge(['class' => "$baseClasses $variantClasses"]) }}>
-    <span class="inline-block translate-x-2 transition-all duration-300 group-hover:opacity-0 group-hover:-translate-x-2 whitespace-nowrap">
+    <span class="inline-block transition-all duration-300 group-hover:opacity-0 group-hover:-translate-x-2 whitespace-nowrap">
         {{ $text }}
     </span>
     <span class="absolute inset-0 z-10 grid w-8 place-items-center {{ $sliderBg }} transition-all duration-300 ease-out group-hover:w-full">

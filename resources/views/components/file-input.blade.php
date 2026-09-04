@@ -55,15 +55,34 @@
     trigger.addEventListener('click', () => input.click());
     root.querySelector('[data-file-clear]').addEventListener('click', reset);
     input.addEventListener('change', () => {
-        // Multiple uploads can provide their own list/counter while this component owns the picker UI.
-        if (multiple) return;
-        const file = input.files?.[0];
+        const files = input.files;
         error.classList.add('hidden');
-        if (!file) return reset();
+        if (!files || files.length === 0) return reset();
 
+        if (multiple) {
+            let totalBytes = 0;
+            for (let i = 0; i < files.length; i++) {
+                totalBytes += files[i].size;
+            }
+            if (totalBytes > maxBytes * 2) {
+                error.textContent = `Total ukuran file maksimal ${maxSize * 2} MB.`;
+                error.classList.remove('hidden');
+                input.value = '';
+                return;
+            }
+            root.querySelector('[data-file-name]').textContent = `${files.length} file dipilih`;
+            root.querySelector('[data-file-size]').textContent = `${(totalBytes / 1024 / 1024).toFixed(2)} MB total`;
+            root.querySelector('[data-file-label]').textContent = 'File terpilih';
+            root.querySelector('[data-file-hint]').textContent = 'Klik untuk mengganti pilihan file';
+            selected.classList.remove('hidden');
+            selected.classList.add('flex');
+            return;
+        }
+
+        const file = files[0];
         const typeMatches = !accept || accept.split(',').some((type) => {
             const value = type.trim();
-            return value === file.type || (value.endsWith('/*') && file.type.startsWith(value.slice(0, -1)));
+            return value === file.type || (value.endsWith('/*') && file.type.startsWith(value.slice(0, -1))) || (value.startsWith('.') && file.name.toLowerCase().endsWith(value.toLowerCase()));
         });
         if (file.size > maxBytes) return (error.textContent = 'Ukuran file maksimal {{ $maxSize }} MB.', error.classList.remove('hidden'), input.value = '');
         if (!typeMatches) return (error.textContent = 'Format file tidak sesuai.', error.classList.remove('hidden'), input.value = '');

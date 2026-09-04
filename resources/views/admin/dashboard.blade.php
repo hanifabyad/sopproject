@@ -172,10 +172,7 @@
                                     </span>
                                 </td>
                                 <td class="py-2.5 px-4 text-center">
-                                    <a href="{{ $detailUrl }}" class="px-3 py-1 bg-charcoal-900 hover:bg-black text-gold-fixed rounded text-xs font-semibold inline-flex items-center gap-1 shadow-sm transition-all">
-                                        <span>Detail</span>
-                                        <i class="ph ph-arrow-right text-xs"></i>
-                                    </a>
+                                    <x-interactive-button text="Detail" variant="blue" icon="ph ph-arrow-right text-xs" href="{{ $detailUrl }}" />
                                 </td>
                             </tr>
                             @empty
@@ -235,10 +232,7 @@
                                     </span>
                                 </td>
                                 <td class="py-2.5 px-4 text-center">
-                                    <a href="{{ $detailUrl }}" class="px-3 py-1 bg-charcoal-900 hover:bg-black text-gold-fixed rounded text-xs font-semibold inline-flex items-center gap-1 shadow-sm transition-all">
-                                        <span>Detail</span>
-                                        <i class="ph ph-arrow-right text-xs"></i>
-                                    </a>
+                                    <x-interactive-button text="Detail" variant="blue" icon="ph ph-arrow-right text-xs" href="{{ $detailUrl }}" />
                                 </td>
                             </tr>
                             @empty
@@ -298,10 +292,7 @@
                                     </span>
                                 </td>
                                 <td class="py-2.5 px-4 text-center">
-                                    <a href="{{ $detailUrl }}" class="px-3 py-1 bg-charcoal-900 hover:bg-black text-gold-fixed rounded text-xs font-semibold inline-flex items-center gap-1 shadow-sm transition-all">
-                                        <span>Detail</span>
-                                        <i class="ph ph-arrow-right text-xs"></i>
-                                    </a>
+                                    <x-interactive-button text="Detail" variant="blue" icon="ph ph-arrow-right text-xs" href="{{ $detailUrl }}" />
                                 </td>
                             </tr>
                             @empty

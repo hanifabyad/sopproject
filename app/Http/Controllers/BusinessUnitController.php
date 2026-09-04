@@ -89,12 +89,16 @@ class BusinessUnitController extends Controller
     /**
      * Menampilkan form upload dokumen baru untuk Unit Bisnis
      */
-    public function create(string $unit): View
+    public function create(Request $request, string $unit): View
     {
         // Route values may arrive HTML-encoded when a unit name contains '&'.
         $unit = html_entity_decode($unit, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $reviewers = User::all();
-        return view('admin.BU.create', compact('unit', 'reviewers'));
+        $fromRequest = null;
+        if ($request->filled('from_request_id')) {
+            $fromRequest = \App\Models\NewSopRequest::find($request->from_request_id);
+        }
+        return view('admin.BU.create', compact('unit', 'reviewers', 'fromRequest'));
     }
 
     /**
@@ -350,6 +354,17 @@ class BusinessUnitController extends Controller
                     'action'  => 'diunggah',
                     'notes'   => 'Dokumen baru diunggah dan otomatis memicu alur persetujuan ke ' . ($creatorUser->full_name ?? $creatorUser->username) . '.'
                 ]);
+
+                // Hubungkan dengan Pengajuan SOP Baru jika berasal dari request pemohon
+                if ($request->filled('from_request_id')) {
+                    \App\Models\NewSopRequest::where('id', $request->from_request_id)->update([
+                        'document_id' => $createdDocument->id,
+                        'status'      => 'in_progress',
+                        'admin_id'    => auth()->id(),
+                        'admin_notes' => 'Dokumen SOP telah dibuat oleh Admin QMS dan kini memasuki alur review/approval.',
+                        'reviewed_at' => now(),
+                    ]);
+                }
             });
 
             // Kirim Email Notifikasi ke Creator
@@ -364,7 +379,7 @@ class BusinessUnitController extends Controller
                         ]
                     );
 
-                    Mail::to($creatorUserObj->email)->send(
+                    Mail::to($creatorUserObj->email)->queue(
                         new NewDocumentReviewMail($createdDocument, $creatorUserObj, $magicLoginUrl)
                     );
                 } catch (\Exception $e) {
@@ -445,7 +460,7 @@ class BusinessUnitController extends Controller
                     ]
                 );
 
-                Mail::to($newUser->email)->send(
+                Mail::to($newUser->email)->queue(
                     new NewDocumentReviewMail($document, $newUser, $magicLoginUrl)
                 );
             } catch (\Throwable $e) {
@@ -508,8 +523,13 @@ class BusinessUnitController extends Controller
     public function creatorEditRevision(int $id): View
     {
         $document = Document::with(['approvals.user', 'attachments'])->findOrFail($id);
+
         $isCreator = DocumentApproval::where('document_id', $id)->where('user_id', auth()->id())->where('stage', 'creator')->exists();
-        if (!$isCreator || $document->status !== 'need_revision') {
+        $isApprovedRequester = \App\Models\RevisionRequest::where('document_id', $document->id)->where('user_id', auth()->id())->where('status', 'approved')->exists();
+        $isOwner = $document->created_by === auth()->id();
+        $isAdmin = auth()->user()->role === 'admin';
+
+        if ((!$isCreator && !$isApprovedRequester && !$isOwner && !$isAdmin) || $document->status !== 'need_revision') {
             abort(403, 'Anda tidak memiliki akses untuk merevisi dokumen ini.');
         }
         return view('admin.BU.edit_revision', compact('document'));
@@ -518,8 +538,13 @@ class BusinessUnitController extends Controller
     public function creatorUpdateRevision(Request $request, int $id)
     {
         $document = Document::findOrFail($id);
+
         $isCreator = DocumentApproval::where('document_id', $id)->where('user_id', auth()->id())->where('stage', 'creator')->exists();
-        if (!$isCreator || $document->status !== 'need_revision') {
+        $isApprovedRequester = \App\Models\RevisionRequest::where('document_id', $document->id)->where('user_id', auth()->id())->where('status', 'approved')->exists();
+        $isOwner = $document->created_by === auth()->id();
+        $isAdmin = auth()->user()->role === 'admin';
+
+        if ((!$isCreator && !$isApprovedRequester && !$isOwner && !$isAdmin) || $document->status !== 'need_revision') {
             abort(403, 'Anda tidak memiliki akses untuk merevisi dokumen ini.');
         }
         $this->updateRevision($request, $id);
@@ -537,6 +562,7 @@ class BusinessUnitController extends Controller
         try {
             $request->validate([
                 'title'                 => 'required|string|max:255',
+                'doc_revision'          => 'nullable|string|max:50',
                 'file_cover'            => 'nullable|mimes:pdf|max:5000',
                 'file_lp'               => 'nullable|mimes:pdf|max:5000',
                 'file_isi'              => 'nullable|mimes:pdf|max:10000',
@@ -555,15 +581,16 @@ class BusinessUnitController extends Controller
                 || ($request->hasFile('file_lampiran') && count($request->file('file_lampiran')) > 0);
             $hasDeletedAttachments = !empty($request->input('deleted_attachments', []));
             $isTitleChanged = trim($request->input('title', '')) !== trim($document->title);
+            $isRevisionChanged = $request->filled('doc_revision') && trim($request->input('doc_revision')) !== trim((string)$document->doc_revision);
 
-            if (!$hasNewFile && !$hasDeletedAttachments && !$isTitleChanged) {
+            if (!$hasNewFile && !$hasDeletedAttachments && !$isTitleChanged && !$isRevisionChanged) {
                 return back()->withErrors([
-                    'file_isi' => 'Harap unggah minimal 1 berkas perbaikan baru (File Cover, File Isi SOP, atau Lampiran Baru) sebelum mengirim revisi.',
+                    'file_isi' => 'Harap unggah minimal 1 berkas perbaikan baru (File Cover, File Isi SOP, atau Lampiran Baru) atau ubah data revisi sebelum mengirim revisi.',
                 ])->withInput();
             }
 
             $unit = $document->department;
-            $nextRevision = (string)((int)$document->doc_revision + 1);
+            $nextRevision = $request->filled('doc_revision') ? trim((string)$request->input('doc_revision')) : (string)((int)$document->doc_revision + 1);
             $revisionDate = now()->toDateString();
 
             // Handle Cover
@@ -756,12 +783,64 @@ class BusinessUnitController extends Controller
                 Storage::disk('public')->put($previewPath, $merger->output());
                 $uploadedNewFiles[] = $previewPath;
 
-                // Redraw currently approved stamps if any on auto-generated document
-                if ($isAutoGenerated) {
-                    $allApproved = DocumentApproval::where('document_id', $document->id)
-                        ->where('status', 'approved')
+                // Tentukan target antrean peninjau berikutnya yang memerlukan revisi
+                $rejectedApprovals = DocumentApproval::where('document_id', $document->id)
+                    ->where('status', 'rejected')
+                    ->orderBy('sequence', 'asc')
+                    ->get();
+
+                $isFullRevisionReset = false;
+                $approvalsToActivate = collect();
+
+                if ($rejectedApprovals->isNotEmpty()) {
+                    $approvalsToActivate = $rejectedApprovals;
+                } else {
+                    // Fallback 1: Jika ada yang berstatus 'current' atau 'waiting'
+                    $waitingApprovals = DocumentApproval::where('document_id', $document->id)
+                        ->whereIn('status', ['current', 'waiting'])
                         ->orderBy('sequence', 'asc')
                         ->get();
+
+                    if ($waitingApprovals->isNotEmpty()) {
+                        $approvalsToActivate = $waitingApprovals;
+                    } else {
+                        // Fallback 2: Siklus Revisi Dokumen Aktif (seluruh approval sebelumnya 'approved')
+                        $isFullRevisionReset = true;
+                        $reviewerApprovals = DocumentApproval::where('document_id', $document->id)
+                            ->where('stage', 'reviewer')
+                            ->orderBy('sequence', 'asc')
+                            ->get();
+
+                        if ($reviewerApprovals->isNotEmpty()) {
+                            $approvalsToActivate = $reviewerApprovals;
+                        } else {
+                            $firstFinal = DocumentApproval::where('document_id', $document->id)
+                                ->where('stage', 'final')
+                                ->orderBy('sequence', 'asc')
+                                ->first();
+                            if ($firstFinal) {
+                                $approvalsToActivate = collect([$firstFinal]);
+                            }
+                        }
+                    }
+                }
+
+                if ($approvalsToActivate->isEmpty()) {
+                    throw new \Exception("Tidak ditemukan antrean peninjau yang memerlukan revisi.");
+                }
+
+                // Redraw currently approved stamps if any on auto-generated document
+                if ($isAutoGenerated) {
+                    $allApprovedQuery = DocumentApproval::where('document_id', $document->id)
+                        ->where('status', 'approved')
+                        ->orderBy('sequence', 'asc');
+
+                    // Jika revisi penuh dokumen aktif, hanya stempel Creator yang dipertahankan awal
+                    if ($isFullRevisionReset) {
+                        $allApprovedQuery->where('stage', 'creator');
+                    }
+
+                    $allApproved = $allApprovedQuery->get();
 
                     if ($allApproved->isNotEmpty()) {
                         $pdfStamper = new \setasign\Fpdi\Fpdi();
@@ -829,33 +908,9 @@ class BusinessUnitController extends Controller
                 }
             }
 
-            // Target antrean berikutnya yang memerlukan revisi
-            $rejectedApprovals = DocumentApproval::where('document_id', $document->id)
-                ->where('status', 'rejected')
-                ->orderBy('sequence', 'asc')
-                ->get();
-
-            $approvalsToActivate = collect();
-            if ($rejectedApprovals->isNotEmpty()) {
-                $approvalsToActivate = $rejectedApprovals;
-            } else {
-                // Fallback jika tidak ada yang statusnya 'rejected' (misal revisi manual oleh admin)
-                $firstWaiting = DocumentApproval::where('document_id', $document->id)
-                    ->whereIn('status', ['current', 'waiting'])
-                    ->orderBy('sequence', 'asc')
-                    ->first();
-                if ($firstWaiting) {
-                    $approvalsToActivate = collect([$firstWaiting]);
-                }
-            }
-
-            if ($approvalsToActivate->isEmpty()) {
-                throw new \Exception("Tidak ditemukan antrean peninjau yang memerlukan revisi.");
-            }
-
             $usersToNotify = [];
 
-            \Illuminate\Support\Facades\DB::transaction(function () use ($document, $recordsToDelete, $keptAttachments, $newAttachmentData, $approvalsToActivate, $request, $pathCover, $pathLp, $pathIsi, $previewPath, $isAutoGenerated, $coordinates, $nextRevision, $revisionDate, &$usersToNotify) {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($document, $recordsToDelete, $keptAttachments, $newAttachmentData, $approvalsToActivate, $isFullRevisionReset, $request, $pathCover, $pathLp, $pathIsi, $previewPath, $isAutoGenerated, $coordinates, $nextRevision, $revisionDate, &$usersToNotify) {
                 // Hapus record attachment dari DB
                 foreach ($recordsToDelete as $r) {
                     if ($r->id > 0) {
@@ -877,6 +932,29 @@ class BusinessUnitController extends Controller
                 foreach ($newAttachmentData as $nAtt) {
                     $nAtt['sequence'] = $seq++;
                     $document->attachments()->create($nAtt);
+                }
+
+                if ($isFullRevisionReset) {
+                    // 1. Creator stage -> 'approved'
+                    DocumentApproval::where('document_id', $document->id)
+                        ->where('stage', 'creator')
+                        ->update([
+                            'status'       => 'approved',
+                            'processed_at' => now(),
+                        ]);
+
+                    // 2. Final stage -> 'pending' (menunggu seluruh reviewer selesai)
+                    DocumentApproval::where('document_id', $document->id)
+                        ->where('stage', 'final')
+                        ->update([
+                            'status'       => 'pending',
+                            'processed_at' => null,
+                        ]);
+
+                    // Selesaikan request revisi aktif jika ada
+                    \App\Models\RevisionRequest::where('document_id', $document->id)
+                        ->where('status', 'approved')
+                        ->update(['status' => 'completed']);
                 }
 
                 // Update target approval status ke 'current' dan reset processed_at
@@ -919,6 +997,7 @@ class BusinessUnitController extends Controller
                     'file_isi'      => $pathIsi,
                     'file_lampiran' => $firstLamp,
                     'file_preview'  => $previewPath,
+                    'file_final'    => null,
                     'status'        => 'waiting', 
                 ]);
 
@@ -949,7 +1028,7 @@ class BusinessUnitController extends Controller
                             ]
                         );
 
-                        Mail::to($notifyUser->email)->send(
+                        Mail::to($notifyUser->email)->queue(
                             new \App\Mail\DocumentRevisionResubmittedMail($document, $notifyUser, auth()->user(), $magicLoginUrl)
                         );
                     } catch (\Exception $e) {
@@ -985,7 +1064,7 @@ class BusinessUnitController extends Controller
                             ]
                         );
 
-                        Mail::to($notifyUser->email)->send(
+                        Mail::to($notifyUser->email)->queue(
                             new \App\Mail\DocumentRevisionResubmittedMail($document, $notifyUser, auth()->user(), $magicLoginUrl)
                         );
                         \Log::info("e-QMS BU: Notifikasi revisi dikirim ke peninjau: User ID {$notifyUser->id} ({$notifyUser->username}) untuk Dokumen ID {$document->id}");

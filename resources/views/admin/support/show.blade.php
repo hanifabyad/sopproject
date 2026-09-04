@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
 
 @section('title', 'Detail Departemen Support - ' . $stats['name'])
 @section('header_title', 'Detail Dokumen Departemen Support')
@@ -71,64 +71,98 @@
         </div>
     </div>
 
-    <!-- DOCUMENT TABLE BENTO CARD -->
-    <div class="bg-white rounded-md p-6 md:p-8 shadow-sm border border-[#e5dfd3] space-y-6">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e5dfd3] pb-4">
-            <div class="flex items-center space-x-2 text-sm font-bold text-on-surface">
-                <span class="material-symbols-outlined text-[#00b4d8] text-lg">folder_open</span>
-                <span>Daftar Dokumen SOP</span>
+    <!-- DOCUMENT TABLE CONTAINER (TRACKING STYLE) -->
+    <div class="bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 space-y-4">
+        <!-- HEADER BIRU MUDA (TRACKING STYLE) -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#f0f9ff] border border-blue-200 p-3 rounded-[2px]">
+            <div class="flex items-center space-x-2 text-xs font-bold text-[#1677B8]">
+                <i class="ph ph-table text-base"></i>
+                <span class="capitalize text-slate-900 font-extrabold">Daftar Dokumen SOP - {{ $stats['name'] }}</span>
             </div>
-            <x-interactive-button href="{{ route('admin.support.create', $stats['name']) }}" text="Tambah SOP Baru" class="self-start sm:self-auto" />
+            <div class="flex items-center gap-2.5">
+                <span class="text-[11px] text-[#1677B8] font-bold bg-white px-2.5 py-1.5 rounded-[2px] border border-blue-200 whitespace-nowrap shadow-2xs">
+                    Total {{ $documents->count() }} Dokumen SOP
+                </span>
+                <x-interactive-button text="Tambah SOP Baru" variant="blue" icon="ph ph-plus text-sm" href="{{ route('admin.support.create', $stats['name']) }}" />
+            </div>
         </div>
 
-        <div class="space-y-3">
-            @forelse($documents as $doc)
-            <div class="p-4 bg-canvas hover:bg-sky-50/50 rounded-md border border-[#e5dfd3] hover:border-[#00b4d8]/50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 group">
-                <div class="flex items-center space-x-3.5">
-                    <i class="ph ph-file-text text-2xl text-[#00b4d8] group-hover:scale-110 group-hover:text-[#1677B8] transition-all flex-shrink-0"></i>
-                    <div>
-                        <a href="{{ route('admin.support.document.detail', $doc->id) }}" class="font-bold text-xs text-on-surface hover:text-gold-500 transition capitalize">
-                            {{ $doc->title }}
-                        </a>
-                        <p class="text-[10px] text-on-surface-variant font-semibold mt-0.5">
-                            Pembaruan terakhir: {{ $doc->updated_at->format('d M Y') }}
-                        </p>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-3 self-start sm:self-auto">
-                    <div>
-                        @if($doc->status === 'waiting')
-                            <span class="px-3 py-1.5 rounded text-[10px] font-bold bg-amber-50 border border-amber-200 text-amber-700 flex items-center gap-1.5">
-                                <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                                <span>Waiting Review</span>
-                            </span>
-                        @elseif($doc->status === 'need_revision')
-                            <span class="px-3 py-1.5 rounded text-[10px] font-bold bg-red-50 border border-red-200 text-red-700 flex items-center gap-1.5">
-                                <span class="w-2 h-2 rounded-full bg-red-500"></span>
-                                <span>Need Revision</span>
-                            </span>
-                        @elseif($doc->status === 'active')
-                            <span class="px-3 py-1.5 rounded text-[10px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center gap-1.5">
-                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                <span>Approved</span>
-                            </span>
-                        @else
-                            <span class="px-3 py-1.5 rounded text-[10px] font-bold bg-gray-100 text-gray-700">
-                                {{ $doc->status }}
-                            </span>
-                        @endif
-                    </div>
-                    <x-interactive-button href="{{ route('admin.support.document.detail', $doc->id) }}" text="Buka Dokumen" variant="outline" />
-                </div>
-            </div>
-            @empty
-            <div class="py-16 text-center text-on-surface-variant space-y-2">
-                <span class="material-symbols-outlined text-4xl text-[#d6cebf]">inbox</span>
-                <p class="text-xs font-bold capitalize tracking-wider">Belum ada dokumen yang diunggah.</p>
-            </div>
-            @endforelse
+        <div class="overflow-x-auto border border-slate-200 rounded-[2px]">
+            <table class="tracking-table w-full text-left border-collapse">
+                <thead class="bg-[#1677B8] border-b border-[#1258a0] text-[10.5px] font-bold uppercase tracking-wider text-white">
+                    <tr>
+                        <th class="py-2.5 px-2 text-center w-8">No</th>
+                        <th class="py-2.5 px-3">Dokumen SOP & Identitas</th>
+                        <th class="py-2.5 px-3 text-center whitespace-nowrap">Pembaruan Terakhir</th>
+                        <th class="py-2.5 px-3 text-center whitespace-nowrap">Status Approval</th>
+                        <th class="py-2.5 px-3 text-right whitespace-nowrap">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 text-xs font-semibold text-slate-800">
+                    @forelse($documents as $doc)
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="py-2.5 px-2 text-center font-bold text-slate-400 text-[11px] align-middle">
+                            {{ $loop->iteration }}
+                        </td>
+                        <td class="py-2.5 px-3 align-middle">
+                            <div class="font-bold text-slate-900 text-xs leading-snug">
+                                <a href="{{ route('admin.support.document.detail', $doc->id) }}" class="hover:text-[#1677B8] hover:underline transition-colors cursor-pointer">
+                                    {{ $doc->title }}
+                                </a>
+                            </div>
+                            <div class="flex items-center gap-1.5 mt-1 flex-wrap text-[10px]">
+                                <span class="font-mono font-semibold text-slate-600">{{ $doc->doc_number ?? 'No. Belum Diatur' }}</span>
+                                <span class="text-slate-300">|</span>
+                                <span class="font-mono font-bold text-slate-700">Rev {{ $doc->doc_revision ?? '0' }}</span>
+                                <span class="text-slate-300">|</span>
+                                <span class="font-bold text-[#1677B8]">{{ $stats['name'] }}</span>
+                            </div>
+                        </td>
+                        <td class="py-2.5 px-3 text-center align-middle whitespace-nowrap font-mono text-xs text-slate-700">
+                            {{ $doc->updated_at->format('d/m/Y') }}
+                        </td>
+                        <td class="py-2.5 px-3 text-center align-middle whitespace-nowrap">
+                            @if($doc->status === 'waiting')
+                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] text-[10px] font-bold bg-amber-50 border border-amber-300 text-amber-700">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                    <span>Waiting Review</span>
+                                </span>
+                            @elseif($doc->status === 'need_revision')
+                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] text-[10px] font-bold bg-rose-50 border border-rose-300 text-rose-700">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                    <span>Need Revision</span>
+                                </span>
+                            @elseif($doc->status === 'active')
+                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] text-[10px] font-bold bg-emerald-50 border border-emerald-300 text-emerald-700">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span>Approved</span>
+                                </span>
+                            @else
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-[2px] text-[10px] font-bold bg-slate-100 border border-slate-300 text-slate-700">
+                                    {{ $doc->status }}
+                                </span>
+                            @endif
+                        </td>
+                        <td class="py-2.5 px-3 text-right align-middle whitespace-nowrap">
+                            <x-interactive-button text="Buka Dokumen" variant="blue" icon="ph ph-arrow-right text-xs" href="{{ route('admin.support.document.detail', $doc->id) }}" />
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="5" class="py-10 text-center text-slate-400">
+                            <div class="flex flex-col items-center justify-center space-y-2">
+                                <i class="ph ph-folder-open text-3xl text-slate-300"></i>
+                                <h5 class="text-xs font-bold text-slate-700">Belum ada dokumen yang diunggah</h5>
+                                <p class="text-[11px] text-slate-500 max-w-sm">Klik tombol Tambah SOP Baru untuk mengunggah dokumen baru pada departemen ini.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 @endsection
+
+

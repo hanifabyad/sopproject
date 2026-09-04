@@ -73,7 +73,7 @@ public function index()
             }
         }
 
-        $pathToShow = $document->file_final ?? $document->file_preview ?? $document->file_lp;
+        $pathToShow = ($document->status === 'active' ? $document->file_final : null) ?? $document->file_preview ?? $document->file_lp;
         return view('reviewer.show', compact('document', 'pathToShow'));
     }
 
@@ -83,10 +83,12 @@ public function index()
         $usersToNotify = [];
         $creatorToNotify = null;
         $finalNotifiedUsers = [];
+        $requesterToNotify = null;
+        $relatedSopRequest = null;
         $documentId = $id;
 
         try {
-            \Illuminate\Support\Facades\DB::transaction(function () use ($request, $id, &$statusMsg, &$usersToNotify, &$creatorToNotify, &$finalNotifiedUsers) {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($request, $id, &$statusMsg, &$usersToNotify, &$creatorToNotify, &$finalNotifiedUsers, &$requesterToNotify, &$relatedSopRequest) {
                 $document = Document::where('id', $id)->lockForUpdate()->firstOrFail();
                 if ($document->status === 'need_revision') {
                     throw new \Exception('Dokumen ini sedang dikunci untuk perbaikan revisi.');
@@ -474,6 +476,23 @@ public function index()
                                     'status'       => 'active',
                                 ]);
 
+                                // Update status pengajuan SOP baru jika dokumen ini berakar dari usulan pengguna
+                                try {
+                                    $relatedSopRequest = \App\Models\NewSopRequest::where('document_id', $document->id)->with('user')->first();
+                                    if ($relatedSopRequest) {
+                                        $relatedSopRequest->update([
+                                            'status'      => 'completed',
+                                            'admin_notes' => 'Dokumen SOP telah selesai disahkan dan resmi aktif di E-Library e-QMS.',
+                                            'reviewed_at' => now(),
+                                        ]);
+                                        if ($relatedSopRequest->user) {
+                                            $requesterToNotify = $relatedSopRequest->user;
+                                        }
+                                    }
+                                } catch (\Throwable $e) {
+                                    \Log::error("e-QMS Update NewSopRequest completed status error: " . $e->getMessage());
+                                }
+
                         $bu = $document->department;
                         $supportDepts = ['HC', 'IT', 'QMS', 'HSE', 'INTERNAL AUDIT', 'LOGISTIC', 'OPS', 'FINANCE', 'LEGAL'];
 
@@ -533,6 +552,24 @@ public function index()
                             }
                         }
 
+                        // Sertakan juga seluruh PIC / Penanggung Jawab dari Unit/Departemen terkait
+                        $deptKeyword = strtoupper(trim($document->department ?? ''));
+                        if (!empty($deptKeyword)) {
+                            $deptUsers = \App\Models\User::where('status', true)
+                                ->where(function ($q) use ($deptKeyword) {
+                                    $q->where('role', 'like', "%{$deptKeyword}%")
+                                      ->orWhere('username', 'like', "%{$deptKeyword}%");
+                                })
+                                ->whereNotNull('email')
+                                ->get();
+
+                            foreach ($deptUsers as $deptUser) {
+                                if (!empty(trim($deptUser->email ?? '')) && (!$creatorToNotify || $deptUser->id !== $creatorToNotify->id)) {
+                                    $finalNotifiedUsers[$deptUser->id] = $deptUser;
+                                }
+                            }
+                        }
+
                         $statusMsg = 'Dokumen telah disetujui final oleh semua pihak dan resmi masuk E-Library!';
                             }
                         }
@@ -562,7 +599,7 @@ public function index()
                             ]
                         );
 
-                        Mail::to($notifyUser->email)->send(
+                        Mail::to($notifyUser->email)->queue(
                             new \App\Mail\NewDocumentReviewMail(\App\Models\Document::find($documentId), $notifyUser, $magicLoginUrl)
                         );
                     } catch (\Throwable $e) {
@@ -575,15 +612,24 @@ public function index()
                 try {
                     $magicLoginUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
                         'login.magic',
-                        now()->addHours(24),
+                        now()->addDays(7),
                         [
                             'user_id' => $creatorToNotify->id,
                             'document_id' => $documentId
                         ]
                     );
 
-                    Mail::to($creatorToNotify->email)->send(
-                        new \App\Mail\DocumentApprovedMail(\App\Models\Document::find($documentId), $creatorToNotify, $magicLoginUrl)
+                    $socializationUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                        'login.magic',
+                        now()->addDays(7),
+                        [
+                            'user_id' => $creatorToNotify->id,
+                            'redirect_to' => route('documents.socialize', $documentId),
+                        ]
+                    );
+
+                    Mail::to($creatorToNotify->email)->queue(
+                        new \App\Mail\DocumentApprovedMail(\App\Models\Document::find($documentId), $creatorToNotify, $magicLoginUrl, $socializationUrl)
                     );
                 } catch (\Throwable $e) {
                     \Log::error("e-QMS Final Approval Email Error for Creator ID {$creatorToNotify->id}: " . $e->getMessage());
@@ -594,27 +640,56 @@ public function index()
                 try {
                     $magicLoginUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
                         'login.magic',
-                        now()->addHours(24),
+                        now()->addDays(7),
                         [
                             'user_id' => $notifyUser->id,
                             'document_id' => $documentId
                         ]
                     );
 
-                    Mail::to($notifyUser->email)->send(
-                        new \App\Mail\DocumentApprovedMail(\App\Models\Document::find($documentId), $notifyUser, $magicLoginUrl)
+                    $socializationUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                        'login.magic',
+                        now()->addDays(7),
+                        [
+                            'user_id' => $notifyUser->id,
+                            'redirect_to' => route('documents.socialize', $documentId),
+                        ]
+                    );
+
+                    Mail::to($notifyUser->email)->queue(
+                        new \App\Mail\DocumentApprovedMail(\App\Models\Document::find($documentId), $notifyUser, $magicLoginUrl, $socializationUrl)
                     );
                 } catch (\Throwable $e) {
                     \Log::error("e-QMS Final Completion Notification Email Error for User ID {$notifyUser->id}: " . $e->getMessage());
                 }
             }
+
+            // Notifikasi Email ke Pemohon Usulan SOP Baru (jika ada)
+            if ($requesterToNotify && !empty(trim($requesterToNotify->email ?? ''))) {
+                try {
+                    $magicLibraryUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                        'login.magic',
+                        now()->addDays(14),
+                        [
+                            'user_id'     => $requesterToNotify->id,
+                            'redirect_to' => route('library.index', ['search' => \App\Models\Document::find($documentId)?->title ?? '']),
+                        ]
+                    );
+
+                    Mail::to($requesterToNotify->email)->queue(
+                        new \App\Mail\NewSopRequestCompletedMail($relatedSopRequest, \App\Models\Document::find($documentId), $requesterToNotify, $magicLibraryUrl)
+                    );
+                } catch (\Throwable $e) {
+                    \Log::error("e-QMS NewSopRequest Requester Completion Notification Email Error for User ID {$requesterToNotify->id}: " . $e->getMessage());
+                }
+            }
         } catch (\Throwable $e) {
             \Log::error("e-QMS Approval Error: " . $e->getMessage());
-            return redirect()->route('reviewer.dashboard')
-                ->with('error', 'Dokumen gagal diproses. Silakan coba kembali atau hubungi administrator.');
+            return redirect()->route('reviewer.show', $documentId)
+                ->with('error', $e->getMessage() ?: 'Dokumen gagal diproses. Silakan coba kembali atau hubungi administrator.');
         }
 
-        return redirect()->route('reviewer.dashboard')->with('success', $statusMsg);
+        return redirect()->route('reviewer.show', $documentId)->with('success', $statusMsg);
     }
 
     /**
@@ -900,7 +975,7 @@ public function index()
             }
         }
 
-        $relativeFile = $document->file_preview ?? $document->file_lp;
+        $relativeFile = ($document->status === 'active' ? $document->file_final : null) ?? $document->file_preview ?? $document->file_lp;
         $relativeFile = str_replace('\\', '/', $relativeFile);
         $path = storage_path('app/public/' . $relativeFile);
 
@@ -908,7 +983,11 @@ public function index()
             abort(404, 'Berkas PDF tidak ditemukan pada penyimpanan server.');
         }
 
-        return response()->file($path);
+        return response()->file($path, [
+            'Cache-Control' => 'no-cache, no-store, must-revalidate, max-age=0, post-check=0, pre-check=0',
+            'Pragma'        => 'no-cache',
+            'Expires'       => '0',
+        ]);
     }
 
 // ================================================================
@@ -1006,7 +1085,7 @@ public function reject(Request $request, $id)
                 ]
             );
 
-            \Illuminate\Support\Facades\Mail::to($creator->email)->send(
+            \Illuminate\Support\Facades\Mail::to($creator->email)->queue(
                 new \App\Mail\DocumentRevisionRequestedMail($document, $creator, $user, $request->notes ?? 'Dokumen memerlukan perbaikan.', $magicLoginUrl, true)
             );
         }
@@ -1032,7 +1111,7 @@ public function reject(Request $request, $id)
                     ]
                 );
 
-                \Illuminate\Support\Facades\Mail::to($otherUser->email)->send(
+                \Illuminate\Support\Facades\Mail::to($otherUser->email)->queue(
                     new \App\Mail\DocumentRevisionRequestedMail($document, $otherUser, $user, $request->notes ?? 'Dokumen memerlukan perbaikan.', $magicLoginUrl, false)
                 );
             }

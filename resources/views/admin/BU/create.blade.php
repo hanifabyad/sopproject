@@ -60,10 +60,20 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    @if(!empty($fromRequest))
+                        <input type="hidden" name="from_request_id" value="{{ $fromRequest->id }}">
+                        <div class="sm:col-span-2 p-3 bg-blue-50 border border-blue-200 rounded-[2px] text-xs text-[#1677B8] flex items-center justify-between">
+                            <span class="font-bold flex items-center gap-1.5">
+                                <i class="ph ph-link text-base"></i>
+                                Pembuatan SOP dari Pengajuan: <strong>{{ $fromRequest->title }}</strong> (Pemohon: {{ $fromRequest->user->full_name ?? $fromRequest->user->username }})
+                            </span>
+                            <span class="text-[10px] bg-blue-100 px-2 py-0.5 rounded font-extrabold uppercase">Terkoneksi Otomatis</span>
+                        </div>
+                    @endif
+
                     <div class="sm:col-span-2">
                         <label class="block text-[10px] font-bold capitalize tracking-wider text-on-surface-variant mb-1">Judul Resmi Dokumen SOP</label>
-                        <input type="text" name="title" required value="{{ old('title') }}" placeholder="Masukkan judul SOP"
+                        <input type="text" name="title" required value="{{ old('title', $fromRequest->title ?? '') }}" placeholder="Masukkan judul SOP"
                             class="w-full p-2.5 bg-sand-50 border border-sand-200 rounded-md font-semibold text-xs text-on-surface focus:bg-white focus:ring-2 focus:ring-gold-500 outline-none transition-all placeholder-[#d6cebf]">
                     </div>
 

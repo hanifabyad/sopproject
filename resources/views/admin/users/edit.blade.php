@@ -82,9 +82,7 @@
 
             <!-- Submit Button Bar -->
             <div class="flex items-center justify-end space-x-3 pt-4 border-t border-sand-200/40">
-                <a href="{{ route('admin.users.index') }}" class="px-4 py-2.5 bg-canvas border border-sand-200 text-on-surface-variant hover:bg-[#fff9ed] rounded-md font-bold text-xs capitalize text-center transition-colors">
-                    Batal
-                </a>
+                <x-interactive-button text="Batal" variant="outline" href="{{ route('admin.users.index') }}" />
                 <x-interactive-button text="Simpan Perubahan Akun" icon="ph ph-floppy-disk text-sm" class="w-full sm:w-auto" />
             </div>
         </form>

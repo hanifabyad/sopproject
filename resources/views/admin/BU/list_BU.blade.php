@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
 
 @section('title', 'Daftar - ' . ($stats['name'] ?? $namaDivisi))
 @section('header_title', 'Daftar SOP Unit Bisnis')
@@ -74,83 +74,93 @@
 
     <!-- DOCUMENT TABLE CONTAINER -->
     <div class="bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sand-200/40 pb-4">
-            <div class="flex items-center space-x-2 text-sm font-bold text-on-surface">
-                <span class="material-symbols-outlined text-[#00b4d8] text-lg">folder_open</span>
-                <span class="capitalize">Daftar Dokumen SOP - {{ $stats['name'] }}</span>
+        <!-- HEADER BIRU MUDA (TRACKING STYLE) -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#f0f9ff] border border-blue-200 p-3 rounded-[2px]">
+            <div class="flex items-center space-x-2 text-xs font-bold text-[#1677B8]">
+                <i class="ph ph-table text-base"></i>
+                <span class="capitalize text-slate-900 font-extrabold">Daftar Dokumen SOP - {{ $stats['name'] }}</span>
             </div>
-            <x-interactive-button href="{{ route('admin.BU.create', $stats['name']) }}" text="Tambah SOP Baru" class="self-start sm:self-auto" />
+            <div class="flex items-center gap-2.5">
+                <span class="text-[11px] text-[#1677B8] font-bold bg-white px-2.5 py-1.5 rounded-[2px] border border-blue-200 whitespace-nowrap shadow-2xs">
+                    Total {{ $documents->count() }} Dokumen SOP
+                </span>
+                <x-interactive-button text="Tambah SOP Baru" variant="blue" icon="ph ph-plus text-sm" href="{{ route('admin.BU.create', $stats['name']) }}" />
+            </div>
         </div>
 
-        <div class="border border-sand-200/70 rounded-md bg-white overflow-hidden shadow-sm">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-body-main">
-                    <thead class="bg-sand-50 border-b border-sand-200 text-[12px] font-semibold capitalize tracking-wider text-on-surface-variant">
-                        <tr>
-                            <th class="py-3 px-4 text-center w-12">#</th>
-                            <th class="py-3 px-4">Judul Dokumen SOP</th>
-                            <th class="py-3 px-4 text-center">Pembaruan Terakhir</th>
-                            <th class="py-3 px-4 text-center">Status Approval</th>
-                            <th class="py-3 px-4 text-right">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-[#e8e2d6]">
-                        @forelse($documents as $doc)
-                        <tr class="border-b border-[#e8e2d6] hover:bg-canvas transition-colors">
-                            <td class="py-3.5 px-4 text-center text-xs font-bold text-on-surface-variant">
-                                {{ $loop->iteration }}
-                            </td>
-                            <td class="py-3.5 px-4">
-                                <div class="flex items-center space-x-3">
-                                    <i class="ph ph-file-text text-2xl text-[#00b4d8] flex-shrink-0"></i>
-                                    <div>
-                                        <a href="{{ route('admin.BU.detail', $doc->id) }}" class="font-semibold text-xs text-on-surface hover:text-[#1677B8] transition capitalize block leading-tight">
-                                            {{ $doc->title }}
-                                        </a>
-                                        <span class="text-[10px] text-on-surface-variant font-normal capitalize">Nomor: {{ $doc->doc_number ?? '-' }}</span>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="py-3.5 px-4 text-center text-xs font-semibold text-on-surface-variant">
-                                {{ $doc->updated_at->format('d M Y') }}
-                            </td>
-                            <td class="py-3.5 px-4 text-center">
-                                @if($doc->status === 'waiting')
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-50 border border-amber-200 text-amber-700">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                        <span>Waiting Review</span>
-                                    </span>
-                                @elseif($doc->status === 'need_revision')
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-red-50 border border-red-200 text-red-700">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                                        <span>Need Revision</span>
-                                    </span>
-                                @elseif($doc->status === 'active')
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-700">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                        <span>Approved</span>
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-gray-100 text-gray-700">
-                                        {{ $doc->status }}
-                                    </span>
-                                @endif
-                            </td>
-                            <td class="py-3.5 px-4 text-right">
-                                <x-interactive-button href="{{ route('admin.BU.detail', $doc->id) }}" text="Buka Dokumen" variant="outline" />
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="5" class="py-12 text-center text-on-surface-variant">
-                                <span class="material-symbols-outlined text-4xl text-[#d6cebf] block mb-1">inbox</span>
-                                <p class="text-xs font-bold capitalize tracking-wider">Belum ada dokumen yang diunggah.</p>
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+        <div class="overflow-x-auto border border-slate-200 rounded-[2px]">
+            <table class="tracking-table w-full text-left border-collapse">
+                <thead class="bg-[#1677B8] border-b border-[#1258a0] text-[10.5px] font-bold uppercase tracking-wider text-white">
+                    <tr>
+                        <th class="py-2.5 px-2 text-center w-8">No</th>
+                        <th class="py-2.5 px-3">Dokumen SOP & Identitas</th>
+                        <th class="py-2.5 px-3 text-center whitespace-nowrap">Pembaruan Terakhir</th>
+                        <th class="py-2.5 px-3 text-center whitespace-nowrap">Status Approval</th>
+                        <th class="py-2.5 px-3 text-right whitespace-nowrap">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 text-xs font-semibold text-slate-800">
+                    @forelse($documents as $doc)
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="py-2.5 px-2 text-center font-bold text-slate-400 text-[11px] align-middle">
+                            {{ $loop->iteration }}
+                        </td>
+                        <td class="py-2.5 px-3 align-middle">
+                            <div class="font-bold text-slate-900 text-xs leading-snug">
+                                <a href="{{ route('admin.BU.detail', $doc->id) }}" class="hover:text-[#1677B8] hover:underline transition-colors cursor-pointer">
+                                    {{ $doc->title }}
+                                </a>
+                            </div>
+                            <div class="flex items-center gap-1.5 mt-1 flex-wrap text-[10px]">
+                                <span class="font-mono font-semibold text-slate-600">{{ $doc->doc_number ?? 'No. Belum Diatur' }}</span>
+                                <span class="text-slate-300">|</span>
+                                <span class="font-mono font-bold text-slate-700">Rev {{ $doc->doc_revision ?? '0' }}</span>
+                                <span class="text-slate-300">|</span>
+                                <span class="font-bold text-[#1677B8]">{{ $stats['name'] }}</span>
+                            </div>
+                        </td>
+                        <td class="py-2.5 px-3 text-center align-middle whitespace-nowrap font-mono text-xs text-slate-700">
+                            {{ $doc->updated_at->format('d/m/Y') }}
+                        </td>
+                        <td class="py-2.5 px-3 text-center align-middle whitespace-nowrap">
+                            @if($doc->status === 'waiting')
+                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] text-[10px] font-bold bg-amber-50 border border-amber-300 text-amber-700">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                    <span>Waiting Review</span>
+                                </span>
+                            @elseif($doc->status === 'need_revision')
+                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] text-[10px] font-bold bg-rose-50 border border-rose-300 text-rose-700">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                    <span>Need Revision</span>
+                                </span>
+                            @elseif($doc->status === 'active')
+                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] text-[10px] font-bold bg-emerald-50 border border-emerald-300 text-emerald-700">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span>Approved</span>
+                                </span>
+                            @else
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-[2px] text-[10px] font-bold bg-slate-100 border border-slate-300 text-slate-700">
+                                    {{ $doc->status }}
+                                </span>
+                            @endif
+                        </td>
+                        <td class="py-2.5 px-3 text-right align-middle whitespace-nowrap">
+                            <x-interactive-button text="Buka Dokumen" variant="blue" icon="ph ph-arrow-right text-xs" href="{{ route('admin.BU.detail', $doc->id) }}" />
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="5" class="py-10 text-center text-slate-400">
+                            <div class="flex flex-col items-center justify-center space-y-2">
+                                <i class="ph ph-folder-open text-3xl text-slate-300"></i>
+                                <h5 class="text-xs font-bold text-slate-700">Belum ada dokumen yang diunggah</h5>
+                                <p class="text-[11px] text-slate-500 max-w-sm">Klik tombol Tambah SOP Baru untuk mengunggah dokumen baru pada unit ini.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -175,54 +185,63 @@
         </div>
     </div>
 
-    <!-- UNITS ENTERPRISE LINEAR DATA TABLE -->
-    <div class="border border-sand-200/70 rounded-md bg-white overflow-hidden shadow-sm">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-body-main">
-                <thead class="bg-sand-50 border-b border-sand-200 text-[12px] font-semibold capitalize tracking-wider text-on-surface-variant">
+    <!-- UNITS ENTERPRISE DATA TABLE (TRACKING STYLE) -->
+    <div class="bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 space-y-4">
+        <!-- HEADER BIRU MUDA (TRACKING STYLE) -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#f0f9ff] border border-blue-200 p-3 rounded-[2px]">
+            <div class="flex items-center space-x-2 text-xs font-bold text-[#1677B8]">
+                <i class="ph ph-table text-base"></i>
+                <span class="capitalize text-slate-900 font-extrabold">Daftar Unit Bisnis di Bawah Divisi {{ $namaDivisi }}</span>
+            </div>
+            <span class="text-[11px] text-[#1677B8] font-bold bg-white px-2.5 py-1.5 rounded-[2px] border border-blue-200 whitespace-nowrap shadow-2xs">
+                Total {{ count($statsBU) }} Unit Bisnis
+            </span>
+        </div>
+
+        <div class="overflow-x-auto border border-slate-200 rounded-[2px]">
+            <table class="tracking-table w-full text-left border-collapse">
+                <thead class="bg-[#1677B8] border-b border-[#1258a0] text-[10.5px] font-bold uppercase tracking-wider text-white">
                     <tr>
-                        <th class="py-3 px-4 text-center w-12">#</th>
-                        <th class="py-3 px-4">Unit Bisnis / Entitas</th>
-                        <th class="py-3 px-4 text-center">Total SOP</th>
-                        <th class="py-3 px-4 text-center">Dokumen Aktif</th>
-                        <th class="py-3 px-4 text-center">Perlu Revisi / Menunggu</th>
-                        <th class="py-3 px-4 text-right">Aksi</th>
+                        <th class="py-2.5 px-2 text-center w-8">No</th>
+                        <th class="py-2.5 px-3">Unit Bisnis / Entitas</th>
+                        <th class="py-2.5 px-3 text-center">Total Dokumen</th>
+                        <th class="py-2.5 px-3 text-center">Dokumen Aktif</th>
+                        <th class="py-2.5 px-3 text-center">Perlu Revisi / Menunggu</th>
+                        <th class="py-2.5 px-3 text-right">Aksi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-[#e8e2d6]">
+                <tbody class="divide-y divide-slate-200 text-xs font-semibold text-slate-800">
                     @foreach($statsBU as $bu => $data)
-                    <tr class="border-b border-[#e8e2d6] hover:bg-canvas transition-colors">
-                        <td class="py-3.5 px-4 text-center text-xs font-bold text-on-surface-variant">
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="py-2.5 px-2 text-center font-bold text-slate-400 text-[11px] align-middle">
                             {{ $loop->iteration }}
                         </td>
-                        <td class="py-3.5 px-4">
-                            <a href="{{ route('admin.BU.show', $bu) }}" class="flex items-center space-x-3 group hover:opacity-85 transition-opacity cursor-pointer">
+                        <td class="py-2.5 px-3 align-middle">
+                            <a href="{{ route('admin.BU.show', $bu) }}" class="flex items-center space-x-3 group hover:opacity-90 transition-opacity cursor-pointer">
                                 <i class="ph ph-storefront text-2xl text-[#00b4d8] flex-shrink-0 group-hover:scale-110 transition-transform"></i>
                                 <div>
-                                    <span class="font-semibold text-on-surface text-[14px] capitalize block leading-tight group-hover:text-[#1677B8] hover:underline transition-colors">{{ $bu }}</span>
-                                    <span class="text-[10px] text-on-surface-variant font-normal capitalize">Unit Operasional</span>
+                                    <span class="font-bold text-slate-900 text-xs capitalize block leading-tight group-hover:text-[#1677B8] hover:underline transition-colors">{{ $bu }}</span>
+                                    <span class="text-[10px] text-slate-500 font-normal capitalize">Unit Operasional</span>
                                 </div>
                             </a>
                         </td>
-                        <td class="py-3.5 px-4 text-center">
-                            <span class="px-3 py-1 bg-canvas border border-sand-200/60 font-bold text-on-surface text-xs rounded-md inline-block">
-                                {{ $data['total'] }} Dokumen
-                            </span>
+                        <td class="py-2.5 px-3 text-center align-middle font-mono font-bold text-xs text-slate-900">
+                            {{ $data['total'] }} Dokumen
                         </td>
-                        <td class="py-3.5 px-4 text-center">
-                            <span class="inline-flex items-center gap-1.5 text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-md text-xs font-semibold">
+                        <td class="py-2.5 px-3 text-center align-middle">
+                            <span class="inline-flex items-center gap-1.5 text-emerald-700 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-[2px] text-[10px] font-bold">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                <span>{{ $data['active'] }} Dokumen</span>
+                                <span>{{ $data['active'] }} Aktif</span>
                             </span>
                         </td>
-                        <td class="py-3.5 px-4 text-center">
-                            <span class="inline-flex items-center gap-1.5 text-rose-700 bg-rose-50 border border-rose-200/80 px-2.5 py-1 rounded-md text-xs font-semibold">
+                        <td class="py-2.5 px-3 text-center align-middle">
+                            <span class="inline-flex items-center gap-1.5 text-rose-700 bg-rose-50 border border-rose-300 px-2 py-0.5 rounded-[2px] text-[10px] font-bold">
                                 <span class="w-1.5 h-1.5 rounded-full bg-rose-600"></span>
-                                <span>{{ $data['inactive'] }} Dokumen</span>
+                                <span>{{ $data['inactive'] }} Menunggu/Revisi</span>
                             </span>
                         </td>
-                        <td class="py-3.5 px-4 text-right">
-                            <x-interactive-button href="{{ route('admin.BU.show', $bu) }}" text="Buka Dokumen" variant="outline" />
+                        <td class="py-2.5 px-3 text-right align-middle">
+                            <x-interactive-button text="Buka Dokumen" variant="blue" icon="ph ph-arrow-right text-xs" href="{{ route('admin.BU.show', $bu) }}" />
                         </td>
                     </tr>
                     @endforeach
@@ -233,3 +252,5 @@
     @endif
 </div>
 @endsection
+
+

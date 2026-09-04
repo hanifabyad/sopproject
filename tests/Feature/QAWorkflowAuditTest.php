@@ -210,4 +210,18 @@ class QAWorkflowAuditTest extends TestCase
             DB::rollBack();
         }
     }
+
+    /**
+     * Test User Revision Requests and Socializations pages render with 200 OK
+     */
+    public function test_user_revision_and_socialization_pages_render_without_error()
+    {
+        $user = User::findOrFail(28); // User ID 28 (HC/QMS user)
+
+        $revResponse = $this->actingAs($user)->get(route('user.revision_requests.index'));
+        $revResponse->assertStatus(200);
+
+        $socResponse = $this->actingAs($user)->get(route('user.socializations.index'));
+        $socResponse->assertStatus(200);
+    }
 }

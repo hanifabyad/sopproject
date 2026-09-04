@@ -102,7 +102,7 @@ class ELibraryCatalogSeeder extends Seeder
                 ]
             ],
             'SCM' => [
-                'company' => 'PT. PRIMA KARYA MANDIRI',
+                'company' => 'PT. PUTRA KELANA MAKMUR',
                 'units' => [
                     'PROCUREMENT' => [
                         ['title' => 'Kebijakan Mutu Pengadaan Barang dan Jasa Terpusat SCM', 'type' => 'dokumen-mutu'],
@@ -135,7 +135,7 @@ class ELibraryCatalogSeeder extends Seeder
                 ]
             ],
             'FA' => [
-                'company' => 'PT. PRIMA KARYA MANDIRI',
+                'company' => 'PT. PUTRA KELANA MAKMUR',
                 'units' => [
                     'KEUANGAN & ACCOUNTING' => [
                         ['title' => 'Kebijakan Akuntansi & Tata Kelola Keuangan Perusahaan', 'type' => 'dokumen-mutu'],
@@ -255,7 +255,7 @@ class ELibraryCatalogSeeder extends Seeder
                     ],
                     [
                         'division_name' => 'Support',
-                        'company_name'  => 'PT. PRIMA KARYA MANDIRI',
+                        'company_name'  => 'PT. PUTRA KELANA MAKMUR',
                         'support_type'  => $deptName,
                         'file_path'     => $filePath,
                         'uploaded_by'   => $adminId,

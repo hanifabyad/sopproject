@@ -8,9 +8,15 @@
     
     <!-- TOP BREADCRUMB & HEADER -->
     @php
+        $backParams = [];
+        if ($folder->category) $backParams['category'] = $folder->category;
+        if ($folder->division) $backParams['div'] = $folder->division;
+        if ($folder->department) $backParams['bu'] = $folder->department;
+        elseif ($folder->business_unit) $backParams['bu'] = $folder->business_unit;
+
         $folderBackUrl = $folder->parent_id 
             ? route('library.folder.show', $folder->parent_id) 
-            : (request()->is('admin/*') ? route('admin.library.index', ['category' => 'general']) : route('library.index', ['category' => 'general']));
+            : (count($backParams) > 0 ? route('library.index', $backParams) : (request()->is('admin/*') ? route('admin.library.index', ['category' => 'general']) : route('library.index', ['category' => 'general'])));
     @endphp
     <div class="bg-gradient-to-r from-[#1677B8] to-[#00b4d8] text-white rounded-lg p-6 shadow-sm border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -21,8 +27,16 @@
                     <i class="ph ph-books text-base"></i>
                     <span>Catalog</span>
                 </a>
-                <span>/</span>
-                <a href="{{ route('library.index') }}?category=general" class="hover:text-[#ffe16e] font-semibold capitalize">General Library</a>
+                
+                @if($folder->department || $folder->business_unit)
+                    <span>/</span>
+                    <a href="{{ route('library.index', $backParams) }}" class="hover:text-[#ffe16e] font-semibold capitalize">
+                        {{ $folder->department ?: $folder->business_unit }}
+                    </a>
+                @else
+                    <span>/</span>
+                    <a href="{{ route('library.index') }}?category=general" class="hover:text-[#ffe16e] font-semibold capitalize">General Library</a>
+                @endif
                 
                 @foreach($breadcrumbs as $bc)
                     <span>/</span>
@@ -127,9 +141,8 @@
                             <p class="text-[9px] text-[#8e8775] font-semibold">Waktu: {{ $file->created_at->format('Y/m/d H:i') }}</p>
                         </div>
 
-                        <div class="flex flex-col space-y-1.5 pt-2 border-t border-sand-200/30">
                             @if(in_array(strtolower($ext), ['pdf', 'png', 'jpg', 'jpeg']))
-                                <button onclick="viewFile('{{ route('library.file.stream', $file->id) }}', '{{ strtolower($ext) }}')" class="w-full py-2 bg-charcoal-900 hover:bg-black text-gold-fixed rounded text-[10px] font-bold text-center capitalize tracking-wider flex items-center justify-center gap-1 transition-all">
+                                <button onclick="viewFile('{{ route('library.file.stream', $file->id) }}', '{{ strtolower($ext) }}', '{{ addslashes($file->name) }}')" class="w-full py-2 bg-[#1677B8] hover:bg-[#125d91] text-white rounded-[2px] text-[10px] font-bold text-center capitalize tracking-wider flex items-center justify-center gap-1 transition-all cursor-pointer">
                                     <i class="ph ph-eye text-xs"></i>
                                     <span>Preview Dokumen</span>
                                 </button>
@@ -166,62 +179,110 @@
     </div>
 </div>
 
-<!-- MODAL VIEW FILE -->
-<div id="fileViewModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden p-4 md:p-10">
-    <div class="bg-on-surface rounded-lg w-full h-full flex flex-col relative overflow-hidden shadow-2xl border border-sand-200/20">
-        <button onclick="closeFile()" class="absolute right-4 top-4 z-50 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black transition-all">
-            <span class="material-symbols-outlined text-lg">close</span>
-        </button>
-        <div class="flex-1 w-full h-full flex items-center justify-center p-4">
-            <iframe id="pdfFrame" class="w-full h-full rounded hidden" src="" frameborder="0"></iframe>
-            <img id="imageFrame" class="max-w-full max-h-full object-contain rounded hidden" src="">
+<!-- PROTECTED PDF VIEWER COMPONENT (CANVAS / NO DOWNLOAD) -->
+<x-protected-pdf-viewer />
+
+<!-- MODAL VIEW FILE (GAMBAR / NON-PDF PREVIEW) -->
+<div id="fileViewModal" class="fixed inset-0 bg-slate-900/85 backdrop-blur-xs z-[100] flex flex-col p-2 sm:p-4 md:p-6 hidden" onclick="handleFileModalBackdrop(event)">
+    <div class="w-full h-full flex flex-col max-w-6xl mx-auto shadow-2xl rounded-[2px] overflow-hidden bg-slate-900 border border-slate-700" onclick="event.stopPropagation()">
+        <!-- MODAL TOP BAR -->
+        <div class="bg-gradient-to-r from-[#1677B8] to-[#00b4d8] text-white px-4 py-2.5 flex items-center justify-between flex-shrink-0 shadow-sm border-b border-white/10 select-none">
+            <div class="flex items-center space-x-2.5 min-w-0 pr-3">
+                <div class="w-7 h-7 bg-white/20 rounded-[2px] flex items-center justify-center flex-shrink-0 text-white">
+                    <i class="ph ph-image text-base text-[#ffe16e]"></i>
+                </div>
+                <div class="min-w-0">
+                    <h3 id="fileViewTitle" class="text-xs font-semibold uppercase tracking-wider text-white truncate">Preview Berkas</h3>
+                    <p class="text-[10px] text-white/80 font-medium truncate">e-QMS PT PKM Group &bull; E-Library File Viewer (Hanya Baca)</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 flex-shrink-0">
+                @if(Auth::check() && Auth::user()->role === 'admin')
+                <a id="fileViewNewTab" href="#" target="_blank" 
+                   class="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-[2px] border border-white/25 flex items-center gap-1.5 transition-all shadow-xs" 
+                   title="Buka Dokumen di Tab Baru (Khusus Admin)">
+                    <i class="ph ph-arrow-square-out text-sm"></i>
+                    <span class="hidden sm:inline">Tab Baru</span>
+                </a>
+                @endif
+                <button type="button" onclick="closeFile()" 
+                        class="px-3 py-1.5 bg-white text-[#1677B8] hover:bg-slate-100 font-extrabold text-xs rounded-[2px] flex items-center gap-1.5 transition-all shadow-sm cursor-pointer" 
+                        title="Tutup Preview Dokumen (Tekan ESC)">
+                    <i class="ph ph-x text-sm"></i>
+                    <span>Tutup (ESC)</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- MODAL BODY: GAMBAR -->
+        <div class="flex-1 w-full bg-slate-950 overflow-hidden relative flex items-center justify-center p-4" oncontextmenu="return false;">
+            <img id="imageFrame" class="max-w-full max-h-full object-contain select-none shadow-xl border border-slate-700 hidden" src="" style="-webkit-touch-callout: none;">
         </div>
     </div>
 </div>
 
 <!-- MODAL CREATE SUBFOLDER -->
+<!-- MODAL CREATE SUBFOLDER -->
 @if(Auth::user()?->role === 'admin')
-<div id="createFolderModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden">
-    <div class="bg-white rounded-lg p-6 max-w-md w-full border border-sand-200 shadow-lg">
-        <div class="flex items-center justify-between border-b border-sand-200/40 pb-3 mb-4">
-            <h3 class="font-extrabold text-sm text-on-surface capitalize tracking-wider">Buat Subfolder</h3>
-            <button onclick="closeCreateFolderModal()" class="text-gray-400 hover:text-gray-600">
-                <span class="material-symbols-outlined text-lg">close</span>
+<div id="createFolderModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-md bg-blue-50 text-[#1677B8] flex items-center justify-center font-bold">
+                    <i class="ph ph-folder-plus text-base"></i>
+                </div>
+                <h3 class="font-extrabold text-sm text-slate-900 capitalize tracking-wider">Buat Subfolder</h3>
+            </div>
+            <button onclick="closeCreateFolderModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer text-lg">
+                <i class="ph ph-x"></i>
             </button>
         </div>
         <form action="{{ route('admin.library.folder.create') }}" method="POST" class="space-y-4">
             @csrf
             <input type="hidden" name="parent_id" value="{{ $folder->id }}">
             <div>
-                <label class="text-[10px] font-bold text-on-surface-variant capitalize tracking-wider mb-1 block">Nama Folder</label>
-                <input type="text" name="name" class="w-full bg-sand-50 border border-sand-200 rounded-md p-2.5 font-semibold text-xs text-on-surface focus:bg-white focus:ring-2 focus:ring-gold-500 outline-none" placeholder="Ketik nama folder..." required>
+                <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1 block">Nama Subfolder <span class="text-rose-500">*</span></label>
+                <input type="text" name="name" class="w-full bg-slate-50 border border-slate-300 rounded-md p-2.5 font-bold text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#1677B8] outline-none" placeholder="Ketik nama subfolder..." required>
             </div>
-            <div class="flex space-x-3 pt-3">
-                <button type="button" onclick="closeCreateFolderModal()" class="flex-1 py-2.5 bg-sand-50 border border-sand-200 text-on-surface-variant rounded-md font-bold text-xs capitalize">Batal</button>
-                <x-interactive-button text="Buat Folder" class="flex-1" />
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button type="button" onclick="closeCreateFolderModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-md transition-all cursor-pointer">Batal</button>
+                <button type="submit" class="px-5 py-2 bg-[#1677B8] hover:bg-[#125d91] text-white font-bold text-xs rounded-md transition-all shadow-sm cursor-pointer">
+                    Buat Subfolder
+                </button>
             </div>
         </form>
     </div>
 </div>
 
 <!-- MODAL UPLOAD FILE -->
-<div id="uploadFileModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden">
-    <div class="bg-white rounded-lg p-6 max-w-md w-full border border-sand-200 shadow-lg">
-        <div class="flex items-center justify-between border-b border-sand-200/40 pb-3 mb-4">
-            <h3 class="font-extrabold text-sm text-on-surface capitalize tracking-wider">Upload Berkas Baru</h3>
-            <button onclick="closeUploadFileModal()" class="text-gray-400 hover:text-gray-600">
-                <span class="material-symbols-outlined text-lg">close</span>
+<div id="uploadFileModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-xl w-full max-w-md shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div class="bg-gradient-to-r from-[#002b5c] via-[#1677B8] to-[#0ea5e9] text-white p-5 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center font-bold">
+                    <i class="ph ph-cloud-arrow-up text-lg text-white"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black">Unggah Berkas ke Folder Ini</h3>
+                    <p class="text-[10px] text-white/80 font-medium">Folder: {{ $folder->name }}</p>
+                </div>
+            </div>
+            <button onclick="closeUploadFileModal()" class="text-white/80 hover:text-white text-lg cursor-pointer">
+                <i class="ph ph-x"></i>
             </button>
         </div>
-        <form action="{{ route('admin.library.folder.upload', $folder->id) }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+        <form action="{{ route('admin.library.folder.upload', $folder->id) }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
             @csrf
             <div>
-                <label class="text-[10px] font-bold text-on-surface-variant capitalize tracking-wider mb-1 block">Pilih Berkas (Maks 20MB)</label>
-                <x-file-input name="file" label="Pilih berkas" hint="Maksimal 20 MB" :max-size="20" :required="true" />
+                <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1 block">Pilih Berkas Dokumen <span class="text-rose-500">*</span></label>
+                <x-file-input name="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.zip" label="Pilih berkas dokumen" hint="PDF, Word, Excel, PPT, Gambar, ZIP (Maksimal 20 MB)" :required="true" :maxSize="20" />
             </div>
-            <div class="flex space-x-3 pt-3">
-                <button type="button" onclick="closeUploadFileModal()" class="flex-1 py-2.5 bg-sand-50 border border-sand-200 text-on-surface-variant rounded-md font-bold text-xs capitalize">Batal</button>
-                <x-interactive-button text="Upload Berkas" variant="success" class="flex-1" />
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button type="button" onclick="closeUploadFileModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-md transition-all cursor-pointer">Batal</button>
+                <button type="submit" class="px-5 py-2 bg-[#1677B8] hover:bg-[#125d91] text-white font-bold text-xs rounded-md transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
+                    <i class="ph ph-cloud-arrow-up"></i>
+                    <span>Unggah Berkas</span>
+                </button>
             </div>
         </form>
     </div>
@@ -229,26 +290,36 @@
 @endif
 
 <script>
-    function viewFile(url, ext) {
+    function viewFile(url, ext, name) {
         if (ext === 'pdf') {
-            document.getElementById('imageFrame').classList.add('hidden');
-            document.getElementById('pdfFrame').src = url + "#toolbar=0&navpanes=0";
-            document.getElementById('pdfFrame').classList.remove('hidden');
-        } else {
-            document.getElementById('pdfFrame').classList.add('hidden');
-            document.getElementById('pdfFrame').src = "";
-            document.getElementById('imageFrame').src = url;
-            document.getElementById('imageFrame').classList.remove('hidden');
+            viewPDF(url, name);
+            return;
         }
+
+        document.getElementById('fileViewTitle').textContent = name || 'Preview Berkas';
+        @if(Auth::check() && Auth::user()->role === 'admin')
+            const newTabEl = document.getElementById('fileViewNewTab');
+            if (newTabEl) newTabEl.href = url;
+        @endif
+
+        document.getElementById('imageFrame').src = url;
+        document.getElementById('imageFrame').classList.remove('hidden');
         document.getElementById('fileViewModal').classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     }
+
     function closeFile() {
         document.getElementById('fileViewModal').classList.add('hidden');
-        document.getElementById('pdfFrame').src = "";
         document.getElementById('imageFrame').src = "";
         document.body.style.overflow = 'auto';
     }
+
+    function handleFileModalBackdrop(e) {
+        if (e.target.id === 'fileViewModal') {
+            closeFile();
+        }
+    }
+
     function openCreateFolderModal() {
         document.getElementById('createFolderModal').classList.remove('hidden');
     }
@@ -262,12 +333,19 @@
         document.getElementById('uploadFileModal').classList.add('hidden');
     }
 
-    // Client-side Security & Anti-Leak protections
+    // Client-side Security & Anti-Leak protections + ESC Key to Close Modal
     document.addEventListener('contextmenu', function(e) {
         e.preventDefault();
     });
 
     document.addEventListener('keydown', function(e) {
+        // ESC key to close any open modal
+        if (e.key === 'Escape' || e.keyCode === 27) {
+            closeFile();
+            if (typeof closeCreateFolderModal === 'function') closeCreateFolderModal();
+            if (typeof closeUploadFileModal === 'function') closeUploadFileModal();
+        }
+
         // Disable F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+S, Ctrl+P
         if (
             e.keyCode === 123 || 

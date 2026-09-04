@@ -7,6 +7,11 @@
 
     <title>@yield('title', 'Admin Panel') - e-QMS PT PKM Group</title>
 
+    <!-- Favicon PKM Group -->
+    <link rel="icon" type="image/png" href="{{ asset('img/logopkm.png') }}?v=2">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('img/logopkm.png') }}?v=2">
+    <link rel="apple-touch-icon" href="{{ asset('img/logopkm.png') }}?v=2">
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -49,10 +54,8 @@
         }
 
         #main-container {
-            transition: padding-left 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease, transform 0.25s ease;
+            transition: padding-left 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
             will-change: padding-left;
-            backface-visibility: hidden;
-            transform: translateZ(0);
         }
 
         /* Smooth fade-in & slide transitions for sidebar text elements */
@@ -93,6 +96,63 @@
                 opacity: 1;
                 transform: translateY(0);
             }
+        }
+
+        /* Modern Ultra-Sleek Glassmorphic Scrollbar for Sidebar */
+        aside#sidebar nav,
+        aside#sidebar .custom-scrollbar,
+        aside#sidebar * {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+        }
+
+        aside#sidebar ::-webkit-scrollbar,
+        aside#sidebar::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+
+        aside#sidebar ::-webkit-scrollbar-track,
+        aside#sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        aside#sidebar ::-webkit-scrollbar-thumb,
+        aside#sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 9999px;
+            border: none;
+            transition: background 0.2s ease;
+        }
+
+        aside#sidebar ::-webkit-scrollbar-thumb:hover,
+        aside#sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Global Clean Scrollbar for Canvas & Content Area */
+        .custom-scrollbar,
+        html, body {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 #f8fafc;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
 
         /* Sidebar Collapsed Styles (Desktop only) */
@@ -227,11 +287,11 @@
         /* Page transition */
         .page-fade {
             opacity: 0;
-            transform: translateY(8px);
+            transition: opacity 0.25s ease;
         }
         .page-fade-active {
             opacity: 1;
-            transform: translateY(0);
+            transform: none !important;
         }
             /* ==========================================================================
            21st.dev / Magic UI — Interactive Hover Button Component
@@ -408,6 +468,187 @@
             color: #ffffff;
         }
 
+        /* ==========================================================================
+           Material 3 / Radix UI — Cinematic Sweep & Stagger Dropdown Animation
+           ========================================================================== */
+        @media (prefers-reduced-motion: no-preference) {
+            @keyframes m3-sweep-down {
+                0% { clip-path: inset(0 0 100% 0 round var(--m3-menu-radius, 12px)); opacity: 0; transform: translateY(-6px); }
+                100% { clip-path: inset(0 0 0 0 round var(--m3-menu-radius, 12px)); opacity: 1; transform: translateY(0); }
+            }
+            @keyframes m3-sweep-up {
+                0% { clip-path: inset(100% 0 0 0 round var(--m3-menu-radius, 12px)); opacity: 0; transform: translateY(6px); }
+                100% { clip-path: inset(0 0 0 0 round var(--m3-menu-radius, 12px)); opacity: 1; transform: translateY(0); }
+            }
+            @keyframes m3-item-cinematic {
+                0% { opacity: 0; transform: translateY(8px) scale(0.98); }
+                100% { opacity: 1; transform: translateY(0) scale(1); }
+            }
+
+            .m3-dropdown-menu,
+            [data-m3-dropdown],
+            .dropdown-content,
+            .menu-dropdown-content {
+                animation: m3-sweep-down 350ms cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+                transform-origin: top center;
+                border-radius: var(--m3-menu-radius, 12px);
+                box-shadow: 0px 8px 32px rgba(0, 0, 0, 0.12);
+                backdrop-filter: blur(16px);
+            }
+
+            .m3-dropdown-menu > *,
+            .dropdown-content > *,
+            .menu-dropdown-content > * {
+                animation: m3-item-cinematic 300ms cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+            }
+
+            /* Submenu Navigasi Sidebar Material 3 Cinematic Animation */
+            .sidebar-sub-menu:not(.hidden) {
+                display: block !important;
+                animation: m3-sweep-down 320ms cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+                transform-origin: top center;
+            }
+
+            .sidebar-sub-menu:not(.hidden) > * {
+                opacity: 0;
+                animation: m3-item-cinematic 280ms cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+            }
+            .sidebar-sub-menu:not(.hidden) > *:nth-child(1) { animation-delay: 20ms; }
+            .sidebar-sub-menu:not(.hidden) > *:nth-child(2) { animation-delay: 50ms; }
+            .sidebar-sub-menu:not(.hidden) > *:nth-child(3) { animation-delay: 80ms; }
+            .sidebar-sub-menu:not(.hidden) > *:nth-child(4) { animation-delay: 110ms; }
+            .sidebar-sub-menu:not(.hidden) > *:nth-child(5) { animation-delay: 140ms; }
+            .sidebar-sub-menu:not(.hidden) > *:nth-child(6) { animation-delay: 170ms; }
+            .sidebar-sub-menu:not(.hidden) > *:nth-child(7) { animation-delay: 200ms; }
+            .sidebar-sub-menu:not(.hidden) > *:nth-child(8) { animation-delay: 230ms; }
+            .sidebar-sub-menu:not(.hidden) > *:nth-child(9) { animation-delay: 260ms; }
+            .sidebar-sub-menu:not(.hidden) > *:nth-child(10) { animation-delay: 290ms; }
+
+            /* Submenu Items Smooth Hover Physics */
+            .sidebar-sub-menu a {
+                position: relative;
+                overflow: hidden;
+                transition: transform 180ms ease, background-color 180ms ease, color 180ms ease;
+            }
+            .sidebar-sub-menu a:hover {
+                transform: translateX(4px);
+            }
+            .sidebar-sub-menu a:active {
+                transform: scale(0.97);
+            }
+
+            /* M3 Interactive Ripple Wave */
+            .m3-ripple-wave {
+                position: absolute;
+                border-radius: 50%;
+                background: radial-gradient(closest-side, currentColor 65%, transparent 100%);
+                animation: m3-ripple-expand 450ms cubic-bezier(0.2, 0, 0, 1) forwards;
+            }
+
+            @keyframes m3-ripple-expand {
+                0% { transform: scale(0); opacity: 0.25; }
+                100% { transform: scale(2.5); opacity: 0; }
+            }
+
+            .sidebar-sub-menu.m3-closing {
+                display: block !important;
+                animation: m3-sweep-up 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+            }
+
+            /* Universal Material 3 Custom Select Dropdown */
+            .m3-select-wrapper {
+                position: relative;
+                display: block;
+                width: 100%;
+            }
+            .m3-select-trigger {
+                position: relative;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                width: 100%;
+                cursor: pointer;
+                user-select: none;
+                transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+            }
+            .m3-select-trigger:focus-visible,
+            .m3-select-trigger.active {
+                outline: none;
+                border-color: #1677B8 !important;
+                box-shadow: 0 0 0 2px rgba(22, 119, 184, 0.2) !important;
+            }
+            .m3-select-caret {
+                transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
+                flex-shrink: 0;
+            }
+            .m3-select-trigger.active .m3-select-caret {
+                transform: rotate(180deg);
+            }
+            .m3-select-menu {
+                position: fixed;
+                max-height: 240px;
+                overflow-y: auto;
+                background-color: #ffffff !important;
+                border: 1px solid #cbd5e1;
+                border-radius: 8px;
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+                padding: 4px;
+                z-index: 999999;
+                transform-origin: top center;
+                animation: m3-sweep-down 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            }
+            .m3-select-menu.m3-closing {
+                animation: m3-sweep-up 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+            }
+            .m3-select-menu.flip-up {
+                transform-origin: bottom center;
+                animation: m3-sweep-up-flip 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            }
+            .m3-select-menu.flip-up.m3-closing {
+                animation: m3-sweep-down-flip 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+            }
+            @keyframes m3-sweep-up-flip {
+                0% { clip-path: inset(100% 0 0 0 round 8px); opacity: 0; transform: translateY(6px); }
+                100% { clip-path: inset(0 0 0 0 round 8px); opacity: 1; transform: translateY(0); }
+            }
+            @keyframes m3-sweep-down-flip {
+                0% { clip-path: inset(0 0 0 0 round 8px); opacity: 1; transform: translateY(0); }
+                100% { clip-path: inset(100% 0 0 0 round 8px); opacity: 0; transform: translateY(6px); }
+            }
+            .m3-select-item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 6px 10px;
+                font-size: 11.5px;
+                font-weight: 600;
+                color: #1e293b;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: background-color 140ms ease, color 140ms ease;
+                animation: m3-item-cinematic 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            }
+            .m3-select-item:hover, .m3-select-item.focused {
+                background-color: #eff6ff;
+                color: #1677B8;
+            }
+            .m3-select-item.selected {
+                background-color: #f0f9ff;
+                color: #1677B8;
+                font-weight: 700;
+            }
+            .m3-select-menu > *:nth-child(1) { animation-delay: 15ms; }
+            .m3-select-menu > *:nth-child(2) { animation-delay: 30ms; }
+            .m3-select-menu > *:nth-child(3) { animation-delay: 45ms; }
+            .m3-select-menu > *:nth-child(4) { animation-delay: 60ms; }
+            .m3-select-menu > *:nth-child(5) { animation-delay: 75ms; }
+            .m3-select-menu > *:nth-child(6) { animation-delay: 90ms; }
+            .m3-select-menu > *:nth-child(7) { animation-delay: 105ms; }
+            .m3-select-menu > *:nth-child(8) { animation-delay: 120ms; }
+            .m3-select-menu > *:nth-child(n+9) { animation-delay: 135ms; }
+
+        }
+
         /* Section theme header helper */
         .section-theme-header {
             background: linear-gradient(110deg, #1677B8 0%, #00a8cc 100%);
@@ -506,15 +747,110 @@
                             <i class="ph ph-gauge text-sm mr-2"></i>
                             <span>Dashboard Utama</span>
                         </a>
+                        @php
+                            $sidebarInApprovalCount = \App\Models\Document::whereIn('status', ['waiting', 'review'])->count();
+                            $sidebarPendingEvaluations = \App\Models\Evaluation::where('status', 'submitted')->count();
+                            $sidebarPendingRev = \App\Models\RevisionRequest::where('status', 'pending')->count();
+                            $sidebarPendingSoc = \App\Models\DocumentSocialization::where('status', 'submitted')->count();
+                            $sidebarPendingSopReq = \App\Models\NewSopRequest::where('status', 'pending')->count();
+                            $sidebarTotalActivityVerif = $sidebarPendingRev + $sidebarPendingSoc + $sidebarPendingSopReq;
+                        @endphp
                         <a href="{{ route('admin.tracking') }}" 
-                           class="flex items-center px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all {{ request()->routeIs('admin.tracking') ? 'bg-white text-[#1677B8] font-bold shadow-sm' : 'text-white/80 hover:bg-white/10 hover:text-white' }}">
-                            <i class="ph ph-chart-donut text-sm mr-2"></i>
-                            <span>Tracking Siklus SOP</span>
+                           class="flex items-center justify-between px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all {{ request()->routeIs('admin.tracking') ? 'bg-white text-[#1677B8] font-bold shadow-sm' : 'text-white/80 hover:bg-white/10 hover:text-white' }}">
+                            <div class="flex items-center">
+                                <i class="ph ph-chart-donut text-sm mr-2"></i>
+                                <span>Tracking Siklus SOP</span>
+                            </div>
+                            @if($sidebarInApprovalCount > 0)
+                                <span class="px-1.5 py-0.2 bg-amber-400 text-slate-900 rounded-[2px] text-[9px] font-black" title="{{ $sidebarInApprovalCount }} SOP dalam tahap persetujuan">
+                                    {{ $sidebarInApprovalCount }}
+                                </span>
+                            @endif
                         </a>
                         <a href="{{ route('admin.evaluations.index') }}" 
-                           class="flex items-center px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all {{ request()->routeIs('admin.evaluations.*') ? 'bg-white text-[#1677B8] font-bold shadow-sm' : 'text-white/80 hover:bg-white/10 hover:text-white' }}">
-                            <i class="ph ph-clipboard-text text-sm mr-2"></i>
-                            <span>Evaluasi Berkala SOP</span>
+                           class="flex items-center justify-between px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all {{ request()->routeIs('admin.evaluations.*') ? 'bg-white text-[#1677B8] font-bold shadow-sm' : 'text-white/80 hover:bg-white/10 hover:text-white' }}">
+                            <div class="flex items-center">
+                                <i class="ph ph-clipboard-text text-sm mr-2"></i>
+                                <span>Evaluasi Berkala SOP</span>
+                            </div>
+                            @if($sidebarPendingEvaluations > 0)
+                                <span class="px-1.5 py-0.2 bg-amber-400 text-slate-900 rounded-[2px] text-[9px] font-black" title="{{ $sidebarPendingEvaluations }} Evaluasi Masuk">
+                                    {{ $sidebarPendingEvaluations }}
+                                </span>
+                            @endif
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Pusat Verifikasi & Review Dropdown Group -->
+                <div class="space-y-1">
+                    <div class="flex items-center justify-between rounded-lg font-semibold text-xs tracking-wide transition-all duration-150 group {{ request()->routeIs('admin.user_reviews.*') || request()->routeIs('admin.sop_requests.*') ? 'bg-canvas text-[#1677B8] font-extrabold sidebar-item-active' : 'text-white/85 hover:bg-white/10 hover:text-white' }}">
+                        <a href="{{ route('admin.user_reviews.index') }}" class="sidebar-item flex items-center flex-1 py-2.5 px-3.5 min-w-0 {{ request()->routeIs('admin.user_reviews.*') || request()->routeIs('admin.sop_requests.*') ? 'text-[#1677B8]' : 'text-white/85 hover:text-white' }}">
+                            <i class="ph ph-shield-check text-xl mr-2.5 {{ request()->routeIs('admin.user_reviews.*') || request()->routeIs('admin.sop_requests.*') ? 'text-[#1677B8]' : 'text-white/90' }}"></i>
+                            <span class="sidebar-text truncate">Pusat Verifikasi</span>
+                        </a>
+                        <div class="flex items-center">
+                            @if($sidebarTotalActivityVerif > 0)
+                                <span class="px-1.5 py-0.5 bg-amber-400 text-slate-900 rounded-[2px] text-[9.5px] font-black leading-none mr-1 flex-shrink-0" title="{{ $sidebarTotalActivityVerif }} Permintaan menunggu verifikasi">
+                                    {{ $sidebarTotalActivityVerif }}
+                                </span>
+                            @endif
+                            <button type="button" onclick="event.preventDefault(); event.stopPropagation(); toggleNavGroup('nav-verif')" 
+                                    class="sidebar-chevron-btn p-2 mr-1 rounded hover:bg-black/10 focus:outline-none transition-colors flex items-center justify-center cursor-pointer border-none bg-transparent text-inherit" title="Buka Submenu Verifikasi">
+                                <i id="nav-verif-chevron" class="ph ph-caret-down text-xs sidebar-chevron transition-transform duration-200"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="nav-verif" class="sidebar-sub-menu hidden pl-6 pr-1 py-1 space-y-1">
+                        <!-- 1. Permohonan Revisi SOP -->
+                        <a href="{{ route('admin.user_reviews.index', ['tab' => 'revision']) }}" 
+                           class="flex items-center justify-between px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all {{ request()->routeIs('admin.user_reviews.*') && (request('tab') === 'revision' || (!request('tab') && !request()->routeIs('admin.sop_requests.*'))) ? 'bg-white text-[#1677B8] font-bold shadow-sm' : 'text-white/80 hover:bg-white/10 hover:text-white' }}">
+                            <div class="flex items-center">
+                                <i class="ph ph-git-pull-request text-sm mr-2"></i>
+                                <span>Permohonan Revisi SOP</span>
+                            </div>
+                            @if($sidebarPendingRev > 0)
+                                <span class="px-1.5 py-0.2 bg-amber-400 text-slate-900 rounded-[2px] text-[9px] font-black">
+                                    {{ $sidebarPendingRev }}
+                                </span>
+                            @endif
+                        </a>
+
+                        <!-- 2. Verifikasi Sosialisasi -->
+                        <a href="{{ route('admin.user_reviews.index', ['tab' => 'socialization']) }}" 
+                           class="flex items-center justify-between px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all {{ request()->routeIs('admin.user_reviews.*') && request('tab') === 'socialization' ? 'bg-white text-[#1677B8] font-bold shadow-sm' : 'text-white/80 hover:bg-white/10 hover:text-white' }}">
+                            <div class="flex items-center">
+                                <i class="ph ph-camera text-sm mr-2"></i>
+                                <span>Verifikasi Sosialisasi</span>
+                            </div>
+                            @if($sidebarPendingSoc > 0)
+                                <span class="px-1.5 py-0.2 bg-amber-400 text-slate-900 rounded-[2px] text-[9px] font-black">
+                                    {{ $sidebarPendingSoc }}
+                                </span>
+                            @endif
+                        </a>
+
+                        <!-- 3. Usulan SOP Baru -->
+                        <a href="{{ route('admin.user_reviews.index', ['tab' => 'new_sop']) }}" 
+                           class="flex items-center justify-between px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all {{ request()->routeIs('admin.sop_requests.*') || (request()->routeIs('admin.user_reviews.*') && request('tab') === 'new_sop') ? 'bg-white text-[#1677B8] font-bold shadow-sm' : 'text-white/80 hover:bg-white/10 hover:text-white' }}">
+                            <div class="flex items-center">
+                                <i class="ph ph-file-plus text-sm mr-2"></i>
+                                <span>Usulan SOP Baru</span>
+                            </div>
+                            @if($sidebarPendingSopReq > 0)
+                                <span class="px-1.5 py-0.2 bg-amber-400 text-slate-900 rounded-[2px] text-[9px] font-black" title="{{ $sidebarPendingSopReq }} Usulan baru menunggu review">
+                                    {{ $sidebarPendingSopReq }}
+                                </span>
+                            @endif
+                        </a>
+
+                        <!-- 4. Hasil Kuis Karyawan -->
+                        <a href="{{ route('admin.user_reviews.index', ['tab' => 'quiz']) }}" 
+                           class="flex items-center justify-between px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all {{ request()->routeIs('admin.user_reviews.*') && request('tab') === 'quiz' ? 'bg-white text-[#1677B8] font-bold shadow-sm' : 'text-white/80 hover:bg-white/10 hover:text-white' }}">
+                            <div class="flex items-center">
+                                <i class="ph ph-exam text-sm mr-2"></i>
+                                <span>Hasil Kuis Pemahaman</span>
+                            </div>
                         </a>
                     </div>
                 </div>
@@ -538,7 +874,7 @@
                             <i id="nav-bu-chevron" class="ph ph-caret-down text-xs sidebar-chevron transition-transform duration-200"></i>
                         </button>
                     </div>
-                    <div id="nav-bu" class="sidebar-sub-menu hidden pl-3 pr-1 py-1 space-y-1 max-h-72 overflow-y-auto custom-scrollbar">
+                    <div id="nav-bu" class="sidebar-sub-menu hidden pl-3 pr-1 py-1 space-y-1">
                         <a href="{{ route('admin.BU.index') }}" 
                            class="flex items-center px-2.5 py-1.5 rounded-md text-[11px] font-bold capitalize transition-all {{ request()->routeIs('admin.BU.index') ? 'bg-white text-[#1677B8] shadow-sm' : 'text-white/90 hover:bg-white/10' }}">
                             <i class="ph ph-squares-four text-sm mr-2 text-white/90"></i>
@@ -645,7 +981,7 @@
                             <i id="nav-support-chevron" class="ph ph-caret-down text-xs sidebar-chevron transition-transform duration-200"></i>
                         </button>
                     </div>
-                    <div id="nav-support" class="sidebar-sub-menu hidden pl-4 pr-1 py-1 space-y-1 max-h-52 overflow-y-auto custom-scrollbar">
+                    <div id="nav-support" class="sidebar-sub-menu hidden pl-4 pr-1 py-1 space-y-1">
                         <a href="{{ route('admin.support.index') }}" 
                            class="flex items-center px-2.5 py-1.5 rounded-md text-[11px] font-bold capitalize transition-all {{ request()->routeIs('admin.support.index') ? 'bg-white text-[#1677B8] shadow-sm' : 'text-white/90 hover:bg-white/10' }}">
                             <i class="ph ph-squares-four text-sm mr-2 text-white/90"></i>
@@ -672,7 +1008,7 @@
                             <i id="nav-library-chevron" class="ph ph-caret-down text-xs sidebar-chevron transition-transform duration-200"></i>
                         </button>
                     </div>
-                    <div id="nav-library" class="sidebar-sub-menu hidden pl-3 pr-1 py-1 space-y-1 max-h-80 overflow-y-auto custom-scrollbar">
+                    <div id="nav-library" class="sidebar-sub-menu hidden pl-3 pr-1 py-1 space-y-1">
                         <a href="{{ route('admin.library.index') }}" 
                            class="flex items-center px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-all {{ request()->routeIs('admin.library.index') && !request('category') ? 'bg-white text-[#1677B8] font-bold shadow-sm' : 'text-white/80 hover:bg-white/10 hover:text-white' }}">
                             <i class="ph ph-squares-four text-sm mr-2 text-white/90"></i>
@@ -896,6 +1232,13 @@
                         </a>
                     </div>
                 </div>
+
+                <!-- Arsip Dokumen (Paling Bawah) -->
+                <a href="{{ route('admin.recycle_bin.index') }}" 
+                   class="sidebar-item flex items-center px-3.5 py-2.5 rounded-lg font-semibold text-xs tracking-wide transition-all duration-150 group {{ request()->routeIs('admin.recycle_bin.*') ? 'bg-canvas text-[#1677B8] font-extrabold sidebar-item-active' : 'text-white/85 hover:bg-white/10 hover:text-white' }}">
+                    <i class="ph ph-archive text-lg mr-2.5 {{ request()->routeIs('admin.recycle_bin.*') ? 'text-[#1677B8]' : 'text-white/90' }}"></i>
+                    <span class="sidebar-text truncate">Arsip Dokumen</span>
+                </a>
             </nav>
 
             <!-- User Footer & Logout (mt-auto) -->
@@ -929,7 +1272,7 @@
             </button>
 
             <!-- CANVAS AREA (Industrial Enterprise) -->
-            <main class="flex-1 lg:overflow-y-auto pt-6 px-4 md:px-6 pb-6 md:pb-8 custom-scrollbar">
+            <main class="flex-1 lg:overflow-y-auto pt-5 px-3 sm:px-4 md:px-5 pb-6 md:pb-8 custom-scrollbar">
                 @if(session('success'))
                     <div class="mb-5 p-3.5 bg-emerald-50 border-l-4 border-emerald-600 text-emerald-800 font-semibold text-xs rounded-r-md shadow-sm flex items-center space-x-2.5">
                         <span class="material-symbols-outlined text-base text-emerald-600">check_circle</span>
@@ -1021,9 +1364,16 @@
             const chevron = document.getElementById(groupId + '-chevron');
             if (menu) {
                 const isHidden = menu.classList.contains('hidden');
-                menu.classList.toggle('hidden');
-                if (chevron) {
-                    chevron.classList.toggle('rotate-180', !isHidden);
+                if (isHidden) {
+                    menu.classList.remove('hidden', 'm3-closing');
+                    if (chevron) chevron.classList.add('rotate-180');
+                } else {
+                    menu.classList.add('m3-closing');
+                    if (chevron) chevron.classList.remove('rotate-180');
+                    setTimeout(() => {
+                        menu.classList.add('hidden');
+                        menu.classList.remove('m3-closing');
+                    }, 220);
                 }
             }
         }
@@ -1084,124 +1434,16 @@
             };
             requestAnimationFrame(revealPage);
             window.addEventListener('pageshow', revealPage);
-
-            // Custom Confirm Modal Logic
-            const modal = document.getElementById('custom-confirm-modal');
-            const card = document.getElementById('custom-confirm-card');
-            const titleEl = document.getElementById('custom-confirm-title');
-            const iconEl = document.getElementById('custom-confirm-icon');
-            const msgEl = document.getElementById('custom-confirm-message');
-            const cancelBtn = document.getElementById('custom-confirm-cancel');
-            const okBtn = document.getElementById('custom-confirm-ok');
-            const closeBtn = document.getElementById('custom-confirm-close');
-            
-            let activeForm = null;
-
-            if (modal && card && titleEl && iconEl && msgEl && cancelBtn && okBtn && closeBtn) {
-                const initConfirmForms = () => {
-                    document.querySelectorAll('form[onsubmit*="confirm("]').forEach(form => {
-                        const onsubmitAttr = form.getAttribute('onsubmit');
-                        const match = onsubmitAttr.match(/confirm\(['"](.*?)['"]\)/);
-                        if (match) {
-                            const message = match[1];
-                            form.removeAttribute('onsubmit');
-                            form.setAttribute('data-confirm', message);
-                        }
-                    });
-                };
-
-                initConfirmForms();
-
-                const observer = new MutationObserver(() => {
-                    initConfirmForms();
-                });
-                observer.observe(document.body, { childList: true, subtree: true });
-
-                const showModal = (message, form) => {
-                    activeForm = form;
-                    msgEl.textContent = message;
-
-                    if (message.toLowerCase().includes('keluar') || message.toLowerCase().includes('logout')) {
-                        titleEl.textContent = 'Keluar Sistem';
-                        iconEl.textContent = 'logout';
-                        iconEl.className = 'material-symbols-outlined text-rose-500';
-                        okBtn.textContent = 'Keluar';
-                        okBtn.className = 'flex-1 bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-md font-bold text-xs capitalize shadow-sm cursor-pointer transition-all border-none focus:outline-none';
-                    } else {
-                        titleEl.textContent = 'Konfirmasi Hapus';
-                        iconEl.textContent = 'delete';
-                        iconEl.className = 'material-symbols-outlined text-amber-500';
-                        okBtn.textContent = 'Hapus';
-                        okBtn.className = 'flex-1 bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-md font-bold text-xs capitalize shadow-sm cursor-pointer transition-all border-none focus:outline-none';
-                    }
-
-                    modal.classList.remove('hidden');
-                    modal.offsetHeight;
-                    modal.style.opacity = '1';
-                    card.classList.remove('scale-95', 'opacity-0');
-                    card.classList.add('scale-100', 'opacity-100');
-                };
-
-                const hideModal = () => {
-                    card.classList.remove('scale-100', 'opacity-100');
-                    card.classList.add('scale-95', 'opacity-0');
-                    modal.style.opacity = '0';
-                    setTimeout(() => {
-                        modal.classList.add('hidden');
-                        activeForm = null;
-                    }, 200);
-                };
-
-                cancelBtn.addEventListener('click', hideModal);
-                closeBtn.addEventListener('click', hideModal);
-                
-                modal.addEventListener('click', (e) => {
-                    if (e.target === modal) hideModal();
-                });
-
-                okBtn.addEventListener('click', () => {
-                    if (activeForm) {
-                        activeForm.setAttribute('data-confirmed', 'true');
-                        activeForm.submit();
-                    }
-                    hideModal();
-                });
-
-                document.addEventListener('submit', (e) => {
-                    const form = e.target;
-                    const confirmMsg = form.getAttribute('data-confirm');
-                    
-                    if (confirmMsg && form.getAttribute('data-confirmed') !== 'true') {
-                        e.preventDefault();
-                        showModal(confirmMsg, form);
-                        return;
-                    }
-                });
-            }
         });
     </script>
 
-    <!-- Custom Premium Confirm Modal -->
-    <div id="custom-confirm-modal" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-200" style="opacity: 0;">
-        <div class="bg-white rounded-lg w-full max-w-md p-6 md:p-8 shadow-2xl border border-sand-200 space-y-4 transform scale-95 opacity-0 transition-all duration-200 ease-out" id="custom-confirm-card">
-            <!-- Header -->
-            <div class="flex justify-between items-center border-b border-sand-200/40 pb-3">
-                <h3 class="text-base font-bold text-on-surface flex items-center gap-2">
-                    <span class="material-symbols-outlined text-gold-500" id="custom-confirm-icon">warning</span>
-                    <span id="custom-confirm-title">Konfirmasi Aksi</span>
-                </h3>
-                <button type="button" id="custom-confirm-close" class="text-gray-400 hover:text-black text-2xl border-0 bg-transparent cursor-pointer">&times;</button>
-            </div>
-            <!-- Body -->
-            <div class="py-2">
-                <p class="text-xs font-semibold text-on-surface-variant leading-relaxed" id="custom-confirm-message"></p>
-            </div>
-            <!-- Footer -->
-            <div class="flex space-x-3 pt-3">
-                <button type="button" id="custom-confirm-cancel" class="flex-1 py-2.5 bg-sand-50 border border-sand-200 text-on-surface-variant rounded-md font-bold text-xs capitalize cursor-pointer hover:bg-sand-100 transition-all focus:outline-none">Batal</button>
-                <button type="button" id="custom-confirm-ok" class="focus:outline-none"></button>
-            </div>
-        </div>
-    </div>
+    <!-- E-QMS Table Sorter (File Explorer Column Sorting) -->
+    <script src="{{ asset('js/table-sorter.js') }}"></script>
+
+    <!-- E-QMS Custom Modern Dialog System -->
+    <script src="{{ asset('js/custom-dialog.js') }}"></script>
+
+    <!-- Material 3 Universal Dropdown Engine -->
+    <script src="{{ asset('js/m3-dropdown-engine.js') }}"></script>
 </body>
 </html>

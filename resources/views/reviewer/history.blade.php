@@ -6,15 +6,28 @@
 @section('content')
 <div class="space-y-6">
     <!-- HEADER HERO BANNER -->
-    <div class="bg-gradient-to-r from-[#1677B8] to-[#00b4d8] text-white rounded-lg p-6 shadow-sm border border-white/15 relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-            <h2 class="text-xl md:text-2xl font-extrabold text-white tracking-tight capitalize">Riwayat Dokumen</h2>
-            <p class="text-xs text-white/85 mt-1 font-medium">Dokumen yang pernah Anda setujui atau proses dalam alur e-QMS.</p>
-        </div>
+    <div class="bg-gradient-to-r from-[#1677B8] to-[#00b4d8] text-white rounded-lg p-6 shadow-sm border border-white/15 relative overflow-hidden flex flex-col gap-3">
+        <!-- Baris Tombol Kembali & Breadcrumb di Kiri -->
         <div class="flex items-center gap-3">
-            <div class="flex items-center gap-2 px-3.5 py-2 bg-white/20 border border-white/10 rounded-md text-xs font-bold text-white shadow-inner">
-                <i class="ph ph-clock-counter-clockwise text-base text-[#ffe16e]"></i>
-                <span>{{ $documents->count() }} Total Dokumen</span>
+            <x-back-button href="{{ route('reviewer.dashboard') }}" variant="light" text="Kembali" />
+            <span class="text-white/30">|</span>
+            <div class="flex items-center space-x-2 text-xs text-white/80 font-semibold">
+                <a href="{{ route('reviewer.dashboard') }}" class="hover:text-[#ffe16e] font-medium">Dashboard</a>
+                <span>/</span>
+                <span class="font-bold text-white">Riwayat Dokumen</span>
+            </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h2 class="text-xl md:text-2xl font-extrabold text-white tracking-tight capitalize">Riwayat Dokumen</h2>
+                <p class="text-xs text-white/85 mt-1 font-medium">Dokumen yang pernah Anda setujui atau proses dalam alur e-QMS.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 px-3.5 py-2 bg-white/20 border border-white/10 rounded-md text-xs font-bold text-white shadow-inner">
+                    <i class="ph ph-clock-counter-clockwise text-base text-[#ffe16e]"></i>
+                    <span>{{ $documents->count() }} Total Dokumen</span>
+                </div>
             </div>
         </div>
     </div>
@@ -65,7 +78,7 @@
                                             <span class="material-symbols-outlined text-base sm:text-lg">pending_actions</span>
                                         </div>
                                         <div class="min-w-0">
-                                            <p class="font-bold text-on-surface truncate max-w-[180px] sm:max-w-[290px]">{{ $doc->title }}</p>
+                                            <a href="{{ route('reviewer.show', $doc->id) }}" class="font-bold text-on-surface hover:text-[#1677B8] transition-colors truncate max-w-[180px] sm:max-w-[290px] block hover:underline cursor-pointer" title="{{ $doc->title }}">{{ $doc->title }}</a>
                                             <p class="text-[10px] text-on-surface-variant mt-0.5">No. {{ $doc->doc_number ?? '-' }} · Rev. {{ $doc->doc_revision ?? '0' }}</p>
                                         </div>
                                     </div>
@@ -91,10 +104,7 @@
                                 </td>
                                 <td class="px-3 sm:px-5 py-4">
                                     <div class="flex items-center justify-end gap-1.5 sm:gap-2">
-                                        <a href="{{ route('reviewer.show', $doc->id) }}" class="inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 bg-charcoal-900 text-gold-fixed hover:bg-black rounded-md text-[10px] font-extrabold capitalize tracking-wide transition-colors">
-                                            <span class="material-symbols-outlined text-sm">visibility</span>
-                                            <span class="hidden sm:inline">Lihat</span>
-                                        </a>
+                                        <x-interactive-button text="Lihat" variant="outline" icon="ph ph-eye text-xs" href="{{ route('reviewer.show', $doc->id) }}" />
                                         @if(filled($myNotes))
                                             <button type="button" onclick='openNotesModal(@json($doc->title), @json($myNotes))' class="inline-flex items-center justify-center w-8 h-8 bg-canvas border border-sand-200 text-on-surface-variant hover:text-[#1677B8] hover:border-[#1677B8] rounded-md transition-colors" title="Lihat catatan">
                                                 <span class="material-symbols-outlined text-base">comment</span>
@@ -161,7 +171,7 @@
                                             <span class="material-symbols-outlined text-base sm:text-lg">verified</span>
                                         </div>
                                         <div class="min-w-0">
-                                            <p class="font-bold text-on-surface truncate max-w-[180px] sm:max-w-[290px]">{{ $doc->title }}</p>
+                                            <a href="{{ route('reviewer.show', $doc->id) }}" class="font-bold text-on-surface hover:text-[#1677B8] transition-colors truncate max-w-[180px] sm:max-w-[290px] block hover:underline cursor-pointer" title="{{ $doc->title }}">{{ $doc->title }}</a>
                                             <p class="text-[10px] text-on-surface-variant mt-0.5">No. {{ $doc->doc_number ?? '-' }} · Rev. {{ $doc->doc_revision ?? '0' }}</p>
                                         </div>
                                     </div>
@@ -181,10 +191,7 @@
                                 </td>
                                 <td class="px-3 sm:px-5 py-4">
                                     <div class="flex items-center justify-end gap-1.5 sm:gap-2">
-                                        <a href="{{ route('reviewer.show', $doc->id) }}" class="inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 bg-charcoal-900 text-gold-fixed hover:bg-black rounded-md text-[10px] font-extrabold capitalize tracking-wide transition-colors">
-                                            <span class="material-symbols-outlined text-sm">visibility</span>
-                                            <span class="hidden sm:inline">Lihat</span>
-                                        </a>
+                                        <x-interactive-button text="Lihat" variant="outline" icon="ph ph-eye text-xs" href="{{ route('reviewer.show', $doc->id) }}" />
                                         @if(filled($myNotes))
                                             <button type="button" onclick='openNotesModal(@json($doc->title), @json($myNotes))' class="inline-flex items-center justify-center w-8 h-8 bg-canvas border border-sand-200 text-on-surface-variant hover:text-[#1677B8] hover:border-[#1677B8] rounded-md transition-colors" title="Lihat catatan">
                                                 <span class="material-symbols-outlined text-base">comment</span>

@@ -41,6 +41,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     
     // Admin folder and file management
     Route::post('/library/folder', [LibraryController::class, 'createFolder'])->name('library.folder.create');
+    Route::post('/library/upload', [LibraryController::class, 'uploadFile'])->name('library.upload');
     Route::post('/library/folder/{id}/upload', [LibraryController::class, 'uploadFile'])->name('library.folder.upload');
     Route::delete('/library/folder/{id}', [LibraryController::class, 'deleteFolder'])->name('library.folder.destroy');
     Route::delete('/library/file/{id}', [LibraryController::class, 'deleteFile'])->name('library.file.destroy');
@@ -93,7 +94,81 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     Route::get('/evaluations', [EvaluationController::class, 'adminIndex'])->name('evaluations.index');
     Route::get('/evaluations/{id}', [EvaluationController::class, 'adminShow'])->name('evaluations.show');
     Route::post('/evaluations/{id}/resolve', [EvaluationController::class, 'adminResolve'])->name('evaluations.resolve');
+
+    // Pusat Verifikasi & Review Aktivitas User (Request Revisi, Sosialisasi & Kuis)
+    Route::get('/user-reviews', [\App\Http\Controllers\AdminUserReviewController::class, 'index'])->name('user_reviews.index');
+
+    // 🗑️ Recycle Bin & Masa Retensi Dokumen Obsolete (3 Tahun)
+    Route::prefix('recycle-bin')->name('recycle_bin.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\AdminRecycleBinController::class, 'index'])->name('index');
+        Route::post('/{id}/restore', [\App\Http\Controllers\AdminRecycleBinController::class, 'restore'])->name('restore');
+        Route::delete('/{id}/force-delete', [\App\Http\Controllers\AdminRecycleBinController::class, 'forceDelete'])->name('force_delete');
+        Route::post('/purge-due', [\App\Http\Controllers\AdminRecycleBinController::class, 'purgeAllDue'])->name('purge_due');
+    });
+
+    // Catatan / Tindak Lanjut SLA Overdue Dokumen
+    Route::post('/documents/{id}/sla-action', [AdminController::class, 'updateSlaAction'])->name('documents.sla_action');
+
+    // Persetujuan & Penolakan Request Revisi oleh Admin
+    Route::post('/revision-requests/{id}/approve', [\App\Http\Controllers\SocializationAndRevisionController::class, 'approveRevisionRequest'])->name('revision_requests.approve');
+    Route::post('/revision-requests/{id}/reject', [\App\Http\Controllers\SocializationAndRevisionController::class, 'rejectRevisionRequest'])->name('revision_requests.reject');
+
+    // 💡 Kelola & Review Pengajuan SOP Baru oleh Admin
+    Route::get('/sop-requests', [\App\Http\Controllers\NewSopRequestController::class, 'adminIndex'])->name('sop_requests.index');
+    Route::post('/sop-requests/{id}/approve', [\App\Http\Controllers\NewSopRequestController::class, 'adminApprove'])->name('sop_requests.approve');
+    Route::post('/sop-requests/{id}/reject', [\App\Http\Controllers\NewSopRequestController::class, 'adminReject'])->name('sop_requests.reject');
+    Route::post('/sop-requests/{id}/request-revision', [\App\Http\Controllers\NewSopRequestController::class, 'adminRequestRevision'])->name('sop_requests.request_revision');
+    Route::post('/sop-requests/{id}/mark-in-progress', [\App\Http\Controllers\NewSopRequestController::class, 'adminMarkInProgress'])->name('sop_requests.mark_in_progress');
+
+    // Pengaturan Logo Perusahaan
+    Route::get('/company-logos', [\App\Http\Controllers\CompanyLogoController::class, 'index'])->name('company_logos.index');
+    Route::post('/company-logos', [\App\Http\Controllers\CompanyLogoController::class, 'update'])->name('company_logos.update');
+
+    // Verifikasi & Penolakan Bukti Sosialisasi oleh Admin
+    Route::get('/socializations/{id}', [\App\Http\Controllers\SocializationAndRevisionController::class, 'showAdminSocialization'])->name('socializations.show');
+    Route::post('/socializations/{id}/verify', [\App\Http\Controllers\SocializationAndRevisionController::class, 'verifySocialization'])->name('socializations.verify');
+    Route::post('/socializations/{id}/reject', [\App\Http\Controllers\SocializationAndRevisionController::class, 'rejectSocialization'])->name('socializations.reject');
 });
+
+// ==========================================
+// 📢 SOSIALISASI, REQUEST REVISI & KUIS 6 BULAN (AUTH USER)
+// ==========================================
+Route::middleware('auth')->group(function () {
+    // 💡 Pengajuan SOP Baru (User & Staff)
+    Route::get('/sop-requests', [\App\Http\Controllers\NewSopRequestController::class, 'index'])->name('user.sop_requests.index');
+    Route::post('/sop-requests', [\App\Http\Controllers\NewSopRequestController::class, 'store'])->name('user.sop_requests.store');
+    Route::put('/sop-requests/{id}', [\App\Http\Controllers\NewSopRequestController::class, 'update'])->name('user.sop_requests.update');
+
+    // 📢 Pusat Bukti Sosialisasi SOP (User & PIC)
+    Route::get('/socializations', [\App\Http\Controllers\SocializationAndRevisionController::class, 'userSocializationsIndex'])->name('user.socializations.index');
+    Route::get('/documents/{id}/socialize', [\App\Http\Controllers\SocializationAndRevisionController::class, 'createSocialization'])->name('documents.socialize');
+    Route::post('/attendance-sheet/generate', [\App\Http\Controllers\SocializationAndRevisionController::class, 'generateAttendanceSheet'])->name('socializations.attendance_sheet.generate');
+    
+    // 📱 QR Code Sesi Presensi Kehadiran Sosialisasi
+    Route::post('/socializations/sessions', [\App\Http\Controllers\SocializationAndRevisionController::class, 'createAttendanceSession'])->name('socializations.sessions.create');
+    Route::get('/socializations/sessions/{token}/live', [\App\Http\Controllers\SocializationAndRevisionController::class, 'getAttendanceSessionLive'])->name('socializations.sessions.live');
+    Route::get('/socializations/sessions/{token}/download-pdf', [\App\Http\Controllers\SocializationAndRevisionController::class, 'downloadSessionPdf'])->name('socializations.sessions.download_pdf');
+
+    // 📝 Pusat Permohonan Revisi SOP (User & Staff)
+    Route::get('/revision-requests', [\App\Http\Controllers\SocializationAndRevisionController::class, 'userRevisionRequestsIndex'])->name('user.revision_requests.index');
+
+    Route::post('/documents/{id}/socialization', [\App\Http\Controllers\SocializationAndRevisionController::class, 'storeSocialization'])->name('documents.socialization.store');
+    Route::get('/documents/{id}/socialization', [\App\Http\Controllers\SocializationAndRevisionController::class, 'showSocialization'])->name('documents.socialization.show');
+    Route::post('/documents/{id}/request-revision', [\App\Http\Controllers\SocializationAndRevisionController::class, 'storeRevisionRequest'])->name('documents.request_revision.store');
+
+    // Kuis Pemahaman SOP 6 Bulan (10 Soal: 7 PG + 3 Essay, KKM 70) (Poin 12)
+    Route::get('/documents/{id}/quiz', [\App\Http\Controllers\SopQuizController::class, 'showQuiz'])->name('documents.quiz.show');
+    Route::post('/documents/{id}/quiz/submit', [\App\Http\Controllers\SopQuizController::class, 'submitQuiz'])->name('documents.quiz.submit');
+    Route::post('/documents/{id}/quiz/regenerate', [\App\Http\Controllers\SopQuizController::class, 'regenerateQuiz'])->name('documents.quiz.regenerate');
+});
+
+// ==========================================
+// 📱 PUBLIC PRESENSI & KUIS OPERATOR VIA SCAN QR CODE
+// ==========================================
+Route::get('/presensi/{token}', [\App\Http\Controllers\SocializationAndRevisionController::class, 'showPresensiPage'])->name('socializations.presensi.show');
+Route::post('/presensi/{token}', [\App\Http\Controllers\SocializationAndRevisionController::class, 'submitPresensi'])->name('socializations.presensi.store');
+Route::post('/presensi/{token}/quiz', [\App\Http\Controllers\SocializationAndRevisionController::class, 'submitPresensiQuiz'])->name('socializations.presensi.quiz_submit');
+Route::get('/presensi/{token}/download-pdf', [\App\Http\Controllers\SocializationAndRevisionController::class, 'downloadSessionPdf'])->name('socializations.presensi.download_pdf');
 
 // ==========================================
 // ✒️ PEJABAT GROUP (REVIEWER)

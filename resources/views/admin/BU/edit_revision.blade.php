@@ -72,10 +72,6 @@
                             </p>
                         </div>
                     </div>
-                    <span class="px-2.5 py-1 rounded bg-red-50 text-red-700 text-[10px] font-extrabold border border-red-200 flex items-center gap-1">
-                        <i class="ph ph-warning-circle text-xs"></i>
-                        <span>Perlu Perbaikan</span>
-                    </span>
                 </div>
 
                 @if($reviewerNotes)
@@ -108,7 +104,7 @@
                     </div>
 
                     <x-pdf-annotator 
-                        :pdf-url="route('reviewer.stream.file', $document->id)"
+                        :pdf-url="route('reviewer.stream.file', $document->id) . '?t=' . ($document->updated_at ? $document->updated_at->timestamp : time())"
                         :read-only="true"
                         :initial-annotations="$annotations"
                         height="700px"
@@ -122,10 +118,20 @@
         <div class="lg:col-span-5 xl:col-span-5 w-full">
             <div class="bg-white rounded-lg p-5 md:p-6 shadow-sm border border-sand-200/60 space-y-5 sticky top-6">
                 <div class="border-b border-sand-200/40 pb-3">
-                    <span class="px-2 py-0.5 bg-red-50 text-red-700 font-bold text-[10px] uppercase rounded tracking-wider border border-red-200">Form Upload Revisi</span>
-                    <h3 class="text-base font-extrabold text-on-surface capitalize tracking-tight mt-1.5">Unggah Berkas Perbaikan</h3>
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-base font-extrabold text-on-surface capitalize tracking-tight">Unggah Berkas Perbaikan</h3>
+                        @if($document->revision_deadline)
+                            @php
+                                $isExp = now()->greaterThan($document->revision_deadline);
+                                $remDays = max(0, (int)now()->diffInDays($document->revision_deadline, false));
+                            @endphp
+                            <span class="px-2 py-0.5 text-[10px] font-bold rounded-[2px] {{ $isExp ? 'bg-rose-100 text-rose-800' : 'bg-purple-100 text-purple-800' }}">
+                                <i class="ph ph-hourglass-high"></i> {{ $isExp ? 'SLA Lewat' : "Sisa {$remDays} Hari" }}
+                            </span>
+                        @endif
+                    </div>
                     <p class="text-[11px] text-on-surface-variant mt-0.5 leading-relaxed">
-                        Unggah berkas baru <span class="font-bold text-red-600">hanya pada bagian yang memerlukan revisi</span>. Bagian yang dikosongkan akan tetap memakai berkas lama.
+                        Pilih bagian yang diperbaiki secara fleksibel. Bagian yang tidak diubah akan otomatis menggunakan berkas yang sudah ada.
                     </p>
                 </div>
 
@@ -141,40 +147,65 @@
                     @csrf
                     @method('PUT')
 
-                    <!-- Judul Dokumen -->
-                    <div>
-                        <label class="block text-xs font-bold text-on-surface capitalize tracking-wider mb-1">Judul Dokumen / SOP</label>
-                        <input type="text" name="title" value="{{ old('title', $document->title) }}" required
-                            class="w-full bg-sand-50 border border-sand-200 rounded-md p-2.5 font-semibold text-xs text-on-surface focus:bg-white focus:ring-2 focus:ring-[#1677B8] outline-none transition-all">
+                    <!-- Judul Dokumen & Versi Revisi Dinamis -->
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                        <div class="sm:col-span-8">
+                            <label class="block text-xs font-bold text-on-surface capitalize tracking-wider mb-1">Judul Dokumen / SOP</label>
+                            <input type="text" name="title" value="{{ old('title', $document->title) }}" required
+                                class="w-full bg-sand-50 border border-sand-200 rounded-[2px] p-2.5 font-semibold text-xs text-on-surface focus:bg-white focus:ring-2 focus:ring-[#1677B8] outline-none transition-all">
+                        </div>
+                        <div class="sm:col-span-4">
+                            <label class="block text-xs font-bold text-on-surface capitalize tracking-wider mb-1">Versi Revisi (Rev)</label>
+                            <input type="text" name="doc_revision" value="{{ old('doc_revision', (int)$document->doc_revision + 1) }}" required
+                                class="w-full bg-sand-50 border border-sand-200 rounded-[2px] p-2.5 font-bold text-xs text-[#1677B8] focus:bg-white focus:ring-2 focus:ring-[#1677B8] outline-none transition-all"
+                                placeholder="Contoh: 0, 1, 2">
+                        </div>
                     </div>
 
-                    <!-- 1. Cover -->
-                    <div class="p-3 bg-sand-50 rounded-md border border-sand-200 space-y-1.5">
-                        <label class="block text-xs font-bold text-on-surface">1. File Cover (PDF)</label>
+                    <!-- Pilihan Bagian yang Diperbaiki -->
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-[2px] space-y-2">
+                        <label class="block text-xs font-bold text-slate-800 flex items-center justify-between">
+                            <span>Bagian yang Diperbaiki:</span>
+                            <span class="text-[10px] text-[#1677B8] font-semibold">Bisa centang yang relevan</span>
+                        </label>
+                        <div class="grid grid-cols-3 gap-2 text-xs">
+                            <label class="flex items-center gap-1.5 p-2 bg-white rounded-[2px] border border-slate-200 font-semibold text-[11px] cursor-pointer hover:bg-blue-50 transition-all">
+                                <input type="checkbox" id="toggle_cover" checked onchange="toggleRevisionSection('cover')" class="rounded text-[#1677B8] w-3.5 h-3.5">
+                                <span>1. Cover</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 p-2 bg-white rounded-[2px] border border-slate-200 font-semibold text-[11px] cursor-pointer hover:bg-blue-50 transition-all">
+                                <input type="checkbox" id="toggle_isi" checked onchange="toggleRevisionSection('isi')" class="rounded text-[#1677B8] w-3.5 h-3.5">
+                                <span>2. Isi SOP</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 p-2 bg-white rounded-[2px] border border-slate-200 font-semibold text-[11px] cursor-pointer hover:bg-blue-50 transition-all">
+                                <input type="checkbox" id="toggle_lampiran" checked onchange="toggleRevisionSection('lampiran')" class="rounded text-[#1677B8] w-3.5 h-3.5">
+                                <span>3. Lampiran</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 1. Cover Section -->
+                    <div id="section_cover" class="p-3 bg-sand-50 rounded-[2px] border border-sand-200 space-y-1.5 transition-all">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-xs font-bold text-on-surface">1. File Cover (PDF)</label>
+                            <span class="text-[9.5px] text-slate-500">Opsional jika tidak berubah</span>
+                        </div>
                         <p class="text-[10.5px] text-on-surface-variant">File saat ini: <span class="font-mono font-bold text-slate-800">{{ basename($document->file_cover) }}</span></p>
                         <x-file-input name="file_cover" accept="application/pdf" label="Pilih file cover baru" hint="PDF, maks 10 MB" />
                     </div>
 
-                    <!-- 2. Lembar Pengesahan Info -->
-                    <div class="p-3 bg-[#f0f9ff] rounded-md border border-[#00b4d8]/30 space-y-1">
-                        <div class="flex items-center space-x-1.5 text-[#1677B8] font-bold text-xs">
-                            <i class="ph ph-sparkle text-sm text-[#00b4d8]"></i>
-                            <span>2. Lembar Pengesahan (Otomatis)</span>
+                    <!-- 2. File Isi Section -->
+                    <div id="section_isi" class="p-3 bg-sand-50 rounded-[2px] border border-sand-200 space-y-1.5 transition-all">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-xs font-bold text-on-surface">2. File Isi SOP (PDF)</label>
+                            <span class="text-[9.5px] text-slate-500">Opsional jika tidak berubah</span>
                         </div>
-                        <p class="text-[10.5px] text-on-surface-variant leading-relaxed">
-                            LP, tabel tanda tangan, dan nomor revisi (Rev {{ (int)$document->doc_revision + 1 }}) dibuat otomatis oleh sistem.
-                        </p>
-                    </div>
-
-                    <!-- 3. File Isi -->
-                    <div class="p-3 bg-sand-50 rounded-md border border-sand-200 space-y-1.5">
-                        <label class="block text-xs font-bold text-on-surface">3. File Isi SOP (PDF)</label>
                         <p class="text-[10.5px] text-on-surface-variant">File saat ini: <span class="font-mono font-bold text-slate-800">{{ basename($document->file_isi) }}</span></p>
                         <x-file-input name="file_isi" accept="application/pdf" label="Pilih file isi SOP baru" hint="PDF, maks 10 MB" />
                     </div>
 
-                    <!-- 4. Lampiran -->
-                    <div class="p-3 bg-sand-50 rounded-md border border-sand-200 space-y-2.5">
+                    <!-- 4. Lampiran Section -->
+                    <div id="section_lampiran" class="p-3 bg-sand-50 rounded-md border border-sand-200 space-y-2.5 transition-all">
                         <label class="block text-xs font-bold text-on-surface">4. File Lampiran (PDF) — <span class="text-on-surface-variant font-normal text-[10.5px]">Opsional</span></label>
                         
                         @php $allAtts = $document->all_attachments; @endphp
@@ -204,16 +235,22 @@
                         </div>
                     </div>
 
+                    <!-- 5. Ringkasan Perubahan / Change Notes (Dinamis) -->
+                    <div>
+                        <label for="change_summary" class="block text-xs font-bold text-slate-800 mb-1">Ringkasan Perubahan & Klausul yang Diubah (Opsional)</label>
+                        <textarea id="change_summary" name="notes" rows="2" placeholder="Contoh: Penyesuaian diagram alur pada Halaman 4 dan pembaruan format form lampiran..." class="w-full text-xs p-2.5 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#1677B8] font-medium text-slate-800"></textarea>
+                    </div>
+
                     <!-- Submit Button -->
                     <div class="pt-2">
                         <button type="submit" 
                             class="w-full btn-interactive font-extrabold capitalize tracking-wider py-3 shadow-md">
                             <span class="btn-interactive-default">
                                 <span class="btn-interactive-dot"></span>
-                                <span>Kirim File Perbaikan</span>
+                                <span>Kirim Berkas Perbaikan Revisi</span>
                             </span>
                             <span class="btn-interactive-hover">
-                                <span>Kirim File Perbaikan</span>
+                                <span>Kirim Berkas Perbaikan Revisi</span>
                                 <i class="ph ph-arrow-right text-sm"></i>
                             </span>
                             <span class="btn-interactive-bg"></span>
@@ -225,4 +262,20 @@
 
     </div>
 </div>
+
+<script>
+function toggleRevisionSection(sec) {
+    const secEl = document.getElementById('section_' + sec);
+    const chk = document.getElementById('toggle_' + sec);
+    if (secEl && chk) {
+        if (chk.checked) {
+            secEl.style.display = 'block';
+            secEl.style.opacity = '1';
+        } else {
+            secEl.style.display = 'none';
+            secEl.style.opacity = '0';
+        }
+    }
+}
+</script>
 @endsection

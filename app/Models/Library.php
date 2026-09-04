@@ -12,9 +12,12 @@ class Library extends Model
     // 🔥 PERBAIKAN: Sesuaikan nama kolom dengan database dan controller agar tidak diblokir Laravel!
     protected $fillable = [
         'title', 
+        'doc_number',
         'category', 
+        'doc_type',
         'division_name',  // 👈 Ubah dari 'division'
         'business_unit',  // 👈 Tambahkan ini
+        'support_type',
         'company_name', 
         'file_path', 
         'uploaded_by'

@@ -18,18 +18,21 @@ class AdminController extends Controller
         $buUnits = ['SPBU', 'BBM RETAIL', 'GAS RETAIL', 'BBM INMAR', 'GAS INDUSTRI', 'MARINE TRANSPORT', 'SHIPYARD'];
 
         $stats = [
-            'total_pegawai'  => User::where('role', '!=', 'admin')->count(),
-            'total_sop'      => Document::count(),
-            'sop_support'    => Document::whereNotIn('department', $buUnits)->count(),
-            'sop_divisi'     => Document::whereIn('department', $buUnits)->count(),
-            'pending_review' => Document::where('status', 'waiting')->count(),
+            'total_pegawai'        => User::where('role', '!=', 'admin')->count(),
+            'total_sop'            => Document::count(),
+            'sop_support'          => Document::whereNotIn('department', $buUnits)->count(),
+            'sop_divisi'           => Document::whereIn('department', $buUnits)->count(),
+            'pending_review'       => Document::where('status', 'waiting')->count(),
+            'pending_new_sop'      => \App\Models\NewSopRequest::where('status', 'pending')->count(),
+            'pending_revision_req' => \App\Models\RevisionRequest::where('status', 'pending')->count(),
         ];
 
+        $recentNewSops = \App\Models\NewSopRequest::with('user')->latest()->take(5)->get();
         $revisiDocs = Document::where('status', 'need_revision')->latest()->take(5)->get();
         $inProgressDocs = Document::where('status', 'waiting')->latest()->take(5)->get();
         $activeDocs = Document::where('status', 'active')->latest()->take(5)->get();
 
-        return view('admin.dashboard', compact('stats', 'revisiDocs', 'inProgressDocs', 'activeDocs'));
+        return view('admin.dashboard', compact('stats', 'recentNewSops', 'revisiDocs', 'inProgressDocs', 'activeDocs'));
     }
 
     public function tracking(Request $request)
@@ -86,6 +89,55 @@ class AdminController extends Controller
             'eval_completed' => (clone $baseQuery)->where('evaluation_status', 'completed')->count(),
         ];
 
+        // 1. Rekapitulasi Usia SOP Aktif (Berapa lama SOP dibuat / berjalan)
+        $activeDocsForAge = (clone $baseQuery)->where('status', 'active')->get();
+        $ageStats = [
+            'under_1m' => 0, // < 1 Bulan (< 30 hari)
+            '1m_to_6m' => 0, // 1 - 6 Bulan (30 - 180 hari)
+            '6m_to_1y' => 0, // 6 - 12 Bulan (181 - 365 hari)
+            '1y_to_2y' => 0, // 1 - 2 Tahun (366 - 730 hari)
+            'over_2y'  => 0, // > 2 Tahun (> 730 hari)
+        ];
+
+        foreach ($activeDocsForAge as $doc) {
+            $days = $doc->active_lifespan_days;
+            if ($days < 30) {
+                $ageStats['under_1m']++;
+            } elseif ($days <= 180) {
+                $ageStats['1m_to_6m']++;
+            } elseif ($days <= 365) {
+                $ageStats['6m_to_1y']++;
+            } elseif ($days <= 730) {
+                $ageStats['1y_to_2y']++;
+            } else {
+                $ageStats['over_2y']++;
+            }
+        }
+
+        // 2. Rekapitulasi SLA Approval Dokumen (Target: 13 Hari, Overdue: > 14 Hari)
+        $allDocsForSla = (clone $baseQuery)->get();
+        $slaStats = [
+            'target_days'    => 13,
+            'on_track'       => 0, // <= 10 hari
+            'warning'        => 0, // 11 - 13 hari
+            'overdue'        => 0, // > 14 hari
+            'pending_action' => 0, // > 14 hari & belum ada sla_notes
+        ];
+
+        foreach ($allDocsForSla as $doc) {
+            $pDays = $doc->process_duration_days;
+            if ($pDays <= 10) {
+                $slaStats['on_track']++;
+            } elseif ($pDays <= 13) {
+                $slaStats['warning']++;
+            } else {
+                $slaStats['overdue']++;
+                if (empty($doc->sla_notes)) {
+                    $slaStats['pending_action']++;
+                }
+            }
+        }
+
         // Daftar tahun yang ada dalam database untuk filter kurun tahun
         $availableYears = Document::selectRaw('YEAR(created_at) as year')
             ->distinct()
@@ -110,6 +162,8 @@ class AdminController extends Controller
         return view('admin.tracking', compact(
             'documents',
             'stats',
+            'ageStats',
+            'slaStats',
             'availableYears',
             'yearlyStats',
             'units',
@@ -118,6 +172,38 @@ class AdminController extends Controller
             'selectedStatus',
             'search'
         ));
+    }
+
+    /**
+     * Admin/User mencatat alasan / tindak lanjut keterlambatan SLA approval (> 14 hari)
+     */
+    public function updateSlaAction(Request $request, $id)
+    {
+        $request->validate([
+            'sla_notes' => 'required|string|max:1000',
+        ]);
+
+        $document = Document::findOrFail($id);
+        $document->update([
+            'sla_notes'     => $request->sla_notes,
+            'sla_action_by' => auth()->id(),
+            'sla_action_at' => now(),
+        ]);
+
+        $document->logs()->create([
+            'user_id' => auth()->id(),
+            'action'  => 'sla_action_logged',
+            'notes'   => 'Keterangan Keterlambatan SLA (>14 hari) dicatat: ' . $request->sla_notes,
+        ]);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Alasan & tindak lanjut keterlambatan SLA berhasil disimpan.'
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Alasan & tindak lanjut keterlambatan SLA berhasil disimpan.');
     }
 
     public function logoIndex()
@@ -218,7 +304,7 @@ class AdminController extends Controller
                 );
 
                 // Mengirim email undangan review ke pimpinan (Mengirim 3 Parameter Lengkap)
-                Mail::to($targetUser->email)->send(new NewDocumentReviewMail($document, $targetUser, $magicLoginUrl));
+                Mail::to($targetUser->email)->queue(new NewDocumentReviewMail($document, $targetUser, $magicLoginUrl));
             }
 
             // 6. REDIRECT KE HALAMAN DAFTAR DOKUMEN (SHOW)
@@ -263,7 +349,7 @@ class AdminController extends Controller
                 );
 
                 // Kirim email (Mengirim 3 Parameter Lengkap)
-                Mail::to($targetUser->email)->send(new NewDocumentReviewMail($document, $targetUser, $magicLoginUrl));
+                Mail::to($targetUser->email)->queue(new NewDocumentReviewMail($document, $targetUser, $magicLoginUrl));
             } catch (\Exception $e) {
                 \Log::error("Email Gagal dikirim ke Reviewer: " . $e->getMessage());
             }

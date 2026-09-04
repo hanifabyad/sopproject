@@ -50,7 +50,7 @@
             
             <div class="rounded-md overflow-hidden border border-sand-200 bg-canvas shadow-inner">
                 @php
-                    $pathToShow = $document->file_final ?? $document->file_preview ?? $document->file_lp;
+                    $pathToShow = ($document->status === 'active' ? $document->file_final : null) ?? $document->file_preview ?? $document->file_lp;
                 @endphp
                 <iframe src="{{ asset('storage/' . $pathToShow) }}#toolbar=0&navpanes=0" 
                         class="w-full min-h-[750px] border-none" 

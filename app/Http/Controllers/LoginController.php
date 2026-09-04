@@ -120,6 +120,18 @@ class LoginController extends Controller
         $request->session()->regenerate();
 
         // 5. FIX LOGIKA REDIRECT
+        if ($request->filled('redirect_to')) {
+            $msg = 'Berhasil masuk otomatis ke sistem e-QMS.';
+            if (str_contains($request->redirect_to, 'socializ')) {
+                $msg = 'Berhasil masuk otomatis! Silakan unggah berkas bukti sosialisasi SOP.';
+            } elseif (str_contains($request->redirect_to, 'revision')) {
+                $msg = 'Berhasil masuk otomatis ke halaman Permohonan Revisi SOP.';
+            } elseif (str_contains($request->redirect_to, 'quiz')) {
+                $msg = 'Berhasil masuk otomatis! Silakan kerjakan kuis pemahaman SOP.';
+            }
+            return redirect($request->redirect_to)->with('success', $msg);
+        }
+
         if ($user->role !== 'admin') {
             $evaluationId = $request->evaluation_id;
             $type = $request->type;
@@ -151,15 +163,23 @@ class LoginController extends Controller
                     }
                 }
 
-                // C. Cek apakah user adalah creator dari dokumen ini DAN dokumen memerlukan revisi
+                // C. Cek apakah user adalah creator / pemohon revisi yang disetujui DAN dokumen memerlukan revisi
                 if ($doc && $doc->status === 'need_revision') {
                     $isCreator = \App\Models\DocumentApproval::where('document_id', $documentId)
                         ->where('user_id', $user->id)
                         ->where('stage', 'creator')
                         ->exists();
-                    if ($isCreator) {
+
+                    $isApprovedRequester = \App\Models\RevisionRequest::where('document_id', $documentId)
+                        ->where('user_id', $user->id)
+                        ->where('status', 'approved')
+                        ->exists();
+
+                    $isOwner = $doc->created_by === $user->id;
+
+                    if ($isCreator || $isApprovedRequester || $isOwner || $user->role === 'admin') {
                         $buDepartments = ['SPBU', 'LPG PSO', 'LPG NPSO', 'PKSP', 'TRP', 'INMAR (CNGM)', 'CPT & MHM', 'SBS', 'GVI', 'PROCUREMENT', 'WAREHOUSE', 'ASET', 'GA', 'KEUANGAN & ACCOUNTING'];
-                        $creatorRoute = in_array($doc->department, $buDepartments, true)
+                        $creatorRoute = in_array(strtoupper($doc->department), $buDepartments, true)
                             ? 'admin.BU.creator_revise'
                             : 'admin.support.creator_revise';
                         return redirect()->route($creatorRoute, $documentId)

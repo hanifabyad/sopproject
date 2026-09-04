@@ -9,7 +9,14 @@ class LibraryFolder extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'parent_id'];
+    protected $fillable = [
+        'name',
+        'parent_id',
+        'category',
+        'division',
+        'department',
+        'business_unit',
+    ];
 
     public function parent()
     {

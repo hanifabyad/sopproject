@@ -148,8 +148,8 @@ class E2EWorkflowTest extends TestCase
             copy($finalPdfPath, $layoutFixPdf);
             $this->assertFileExists($layoutFixPdf);
 
-            Mail::assertSent(\App\Mail\NewDocumentReviewMail::class);
-            Mail::assertSent(\App\Mail\DocumentApprovedMail::class);
+            Mail::assertQueued(\App\Mail\NewDocumentReviewMail::class);
+            Mail::assertQueued(\App\Mail\DocumentApprovedMail::class);
 
         } finally {
             DB::rollBack();
@@ -226,14 +226,14 @@ class E2EWorkflowTest extends TestCase
             $this->assertEquals('need_revision', $document->status);
 
             // Verify email sent to creator
-            Mail::assertSent(\App\Mail\DocumentRevisionRequestedMail::class, function ($mail) use ($creator, $reviewer1) {
+            Mail::assertQueued(\App\Mail\DocumentRevisionRequestedMail::class, function ($mail) use ($creator, $reviewer1) {
                 return $mail->hasTo($creator->email) &&
                        $mail->requester->id === $reviewer1->id &&
                        strpos($mail->notes, 'Tolong perbaiki') !== false;
             });
 
             // Verify other reviewers did NOT receive resubmitted mail yet
-            Mail::assertNotSent(\App\Mail\DocumentRevisionResubmittedMail::class);
+            Mail::assertNotQueued(\App\Mail\DocumentRevisionResubmittedMail::class);
 
             // 4. Creator/Admin submits revised document
             $revisedIsi = $this->createMockPdf('Isi Revised', 2);
@@ -257,7 +257,7 @@ class E2EWorkflowTest extends TestCase
             $this->assertEquals('current', $reviewer1Approval->status);
 
             // Verify resubmitted email sent to Reviewer 1
-            Mail::assertSent(\App\Mail\DocumentRevisionResubmittedMail::class, function ($mail) use ($reviewer1) {
+            Mail::assertQueued(\App\Mail\DocumentRevisionResubmittedMail::class, function ($mail) use ($reviewer1) {
                 return $mail->hasTo($reviewer1->email);
             });
 
@@ -508,7 +508,7 @@ class E2EWorkflowTest extends TestCase
             $response->assertRedirect();
 
             // Verify Mail::sent count or types
-            Mail::assertSent(\App\Mail\DocumentRevisionResubmittedMail::class, function ($mail) use ($reviewer1, $reviewer2, $reviewer3, $finalApprover) {
+            Mail::assertQueued(\App\Mail\DocumentRevisionResubmittedMail::class, function ($mail) use ($reviewer1, $reviewer2, $reviewer3, $finalApprover) {
                 return in_array($mail->user->id, [$reviewer1->id, $reviewer2->id, $reviewer3->id, $finalApprover->id]);
             });
 

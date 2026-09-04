@@ -358,13 +358,26 @@
     const btnClearPage = root.querySelector('#btn-clear-page');
     if (btnClearPage) {
         btnClearPage.addEventListener('click', () => {
-            if (!confirm('Hapus semua coretan di halaman ini?')) return;
-            const canvas = fabricCanvases[currentPage];
-            if (canvas) {
-                canvas.clear();
-                canvas.renderAll();
-                delete allAnnotations[currentPage];
-                syncPayload();
+            const doClear = () => {
+                const canvas = fabricCanvases[currentPage];
+                if (canvas) {
+                    canvas.clear();
+                    canvas.renderAll();
+                    delete allAnnotations[currentPage];
+                    syncPayload();
+                }
+            };
+
+            if (typeof window.showCustomConfirm === 'function') {
+                window.showCustomConfirm({
+                    message: 'Hapus semua coretan dan catatan anotasi di halaman ini?',
+                    title: 'Hapus Coretan Halaman',
+                    confirmText: 'Hapus'
+                }).then(yes => {
+                    if (yes) doClear();
+                });
+            } else {
+                if (confirm('Hapus semua coretan di halaman ini?')) doClear();
             }
         });
     }

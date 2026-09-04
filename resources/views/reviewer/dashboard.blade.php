@@ -45,7 +45,7 @@
             <table class="w-full text-left border-collapse">
                 <thead class="bg-sand-50 border-b border-sand-200 text-[11px] font-bold capitalize tracking-wider text-on-surface-variant">
                     <tr>
-                        <th class="py-3 px-4 w-12 text-center">#</th>
+                        <th class="py-3 px-4 w-12 text-center">No</th>
                         <th class="py-3 px-4">Judul Dokumen SOP</th>
                         <th class="py-3 px-4 min-w-[155px]">Departemen / Unit</th>
                         <th class="py-3 px-4">Tanggal Pengajuan</th>
@@ -59,7 +59,7 @@
                         <td class="py-3.5 px-4">
                             <div class="flex items-center space-x-3">
                                 <i class="ph ph-file-text text-amber-500 text-lg flex-shrink-0"></i>
-                                <span class="font-bold text-on-surface capitalize hover:text-gold-500 transition-colors">{{ $doc->title }}</span>
+                                <a href="{{ route('reviewer.show', $doc->id) }}" class="font-bold text-on-surface hover:text-[#1677B8] transition-colors cursor-pointer hover:underline">{{ $doc->title }}</a>
                             </div>
                         </td>
                         <td class="py-3.5 px-4">
@@ -71,11 +71,7 @@
                             {{ $doc->created_at->format('d M Y - H:i') }} WIB
                         </td>
                         <td class="py-3.5 px-4 text-center">
-                            <a href="{{ route('reviewer.show', $doc->id) }}" 
-                               class="inline-flex items-center justify-center bg-charcoal-900 hover:bg-black text-gold-fixed px-4 py-2 rounded-md font-bold capitalize text-[10px] tracking-wider transition-all gap-1.5 shadow-sm">
-                                <span>Review</span>
-                                <i class="ph ph-arrow-right text-sm"></i>
-                            </a>
+                            <x-interactive-button text="Review" variant="blue" icon="ph ph-arrow-right text-sm" href="{{ route('reviewer.show', $doc->id) }}" />
                         </td>
                     </tr>
                     @empty
@@ -118,7 +114,7 @@
             <table class="w-full text-left border-collapse">
                 <thead class="bg-sand-50 border-b border-sand-200 text-[11px] font-bold capitalize tracking-wider text-on-surface-variant">
                     <tr>
-                        <th class="py-3 px-4 w-12 text-center">#</th>
+                        <th class="py-3 px-4 w-12 text-center">No</th>
                         <th class="py-3 px-4">Judul Dokumen SOP</th>
                         <th class="py-3 px-4 min-w-[155px]">Departemen / Unit</th>
                         <th class="py-3 px-4">Saya Setujui Pada</th>
@@ -145,7 +141,7 @@
                         <td class="py-3.5 px-4">
                             <div class="flex items-center space-x-3">
                                 <i class="ph ph-file-check text-emerald-500 text-lg flex-shrink-0"></i>
-                                <span class="font-bold text-on-surface capitalize">{{ $doc->title }}</span>
+                                <a href="{{ route('reviewer.show', $doc->id) }}" class="font-bold text-on-surface hover:text-[#1677B8] transition-colors cursor-pointer hover:underline">{{ $doc->title }}</a>
                             </div>
                         </td>
                         <td class="py-3.5 px-4">

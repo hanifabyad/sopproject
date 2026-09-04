@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>e-QMS — Login Portal PT PKM Group</title>
     <meta name="description" content="Electronic Quality Management System — Portal Login PT PKM Group.">
+
+    <!-- Favicon PKM Group -->
+    <link rel="icon" type="image/png" href="{{ asset('img/logopkm.png') }}?v=2">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('img/logopkm.png') }}?v=2">
+    <link rel="apple-touch-icon" href="{{ asset('img/logopkm.png') }}?v=2">
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

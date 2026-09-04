@@ -111,7 +111,7 @@
 
             <div class="flex-1 min-h-[750px] bg-canvas rounded-md overflow-hidden border border-sand-200">
                 @php
-                    $pathToShow = $pathFinal ?? $document->file_final ?? $document->file_preview ?? $document->file_lp;
+                    $pathToShow = ($document->status === 'active' ? ($pathFinal ?? $document->file_final) : null) ?? $document->file_preview ?? $document->file_lp;
                 @endphp
                 <iframe src="{{ asset('storage/' . $pathToShow) }}#toolbar=0" class="w-full h-full min-h-[750px] border-none"></iframe>
             </div>
@@ -199,39 +199,20 @@
                     <p class="text-[11px] text-red-600 leading-relaxed">
                         Dokumen ini memerlukan perbaikan berdasarkan hasil tinjauan reviewer. Klik tombol di bawah untuk mengunggah draf perbaikan.
                     </p>
-                    <a href="{{ auth()->user()->role === 'admin' ? route('admin.BU.edit_revision', $document->id) : route('admin.BU.creator_revise', $document->id) }}" 
-                       class="w-full btn-interactive btn-interactive-danger font-extrabold capitalize tracking-wider py-3">
-                        <span class="btn-interactive-default">
-                            <span class="btn-interactive-dot"></span>
-                            <span>Upload Revisi Dokumen</span>
-                        </span>
-                        <span class="btn-interactive-hover">
-                            <span>Upload Revisi Dokumen</span>
-                            <i class="ph ph-arrow-right text-sm"></i>
-                        </span>
-                        <span class="btn-interactive-bg"></span>
-                    </a>
+                    <x-interactive-button text="Upload Revisi Dokumen" variant="danger" icon="ph ph-arrow-right text-sm" href="{{ auth()->user()->role === 'admin' ? route('admin.BU.edit_revision', $document->id) : route('admin.BU.creator_revise', $document->id) }}" class="w-full justify-center py-3" />
                 </div>
             @endif
 
             <!-- DOWNLOAD & DELETE ACTIONS -->
             <div class="bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 space-y-3">
                 @if($document->status == 'active' && ($pathFinal || $document->file_final))
-                    <a href="{{ asset('storage/' . ($document->file_final ?? $pathFinal)) }}" 
-                       download 
-                       class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-bold text-xs capitalize tracking-wider transition-all shadow-sm flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined text-base">download_for_offline</span>
-                        <span>Unduh Dokumen Sah Final</span>
-                    </a>
+                    <x-interactive-button text="Unduh Dokumen Sah Final" variant="success" icon="ph ph-download-simple text-base" href="{{ asset('storage/' . ($document->file_final ?? $pathFinal)) }}" download class="w-full justify-center py-3" />
                 @endif
 
                 <form action="{{ route('admin.BU.document.delete', $document->id) }}" method="POST" onsubmit="return confirm('Hapus dokumen ini secara permanen?')">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="w-full py-2 text-red-600 hover:bg-red-50 rounded-md font-bold text-xs transition-all flex items-center justify-center gap-1.5 border border-red-200">
-                        <span class="material-symbols-outlined text-base">delete</span>
-                        <span>Hapus Permanen Dokumen</span>
-                    </button>
+                    <x-interactive-button text="Hapus Permanen Dokumen" variant="danger" icon="ph ph-trash text-base" type="submit" class="w-full justify-center py-2.5" />
                 </form>
             </div>
 

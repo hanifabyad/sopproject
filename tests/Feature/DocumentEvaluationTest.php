@@ -51,6 +51,8 @@ class DocumentEvaluationTest extends TestCase
                 'doc_number' => 'SOP-SPBU-001',
                 'doc_revision' => '0',
                 'doc_date' => '2025-08-10',
+                'effective_date' => now()->subYear()->subDay()->toDateString(),
+                'evaluation_due_date' => now()->subDay()->toDateString(),
             ]);
 
             // We explicitly overwrite created_at to trigger the 1-year logic
@@ -131,7 +133,7 @@ class DocumentEvaluationTest extends TestCase
             $this->assertEquals('completed', $document->evaluation_status);
                         // Due date should be updated to 1 year later
             $expectedNextDueDate = date('Y-m-d', strtotime($evaluation->due_date->toDateString() . ' +1 year'));
-            $this->assertEquals($expectedNextDueDate, $document->evaluation_due_date);
+            $this->assertEquals($expectedNextDueDate, $document->evaluation_due_date->toDateString());
 
             // 8. Test REVISION REQUIRED resolution
             // Let's create a new evaluation for another document
@@ -142,6 +144,8 @@ class DocumentEvaluationTest extends TestCase
                 'doc_number' => 'SOP-HC-002',
                 'doc_revision' => '0',
                 'doc_date' => '2025-08-10',
+                'effective_date' => now()->subYear()->subDay()->toDateString(),
+                'evaluation_due_date' => now()->subDay()->toDateString(),
             ]);
             DB::table('documents')->where('id', $doc2->id)->update([
                 'created_at' => now()->subMonths(13),

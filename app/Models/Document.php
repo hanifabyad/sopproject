@@ -14,8 +14,50 @@ class Document extends Model
         'file_lp', 'file_isi', 'file_lampiran', 'status', 
         'file_final', 'file_preview',
         'doc_number', 'doc_revision', 'doc_date', 'company_header',
-        'effective_date', 'evaluation_status', 'evaluation_due_date', 'evaluation_id'
+        'effective_date', 'evaluation_status', 'evaluation_due_date', 'evaluation_id',
+        'sla_notes', 'sla_action_by', 'sla_action_at',
+        'socialization_status', 'revision_deadline',
+        'obsolete_at', 'review_due_date'
     ];
+
+    protected $casts = [
+        'sla_action_at' => 'datetime',
+        'effective_date' => 'date',
+        'evaluation_due_date' => 'date',
+        'revision_deadline' => 'datetime',
+        'obsolete_at' => 'datetime',
+        'review_due_date' => 'date',
+    ];
+
+    public function quiz()
+    {
+        return $this->hasOne(SopQuiz::class, 'document_id');
+    }
+
+    public function quizAttempts()
+    {
+        return $this->hasMany(SopQuizAttempt::class, 'document_id');
+    }
+
+    public function socializations()
+    {
+        return $this->hasMany(DocumentSocialization::class, 'document_id')->latest();
+    }
+
+    public function latestSocialization()
+    {
+        return $this->hasOne(DocumentSocialization::class, 'document_id')->latestOfMany();
+    }
+
+    public function revisionRequests()
+    {
+        return $this->hasMany(RevisionRequest::class, 'document_id')->latest();
+    }
+
+    public function activeRevisionRequest()
+    {
+        return $this->hasOne(RevisionRequest::class, 'document_id')->whereIn('status', ['pending', 'approved'])->latestOfMany();
+    }
 
     public function evaluations()
     {
@@ -82,8 +124,63 @@ class Document extends Model
         return $this->belongsTo(User::class, 'reviewer_id');
     }
 
+    public function slaActionUser()
+    {
+        return $this->belongsTo(User::class, 'sla_action_by');
+    }
+
     public function logs()
     {
         return $this->hasMany(DocumentLog::class, 'document_id')->oldest();
+    }
+
+    /**
+     * Menghitung durasi proses pembuatan/approval SOP dalam satuan hari.
+     */
+    public function getProcessDurationDaysAttribute(): int
+    {
+        $startDate = $this->created_at ?: now();
+        
+        if ($this->status === 'active') {
+            $endDate = $this->effective_date 
+                ? \Carbon\Carbon::parse($this->effective_date) 
+                : ($this->updated_at ?: now());
+        } else {
+            $endDate = now();
+        }
+
+        return max(0, (int) $startDate->diffInDays($endDate));
+    }
+
+    /**
+     * Menghitung usia SOP aktif (sejak disahkan / effective_date hingga hari ini) dalam hari.
+     */
+    public function getActiveLifespanDaysAttribute(): int
+    {
+        $startDate = $this->effective_date 
+            ? \Carbon\Carbon::parse($this->effective_date) 
+            : ($this->created_at ?: now());
+
+        return max(0, (int) $startDate->diffInDays(now()));
+    }
+
+    /**
+     * Menentukan status SLA (target 13 hari, overdue jika > 14 hari).
+     */
+    public function getSlaStatusAttribute(): string
+    {
+        $days = $this->process_duration_days;
+        if ($days <= 10) {
+            return 'on_track'; // Aman (<= 10 hari)
+        } elseif ($days <= 13) {
+            return 'warning';  // Mendekati batas target (11-13 hari)
+        } else {
+            return 'overdue';  // Melebihi 14 hari
+        }
+    }
+
+    public function socializationSessions()
+    {
+        return $this->hasMany(\App\Models\SocializationAttendanceSession::class, 'document_id');
     }
 }

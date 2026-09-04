@@ -9,11 +9,8 @@
     <!-- HEADER WELCOME CARD -->
     <div class="bg-gradient-to-r from-[#1677B8] to-[#00b4d8] text-white rounded-lg p-6 shadow-sm relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div class="relative z-10">
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-extrabold capitalize tracking-wider bg-gold-fixed text-charcoal-900 mb-2.5">
-                <i class="ph ph-chart-line-up text-xs"></i> Evaluator Workspace
-            </span>
             <h2 class="text-xl md:text-2xl font-extrabold tracking-tight capitalize">
-                Evaluasi SOP Unit / Departemen Anda
+                Evaluasi SOP
             </h2>
             <p class="text-xs text-white/85 mt-1 max-w-xl font-medium">
                 Pemeriksaan berkala tahunan dokumen SOP berstatus aktif untuk memastikan kepatuhan standar, efisiensi, dan keabsahan operasional di lapangan.
@@ -39,7 +36,7 @@
             <table class="w-full text-left border-collapse">
                 <thead class="bg-sand-50 border-b border-sand-200 text-[11px] font-bold capitalize tracking-wider text-on-surface-variant">
                     <tr>
-                        <th class="py-3 px-4 w-12 text-center">#</th>
+                        <th class="py-3 px-4 w-12 text-center">No</th>
                         <th class="py-3 px-4">Judul Dokumen SOP</th>
                         <th class="py-3 px-4">Nomor Dokumen</th>
                         <th class="py-3 px-4 text-center">Versi</th>
@@ -75,11 +72,7 @@
                             </span>
                         </td>
                         <td class="py-3.5 px-4 text-center">
-                            <a href="{{ route('evaluations.show', $eval->id) }}" 
-                               class="inline-flex items-center justify-center bg-[#1677B8] hover:bg-[#1260a0] text-white px-3.5 py-1.5 rounded-md font-bold capitalize text-[10px] tracking-wider transition-all gap-1.5 shadow-sm border-none cursor-pointer">
-                                <span>Evaluasi</span>
-                                <i class="ph ph-arrow-right text-xs"></i>
-                            </a>
+                            <x-interactive-button text="Evaluasi" variant="blue" icon="ph ph-arrow-right text-xs" href="{{ route('evaluations.show', $eval->id) }}" />
                         </td>
                     </tr>
                     @empty
@@ -122,7 +115,7 @@
             <table class="w-full text-left border-collapse">
                 <thead class="bg-sand-50 border-b border-sand-200 text-[11px] font-bold capitalize tracking-wider text-on-surface-variant">
                     <tr>
-                        <th class="py-3 px-4 w-12 text-center">#</th>
+                        <th class="py-3 px-4 w-12 text-center">No</th>
                         <th class="py-3 px-4">Judul Dokumen SOP</th>
                         <th class="py-3 px-4">Nomor Dokumen</th>
                         <th class="py-3 px-4 text-center">Periode</th>
