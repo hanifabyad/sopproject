@@ -1,19 +1,20 @@
 # 🏢 Electronic Quality Management System (e-QMS) — PT Putra Kelana Makmur Group
 
-Sistem Manajemen Mutu Terpadu Berbasis Digital (e-QMS) untuk standarisasi pembuatan, evaluasi, revisi, tanda tangan digital multi-tahap (estafet), stempel sah otomatis (*auto-stamping*), permohonan SOP baru, bukti sosialisasi QR code, kuis pemahaman karyawan, dan katalog E-Library resmi untuk seluruh unit bisnis & departemen support di lingkungan **PT Putra Kelana Makmur (PKM Group)**.
+Sistem Manajemen Mutu Terpadu Berbasis Digital (e-QMS) untuk standarisasi pembuatan, evaluasi, revisi, tanda tangan digital multi-tahap (estafet), stempel sah otomatis (*auto-stamping*), permohonan SOP baru, bukti sosialisasi QR code, kuis pemahaman karyawan, master jabatan dinamis, dan katalog E-Library resmi untuk seluruh unit bisnis & departemen support di lingkungan **PT Putra Kelana Makmur (PKM Group)**.
 
 ---
 
 ## 📑 Daftar Isi
 1. [Arsitektur & Spesifikasi Teknologi](#-arsitektur--spesifikasi-teknologi)
-2. [Prasyarat Sistem (Prerequisites)](#-prasyarat-sistem-prerequisites)
-3. [🚀 Pilihan 1: Deployment via Docker (Rekomendasi Produksi & Staging)](#-pilihan-1-deployment-via-docker-rekomendasi-produksi--staging)
-4. [🖥️ Pilihan 2: Deployment via Direct Server (Non-Docker / VPS / Bare Metal)](#-pilihan-2-deployment-via-direct-server-non-docker--vps--bare-metal)
-5. [🗄️ Panduan Database, Migrasi & Seeder](#-panduan-database-migrasi--seeder)
-6. [⚙️ Konfigurasi Environment (.env) Penting](#-konfigurasi-environment-env-penting)
-7. [🛡️ Service Background: Queue Worker & Scheduler](#-service-background-queue-worker--scheduler)
-8. [🔍 Checklist Verifikasi Pasca-Deployment (Go-Live)](#-checklist-verifikasi-pasca-deployment-go-live)
-9. [🛠️ Pemecahan Masalah (Troubleshooting)](#-pemecahan-masalah-troubleshooting)
+2. [Fitur Unggulan Terbaru](#-fitur-unggulan-terbaru)
+3. [Prasyarat Sistem (Prerequisites)](#-prasyarat-sistem-prerequisites)
+4. [🚀 Pilihan 1: Deployment via Docker (Rekomendasi Produksi & Staging)](#-pilihan-1-deployment-via-docker-rekomendasi-produksi--staging)
+5. [🖥️ Pilihan 2: Deployment via Direct Server (Non-Docker / VPS / Shared Hosting)](#-pilihan-2-deployment-via-direct-server-non-docker--vps--shared-hosting)
+6. [🗄️ Panduan Database, Migrasi, Seeder & Sinkronisasi Excel](#-panduan-database-migrasi-seeder--sinkronisasi-excel)
+7. [⚙️ Konfigurasi Environment (.env) Produksi](#-konfigurasi-environment-env-produksi)
+8. [🛡️ Service Background: Queue Worker & Scheduler](#-service-background-queue-worker--scheduler)
+9. [🔍 Checklist Verifikasi Pasca-Deployment (Go-Live)](#-checklist-verifikasi-pasca-deployment-go-live)
+10. [🛠️ Pemecahan Masalah (Troubleshooting)](#-pemecahan-masalah-troubleshooting)
 
 ---
 
@@ -26,8 +27,27 @@ Sistem Manajemen Mutu Terpadu Berbasis Digital (e-QMS) untuk standarisasi pembua
 | **Frontend UI** | Blade Templating, Tailwind CSS, Phosphor Icons, Material Symbols, Vite |
 | **PDF Processing & Merging** | FPDI 2.6+, FPDF 1.86+, PDFMerger, Smalot PDFParser, PDF.js |
 | **PDF Compression Engine** | **QPDF 11+** (Krusial untuk normalisasi & digital stamping) |
-| **Background Processing** | Laravel Database Queue Worker & Cron Scheduler |
+| **PDF Delivery Engine** | **Secure Controller Streaming** (Bebas symlink traversal & anti-403 di hosting) |
+| **Role & Organization Engine** | Dynamic JSON-backed Role Management & Excel Importer |
+| **Background Processing** | Laravel Database Queue Worker / Sync Worker & Cron Scheduler |
 | **Authentication & Security** | SHA-256 Signed Magic Links, Role-Based Access Control (RBAC), Session Database |
+
+---
+
+## ✨ Fitur Unggulan Terbaru
+
+* **🛡️ Secure Controller PDF Streaming (Anti-403 Forbidden):**
+  Akses preview dokumen SOP dan file lampiran kini dialirkan langsung melalui backend controller (`response()->file()`). Menghilangkan error `403 Forbidden` pada server cPanel/shared hosting yang membatasi direct symlink folder `/storage/`.
+* **👔 Dynamic Role Management & Master Jabatan Fleksibel:**
+  Admin dapat menambahkan posisi/jabatan baru langsung melalui form akun tanpa perlu mengubah file migrasi database. Seluruh jabatan tersimpan rapi dan persisten pada file `storage/app/company_roles.json` dan basis data.
+* **📊 Categorized Role Dropdown UI:**
+  Pilihan jabatan pada form Registrasi & Edit Pegawai dikelompokkan secara visual dan hierarkis (Direksi & Pimpinan Eksekutif, Divisi Retail & Komersial, Divisi F&A, Unit Bisnis SPBU, Gas & SPPBE, Inmarr, CPT, serta Departemen Support).
+* **🔄 Sinkronisasi Pegawai & Jabatan dari Excel:**
+  Dukungan command otomatis `php artisan eqms:sync-roles-excel` untuk memetakan nama, email resmi `@pkmgroup.co.id`, dan role pejabat dari file Excel resmi perusahaan.
+* **⚖️ Multi-Departemen & Dual Role:**
+  Dukungan penugasan jabatan ganda (seperti `KA DEPT. Legal & HC Manager`) yang secara otomatis memiliki wewenang akses evaluasi dan sosialisasi di departemen Legal sekaligus Human Capital.
+* **✉️ SMTP Resilient Delivery:**
+  Optimalisasi pengiriman notifikasi email via Port 587 (TLS STARTTLS) dengan timeout 30 detik untuk menghindari pemblokiran firewall port 465 SSL di lingkungan hosting.
 
 ---
 
@@ -314,9 +334,9 @@ php artisan view:cache
 
 ---
 
-## 🗄️ Panduan Database, Migrasi & Seeder
+## 🗄️ Panduan Database, Migrasi, Seeder & Sinkronisasi Excel
 
-### Opsi 1: Setup Produksi Bersih (Clean Production)
+### 1. Setup Produksi Bersih (Clean Production)
 Digunakan saat pertama kali go-live di server produksi asli:
 ```bash
 php artisan migrate --force
@@ -324,55 +344,45 @@ php artisan db:seed --class=UserSeeder --force
 php artisan db:seed --class=LibraryFolderSeeder --force
 ```
 
-### Opsi 2: Setup Staging / UAT (Full Master Data & Evaluasi)
-Digunakan untuk server testing / demonstrasi kepada manajemen:
+### 2. Sinkronisasi Data Pegawai & Master Role Resmi
+Gunakan perintah ini kapan saja file master Excel diupdate di `storage/app/Role Digital SOP 26.07.26.xlsx`:
 ```bash
-php artisan migrate --seed --force
+php artisan eqms:sync-roles-excel
 ```
-
-### 🔑 Akun & Kredensial Default (Pasca-Seeder)
-
-| Role / Jabatan | Username | Email Default | Password Awal |
-| :--- | :--- | :--- | :--- |
-| **Administrator e-QMS** | `admin` | `admin@pkmgroup.com` | `password123` |
-| **Direktur Utama** | `dirut` | `dirut@pkmgroup.com` | `password123` |
-| **Ka. Div Retail** | `kadiv_retail` | `kadiv.retail@pkmgroup.com` | `password123` |
-| **Chief F&A** | `chief_fa` | `chief.fa@pkmgroup.com` | `password123` |
-| **KA.DEPT.QMS** | `ka_qms` | `qms@pkmgroup.com` | `password123` |
-| **KA.DEPT.IT** | `ka_it` | `it@pkmgroup.com` | `password123` |
-| **KA.DEPT.HC** | `ka_hc` | `hc@pkmgroup.com` | `password123` |
-| **KA.DEPT.HSE** | `ka_hse` | `hse@pkmgroup.com` | `password123` |
-| **Ka. BU SPBU** | `ka_spbu` | `spbu@pkmgroup.com` | `password123` |
-| **Ka. BU Gas & SPBE**| `ka_gas` | `gas@pkmgroup.com` | `password123` |
-| **Ka. BU Inmarr** | `ka_inmar` | `inmar@pkmgroup.com` | `password123` |
-| **Ka. BU CPT** | `ka_cpt` | `cpt@pkmgroup.com` | `password123` |
-
-> ⚠️ **PENTING UNTUK TIM IT:** Segera ubah password default seluruh akun di atas melalui menu **Kelola Pegawai / Users** setelah instalasi awal selesai!
+Perintah ini akan:
+- Memperbarui email resmi `@pkmgroup.co.id` untuk semua user.
+- Menyesuaikan jabatan pejabat struktural.
+- Menetapkan role khusus multi-departemen `KA DEPT. Legal & HC Manager` bagi PIC terkait.
+- Memperbarui daftar jabatan dinamis pada `storage/app/company_roles.json`.
 
 ---
 
-## ⚙️ Konfigurasi Environment (.env) Penting
+## ⚙️ Konfigurasi Environment (.env) Produksi
 
 | Key | Nilai Produksi yang Dianjurkan | Deskripsi |
 | :--- | :--- | :--- |
-| `APP_ENV` | `production` | Mengaktifkan mode produksi dan mematikan stack trace error publik. |
-| `APP_DEBUG` | `false` | **Wajib `false`** untuk mencegah kebocoran informasi keamanan. |
+| `APP_ENV` | `production` | Mode produksi aktif (matikan debug publik). |
+| `APP_DEBUG` | `false` | **Wajib `false`** untuk keamanan sistem. |
 | `APP_URL` | `https://eqms.pkmgroup.com` | Digunakan untuk pembuatan Magic Signed URL pada email. |
-| `SESSION_DRIVER` | `database` | Menjaga sesi login stabil saat multi-server / restart worker. |
-| `QUEUE_CONNECTION` | `database` | Memproses email notifikasi dan penandatanganan secara asynchronous. |
+| `SESSION_DRIVER` | `database` atau `file` | Manajemen sesi login pengguna. |
+| `QUEUE_CONNECTION` | `database` (VPS) / `sync` (Hosting) | Pengiriman email background atau instan. |
+| `MAIL_MAILER` | `smtp` | Driver email SMTP. |
+| `MAIL_PORT` | `587` | Port SMTP standard TLS STARTTLS. |
+| `MAIL_ENCRYPTION` | `tls` | Enkripsi TLS untuk komunikasi email aman. |
+| `MAIL_TIMEOUT` | `30` | Batas waktu respon koneksi SMTP (detik). |
 | `QPDF_BINARY_PATH` | `/usr/bin/qpdf` | Path mutlak ke executable QPDF di server. |
-| `FILESYSTEM_DISK` | `public` | Tempat penyimpanan file PDF naskah, revisi, dan E-Library. |
+| `FILESYSTEM_DISK` | `public` | Storage penyimpanan file dokumen e-QMS. |
 
 ---
 
 ## 🛡️ Service Background: Queue Worker & Scheduler
 
-Aplikasi e-QMS mengandalkan dua proses background yang **wajib selalu aktif**:
+Aplikasi e-QMS mengandalkan proses background untuk otomasi:
 
 1. **Queue Worker (`php artisan queue:work`):**
    * Mengirim email undangan review bertanda tangan digital (*Magic Signed Link*).
-   * Mengirim email pemberitahuan revisi, permohonan baru, dan dokumen selesai sah.
-   * Mengirim reminder evaluasi berkala.
+   * Mengirim email notifikasi revisi, permohonan SOP baru, dan sertifikat/dokumen sah.
+   * *Catatan:* Pada shared hosting yang tidak mendukung daemon worker, gunakan `QUEUE_CONNECTION=sync` di `.env` agar email langsung dikirim seketika.
 
 2. **Cron Scheduler (`php artisan schedule:run`):**
    * Pengecekan status kedaluwarsa dokumen (*SLA Overdue*).
@@ -387,47 +397,46 @@ Lakukan pengecekan checklist berikut sebelum menyerahkan sistem ke pengguna oper
 
 - [ ] Web app dapat diakses via HTTPS tanpa peringatan SSL.
 - [ ] Login Admin berhasil (`admin` / `password123`).
-- [ ] Folder storage terhubung (`storage/app/public` ter-symlink ke `public/storage`).
-- [ ] Unggah naskah SOP baru berhasil dan PDF gabungan terbuat di antrean review.
-- [ ] Stempel digital (*digital stamp*) tertera dengan benar di Lembar Pengesahan (memastikan QPDF berfungsi).
-- [ ] Email notifikasi keluar berhasil diterima di inbox pengguna.
+- [ ] Folder storage terhubung (`php artisan storage:link`).
+- [ ] Unggah naskah SOP baru berhasil dan PDF naskah preview tampil tanpa error 403 Forbidden.
+- [ ] Stempel digital (*digital stamp*) tertera dengan presisi di Lembar Pengesahan.
+- [ ] Email notifikasi keluar berhasil diterima di inbox pengguna via port 587 TLS.
 - [ ] Magic link di email dapat diklik dan langsung membuka dokumen tanpa login manual.
-- [ ] Supervisor queue worker berstatus `RUNNING`.
+- [ ] Dropdown jabatan menampilkan kategori terstruktur dan opsi penambahan role kustom berfungsi.
+- [ ] Supervisor queue worker berstatus `RUNNING` (atau `QUEUE_CONNECTION=sync` aktif).
 - [ ] Cron schedule berjalan setiap menit.
 
 ---
 
 ## 🛠️ Pemecahan Masalah (Troubleshooting)
 
-### 1. Error: *"QPDF failed to normalize file"* atau Stempel Digital Tidak Muncul
+### 1. Error: 403 Forbidden saat Membuka Preview Dokumen PDF di Hosting
+* **Penyebab:** Symlink public storage diblokir oleh web server shared hosting / cPanel.
+* **Solusi:** Sistem sudah dilengkapi fitur **Secure Controller Streaming**. Pastikan Anda menggunakan route bawaan `admin.BU.document.stream` atau `admin.support.document.stream` yang otomatis digunakan di halaman detail. Jalankan juga:
+  ```bash
+  php artisan optimize:clear
+  ```
+
+### 2. Error: Email Timeout / SMTP Connection Failed
+* **Penyebab:** Port 465 diblokir firewall hosting, atau queue worker tidak aktif.
+* **Solusi:**
+  1. Pastikan di `.env` menggunakan:
+     ```ini
+     MAIL_PORT=587
+     MAIL_ENCRYPTION=tls
+     MAIL_TIMEOUT=30
+     ```
+  2. Jika di cPanel/shared hosting tanpa background worker daemon, gunakan:
+     ```ini
+     QUEUE_CONNECTION=sync
+     ```
+
+### 3. Error: *"QPDF failed to normalize file"* atau Stempel Digital Tidak Muncul
 * **Penyebab:** Binary QPDF belum terpasang atau path di `.env` salah.
 * **Solusi:** 
   ```bash
   which qpdf
   # Pastikan di .env: QPDF_BINARY_PATH=/usr/bin/qpdf
-  ```
-
-### 2. Error: 403 Forbidden saat Membuka Preview Dokumen PDF
-* **Penyebab:** Symlink public storage belum dibuat atau hak akses folder storage salah.
-* **Solusi:**
-  ```bash
-  php artisan storage:link --force
-  sudo chown -R www-data:www-data storage bootstrap/cache
-  sudo chmod -R 775 storage bootstrap/cache
-  ```
-
-### 3. Email Notifikasi Tidak Terkirim
-* **Penyebab:** Queue worker belum dijalankan atau konfigurasi SMTP `.env` salah.
-* **Solusi:**
-  ```bash
-  # Cek status supervisor
-  sudo supervisorctl status eqms-worker:*
-
-  # Cek isi antrean jobs
-  php artisan queue:monitor database:default
-
-  # Cek error log Laravel
-  tail -n 50 storage/logs/laravel.log
   ```
 
 ### 4. Membersihkan Seluruh Cache Aplikasi (Setelah Update Kode)
