@@ -49,14 +49,18 @@ class DocumentApproval extends Model
             'Direktur CPT'         => ['stage' => 'final',    'signature_slot' => 'sig09'],
         ];
 
-        if (isset($mapping[$role])) {
-            return $mapping[$role];
+        $cleanRole = trim($role);
+        foreach ($mapping as $key => $val) {
+            if (strcasecmp($key, $cleanRole) === 0) {
+                return $val;
+            }
         }
 
-        if (str_contains(strtolower($role), 'dirut') || str_contains(strtolower($role), 'direktur')) {
+        $lowerRole = strtolower($cleanRole);
+        if (str_contains($lowerRole, 'dirut') || str_contains($lowerRole, 'direktur')) {
             return ['stage' => 'final', 'signature_slot' => 'sig09'];
         }
-        if (str_contains(strtolower($role), 'qms') || str_contains(strtolower($role), 'pembuat')) {
+        if (str_contains($lowerRole, 'qms') || str_contains($lowerRole, 'pembuat')) {
             return ['stage' => 'creator', 'signature_slot' => 'sig01'];
         }
 

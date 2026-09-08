@@ -6,6 +6,7 @@ use App\Models\Document;
 use App\Models\Evaluation;
 use App\Models\User;
 use App\Mail\EvaluationSubmittedMail;
+use App\Services\RoleManagementService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,46 +18,9 @@ class EvaluationController extends Controller
     /**
      * Helper to get responsible departments for a given user role.
      */
-    private function getDepartmentsForRole(string $role): array
+    private function getDepartmentsForRole(?string $role): array
     {
-        switch ($role) {
-            case 'KA.DEPT.HC': return ['HC'];
-            case 'KA.DEPT.IT': return ['IT'];
-            case 'KA.DEPT.QMS':
-            case 'Management Representative': return ['QMS'];
-            case 'KA.DEPT.HSE': return ['HSE'];
-            case 'KA.DEPT.ADMIN & LEGAL': return ['LEGAL', 'ADMIN & LEGAL'];
-            case 'KA.DEPT.INTERNAL AUDIT':
-            case 'Dept. Internal Audit':
-            case 'KA.DEPT.INTERNAL AUDIT & RISK MANAGEMENT': return ['INTERNAL AUDIT', 'INTERNAL AUDIT & RISK MANAGEMENT'];
-            case 'KA.DEPT.F & A':
-            case 'KA.DEPT.KEUANGAN': return ['FINANCE', 'KEUANGAN', 'F & A'];
-            case 'KA.DEPT.SALES & MARKETING': return ['LOGISTIC', 'OPS'];
-            case 'Ka. BU SPBU': return ['SPBU'];
-            case 'Ka. BU Gas & SPBE': return ['LPG PSO', 'LPG NPSO', 'PKSP', 'TRP'];
-            case 'Ka. BU Inmarr':
-            case 'Chief F & A Inmarr': return ['INMAR (CNGM)'];
-            case 'Ka. BU CPT':
-            case 'Direktur CPT': return ['CPT & MHM', 'SBS', 'GVI'];
-            case 'KA.DEPT.PROCRUTMEN': return ['PROCUREMENT'];
-            case 'KA.DEPT.CORPORATE SEKTARIS': return ['WAREHOUSE', 'ASET', 'GA'];
-            case 'Chief of Staff': return ['WAREHOUSE', 'ASET', 'GA', 'HC', 'IT', 'QMS', 'HSE'];
-            case 'Chief F&A':
-            case 'Ka. Div F&A': return ['FINANCE', 'KEUANGAN & ACCOUNTING', 'KEUANGAN', 'F & A'];
-            case 'Ka. Div Retail':
-            case 'Wa. Ka. Div Retail': return ['SPBU', 'LPG PSO', 'LPG NPSO', 'PKSP', 'TRP', 'LOGISTIC', 'OPS'];
-            case 'Direktur Utama': return ['HC', 'IT', 'QMS', 'HSE', 'LEGAL', 'INTERNAL AUDIT', 'FINANCE', 'LOGISTIC', 'OPS', 'SPBU', 'LPG PSO', 'LPG NPSO', 'PKSP', 'TRP', 'INMAR (CNGM)', 'CPT & MHM', 'SBS', 'GVI', 'PROCUREMENT', 'WAREHOUSE', 'ASET', 'GA'];
-            default:
-                if (stripos($role, 'HC') !== false || stripos($role, 'Human') !== false) return ['HC'];
-                if (stripos($role, 'IT') !== false) return ['IT'];
-                if (stripos($role, 'QMS') !== false) return ['QMS'];
-                if (stripos($role, 'HSE') !== false) return ['HSE'];
-                if (stripos($role, 'SPBU') !== false) return ['SPBU'];
-                if (stripos($role, 'LPG') !== false || stripos($role, 'Gas') !== false) return ['LPG PSO', 'LPG NPSO', 'PKSP', 'TRP'];
-                if (stripos($role, 'Inmar') !== false) return ['INMAR (CNGM)'];
-                if (stripos($role, 'CPT') !== false) return ['CPT & MHM', 'SBS', 'GVI'];
-                return [];
-        }
+        return RoleManagementService::getDepartmentsForRole($role);
     }
 
     /**

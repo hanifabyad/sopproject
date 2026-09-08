@@ -110,10 +110,7 @@
             </div>
 
             <div class="flex-1 min-h-[750px] bg-canvas rounded-md overflow-hidden border border-sand-200">
-                @php
-                    $pathToShow = ($document->status === 'active' ? ($pathFinal ?? $document->file_final) : null) ?? $document->file_preview ?? $document->file_lp;
-                @endphp
-                <iframe src="{{ asset('storage/' . $pathToShow) }}#toolbar=0" class="w-full h-full min-h-[750px] border-none"></iframe>
+                <iframe src="{{ route('admin.support.document.stream', $document->id) }}#toolbar=0" class="w-full h-full min-h-[750px] border-none"></iframe>
             </div>
         </div>
 
@@ -132,7 +129,7 @@
 
                 <div class="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
                     @foreach($allAtts as $idx => $att)
-                        <a href="{{ asset('storage/' . $att->file_path) }}" target="_blank" class="flex items-center justify-between p-2.5 bg-canvas rounded-md border border-sand-200 hover:bg-[#fff9ed] transition-all text-xs font-semibold text-on-surface">
+                        <a href="{{ route('admin.support.document.attachment.stream', ['id' => $document->id, 'attId' => $att->id]) }}" target="_blank" class="flex items-center justify-between p-2.5 bg-canvas rounded-md border border-sand-200 hover:bg-[#fff9ed] transition-all text-xs font-semibold text-on-surface">
                             <div class="flex items-center gap-2 truncate pr-2">
                                 <span class="text-gold-500 font-bold text-[10px]">{{ $idx + 1 }}.</span>
                                 <span class="material-symbols-outlined text-red-600 text-sm">picture_as_pdf</span>
@@ -246,7 +243,7 @@
             <!-- DOWNLOAD & DELETE ACTIONS -->
             <div class="bg-white rounded-lg p-6 shadow-sm border border-sand-200/60 space-y-3">
                 @if($document->status == 'active' && ($pathFinal || $document->file_final))
-                    <x-interactive-button text="Unduh Dokumen Sah Final" variant="success" icon="ph ph-download-simple text-base" href="{{ asset('storage/' . ($document->file_final ?? $pathFinal)) }}" download class="w-full justify-center py-3" />
+                    <x-interactive-button text="Unduh Dokumen Sah Final" variant="success" icon="ph ph-download-simple text-base" href="{{ route('admin.support.document.stream', $document->id) }}" download class="w-full justify-center py-3" />
                 @endif
 
                 <form action="{{ route('admin.support.document.delete', $document->id) }}" method="POST" onsubmit="return confirm('Hapus dokumen ini secara permanen?')">

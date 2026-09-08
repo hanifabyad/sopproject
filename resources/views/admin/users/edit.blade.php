@@ -52,13 +52,33 @@
                 </div>
 
                 <!-- Role -->
+                @php
+                    $roleGroups = $categorizedRoles ?? \App\Services\RoleManagementService::getCategorizedRoles();
+                @endphp
                 <div>
                     <label class="block text-xs font-bold text-on-surface capitalize tracking-wider mb-2">Jabatan / Role</label>
-                    <select name="role" class="w-full bg-sand-50 border border-sand-200 rounded-md p-3 font-semibold text-xs text-on-surface focus:bg-white focus:ring-2 focus:ring-gold-500 outline-none transition-all" required>
-                        @foreach($roles as $role)
-                            <option value="{{ $role }}" {{ $user->role == $role ? 'selected' : '' }}>{{ $role }}</option>
+                    <select name="role" id="roleSelect" onchange="toggleCustomRole(this.value)" class="w-full bg-sand-50 border border-sand-200 rounded-md p-3 font-semibold text-xs text-on-surface focus:bg-white focus:ring-2 focus:ring-gold-500 outline-none transition-all" required>
+                        <option value="">-- Pilih Jabatan Pegawai --</option>
+                        <option value="__custom__" {{ old('role') == '__custom__' ? 'selected' : '' }} class="font-bold text-[#1677B8] bg-blue-50 py-2">✨ + Ketik Jabatan Baru (Kustom)...</option>
+                        @foreach($roleGroups as $categoryName => $roleList)
+                            <option disabled class="font-extrabold text-[#1677B8] bg-slate-100 py-2">
+                                ━━━ {{ strtoupper($categoryName) }} ━━━
+                            </option>
+                            @foreach($roleList as $role)
+                                <option value="{{ $role }}" {{ (old('role', $user->role) == $role) ? 'selected' : '' }} class="font-semibold text-slate-800 py-1.5">
+                                    &nbsp;&nbsp;&nbsp;&nbsp;• {{ $role }}
+                                </option>
+                            @endforeach
+                            <option disabled class="bg-slate-50 py-0.5"></option>
                         @endforeach
                     </select>
+
+                    <!-- Input Tambahan Jika Memilih Jabatan Kustom Baru -->
+                    <div id="customRoleWrapper" class="{{ old('role') == '__custom__' ? '' : 'hidden' }} mt-2.5">
+                        <label class="block text-[11px] font-bold text-[#1677B8] mb-1">Nama Jabatan Baru / Kustom</label>
+                        <input type="text" name="custom_role" id="customRoleInput" value="{{ old('custom_role') }}" placeholder="Ketik jabatan, misal: Spv Maintenance, Legal Staff..." class="w-full bg-white border-2 border-[#1677B8]/40 rounded-md p-2.5 font-semibold text-xs text-on-surface focus:border-[#1677B8] focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder-slate-400">
+                        <p class="text-[10px] text-slate-500 mt-1">* Jabatan baru akan otomatis tersimpan ke daftar sistem.</p>
+                    </div>
                 </div>
 
                 <!-- Status -->
@@ -88,4 +108,19 @@
         </form>
     </div>
 </div>
+
+<script>
+function toggleCustomRole(val) {
+    const wrapper = document.getElementById('customRoleWrapper');
+    const input = document.getElementById('customRoleInput');
+    if (val === '__custom__') {
+        wrapper.classList.remove('hidden');
+        input.setAttribute('required', 'required');
+        input.focus();
+    } else {
+        wrapper.classList.add('hidden');
+        input.removeAttribute('required');
+    }
+}
+</script>
 @endsection

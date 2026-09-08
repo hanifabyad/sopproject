@@ -3,42 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\RoleManagementService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    /**
-     * Daftar role lengkap sesuai dokumen posisi
-     */
-private $roles = [
-    // --- STRUKTUR PIMPINAN & BU ---
-    'Direktur Utama', 
-    'Ka. Div Retail', 
-    'Wa. Ka. Div Retail', 
-    'Chief of Staff',
-    'Management Representative', // Trinwetty
-    'Marine Superintendent',    // Indrajat
-    'Chief F&A',
-    'Ka. Div F&A',
-    
-    // --- UNIT BISNIS (BU) ---
-    'Ka. BU SPBU', 'Chief F&A SPBU', 'Ka. Operasional SPBU', 'Ka. Operasional BBM Retail', 'Koordinator Sales & Marketing',
-    'Ka. BU Gas & SPBE', 'Chief F&A Gas', 'Ka. Operasional',
-    'Ka. BU Inmarr', 'Chief F & A Inmarr', 'Ka. Operasional Inmarr',
-    'Ka. BU CPT',
-    'Direktur CPT',
-    
-    // --- DEPARTEMEN SUPPORT ---
-    'KA.DEPT.HC', 'KA.DEPT.ADMIN & LEGAL', 'KA.DEPT.IT', 'KA.DEPT.CORPORATE SEKTARIS', 
-    'KA.DEPT.INTERNAL AUDIT & RISK MANAGEMENT', 'KA.DEPT.PAJAK', 'KA.DEPT.F & A', 
-    'KA.DEPT.KEUANGAN', 'KA.DEPT.SALES & MARKETING', 'KA.DEPT.QMS', 'KA.DEPT.HSE', 
-    'KA.DEPT.PROCRUTMEN', 'KA.DEPT.INTERNAL AUDIT','Dept. Internal Audit',
-    
-    // --- LAINNYA ---
-    'office', 'reviewer'
-];
     public function index(Request $request)
     {
         $search = $request->input('search');
@@ -57,21 +28,34 @@ private $roles = [
 
     public function create()
     {
-        $roles = $this->roles;
-        return view('admin.users.create', compact('roles'));
+        $roles = RoleManagementService::getAllRoles();
+        $categorizedRoles = RoleManagementService::getCategorizedRoles();
+        return view('admin.users.create', compact('roles', 'categorizedRoles'));
     }
 
     public function store(Request $request)
     {
         // 1. Validasi input
         $request->validate([
-            'full_name' => 'required|string|max:255',
-            'username'  => 'required|string|max:255|unique:users',
-            'email'     => 'required|string|email|max:255|unique:users',
-            'password'  => 'required|string|min:8',
-            'role'      => ['required'],
-            'status'    => 'required',
+            'full_name'   => 'required|string|max:255',
+            'username'    => 'required|string|max:255|unique:users',
+            'email'       => 'required|string|email|max:255|unique:users',
+            'password'    => 'required|string|min:8',
+            'role'        => 'required|string',
+            'custom_role' => 'nullable|string|max:255',
+            'status'      => 'required',
         ]);
+
+        $role = trim($request->role);
+        if ($role === '__custom__') {
+            $role = trim((string)$request->custom_role);
+            if ($role === '') {
+                return back()->withInput()->withErrors(['custom_role' => 'Nama jabatan baru/kustom wajib diisi jika memilih opsi kustom.']);
+            }
+            RoleManagementService::registerRole($role);
+        } else {
+            RoleManagementService::registerRole($role);
+        }
 
         try {
             // 2. Simpan ke Database
@@ -80,11 +64,11 @@ private $roles = [
                 'full_name' => $request->full_name,
                 'email'     => $request->email,
                 'password'  => Hash::make($request->password),
-                'role'      => $request->role,
+                'role'      => $role,
                 'status'    => $request->status ?? 1,
             ]);
 
-            return redirect()->route('admin.users.index')->with('success', 'Akun pimpinan berhasil didaftarkan!');
+            return redirect()->route('admin.users.index')->with('success', 'Akun pimpinan/pegawai berhasil didaftarkan!');
         } catch (\Exception $e) {
             return back()->withInput()->with('error', 'Gagal menyimpan: ' . $e->getMessage());
         }
@@ -96,26 +80,42 @@ private $roles = [
             return redirect()->route('admin.users.index')->with('error', 'Akun Admin tidak bisa diedit.');
         }
 
-        $roles = $this->roles;
-        return view('admin.users.edit', compact('user', 'roles'));
+        $roles = RoleManagementService::getAllRoles();
+        if (!empty($user->role) && !in_array($user->role, $roles)) {
+            $roles[] = $user->role;
+        }
+        $categorizedRoles = RoleManagementService::getCategorizedRoles();
+        return view('admin.users.edit', compact('user', 'roles', 'categorizedRoles'));
     }
 
     public function update(Request $request, User $user)
     {
         $request->validate([
-            'full_name' => ['required', 'string', 'max:255'],
-            'username'  => ['required', 'string', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'email'     => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'role'      => ['required', Rule::in($this->roles)],
-            'status'    => ['required', 'boolean'],
-            'password'  => ['nullable', 'string', 'min:8', 'confirmed'], 
+            'full_name'   => ['required', 'string', 'max:255'],
+            'username'    => ['required', 'string', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'email'       => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'role'        => ['required', 'string'],
+            'custom_role' => ['nullable', 'string', 'max:255'],
+            'status'      => ['required', 'boolean'],
+            'password'    => ['nullable', 'string', 'min:8', 'confirmed'], 
         ]);
+
+        $role = trim($request->role);
+        if ($role === '__custom__') {
+            $role = trim((string)$request->custom_role);
+            if ($role === '') {
+                return back()->withInput()->withErrors(['custom_role' => 'Nama jabatan baru/kustom wajib diisi jika memilih opsi kustom.']);
+            }
+            RoleManagementService::registerRole($role);
+        } else {
+            RoleManagementService::registerRole($role);
+        }
 
         $data = [
             'username'  => $request->username,
             'full_name' => $request->full_name,
             'email'     => $request->email,
-            'role'      => $request->role,
+            'role'      => $role,
             'status'    => $request->status,
         ];
         

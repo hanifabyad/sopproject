@@ -386,6 +386,61 @@ class SupportController extends Controller
     }
 
     /**
+     * Stream berkas PDF dokumen Support agar bebas dari error 403 Forbidden di server hosting
+     */
+    public function streamFile(int $id)
+    {
+        $document = Document::findOrFail($id);
+        $relativeFile = ($document->status === 'active' ? $document->file_final : null) ?? $document->file_preview ?? $document->file_lp ?? $document->file_final;
+
+        if (!$relativeFile) {
+            abort(404, 'Berkas dokumen tidak tercatat dalam sistem.');
+        }
+
+        $relativeFile = str_replace('\\', '/', $relativeFile);
+        $path = storage_path('app/public/' . $relativeFile);
+
+        if (!file_exists($path)) {
+            $altPath = storage_path('app/' . $relativeFile);
+            if (file_exists($altPath)) {
+                $path = $altPath;
+            } else {
+                abort(404, 'Berkas PDF tidak ditemukan pada penyimpanan server.');
+            }
+        }
+
+        return response()->file($path, [
+            'Content-Type'  => 'application/pdf',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate, max-age=0',
+            'Pragma'        => 'no-cache',
+            'Expires'       => '0',
+        ]);
+    }
+
+    /**
+     * Stream berkas lampiran pendukung dokumen Support
+     */
+    public function streamAttachment(int $id, int $attId)
+    {
+        $document = Document::findOrFail($id);
+        $attachment = $document->attachments()->findOrFail($attId);
+
+        $relativeFile = str_replace('\\', '/', $attachment->file_path);
+        $path = storage_path('app/public/' . $relativeFile);
+
+        if (!file_exists($path)) {
+            $altPath = storage_path('app/' . $relativeFile);
+            if (file_exists($altPath)) {
+                $path = $altPath;
+            } else {
+                abort(404, 'Berkas lampiran tidak ditemukan pada server.');
+            }
+        }
+
+        return response()->file($path);
+    }
+
+    /**
      * Oper/pindahkan reviewer dokumen Support
      */
     public function updateReviewer(Request $request, int $id)

@@ -12,6 +12,7 @@ use App\Models\SopQuizQuestion;
 use App\Models\User;
 use App\Services\AttendanceGeneratorService;
 use App\Services\QrCodeService;
+use App\Services\RoleManagementService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -767,35 +768,7 @@ class SocializationAndRevisionController extends Controller
      */
     private function getDepartmentsForRole(?string $role): array
     {
-        if (!$role) return [];
-
-        switch ($role) {
-            case 'KA.DEPT.HC': return ['HC'];
-            case 'KA.DEPT.IT': return ['IT'];
-            case 'KA.DEPT.QMS':
-            case 'Management Representative': return ['QMS'];
-            case 'KA.DEPT.HSE': return ['HSE'];
-            case 'KA.DEPT.ADMIN & LEGAL': return ['LEGAL', 'ADMIN & LEGAL'];
-            case 'KA.DEPT.INTERNAL AUDIT':
-            case 'Dept. Internal Audit':
-            case 'KA.DEPT.INTERNAL AUDIT & RISK MANAGEMENT': return ['INTERNAL AUDIT', 'INTERNAL AUDIT & RISK MANAGEMENT'];
-            case 'KA.DEPT.F & A':
-            case 'KA.DEPT.KEUANGAN': return ['FINANCE', 'KEUANGAN', 'F & A'];
-            case 'KA.DEPT.SALES & MARKETING': return ['LOGISTIC', 'OPS'];
-            case 'Ka. BU SPBU': return ['SPBU'];
-            case 'Ka. BU Gas & SPBE': return ['LPG PSO', 'LPG NPSO', 'PKSP', 'TRP'];
-            case 'Ka. BU Inmarr': return ['INMAR (CNGM)'];
-            case 'Ka. BU CPT':
-            case 'Direktur CPT': return ['CPT & MHM', 'SBS', 'GVI'];
-            case 'KA.DEPT.PROCRUTMEN': return ['PROCUREMENT'];
-            case 'KA.DEPT.CORPORATE SEKTARIS': return ['WAREHOUSE', 'ASET', 'GA'];
-            case 'Chief of Staff': return ['WAREHOUSE', 'ASET', 'GA'];
-            case 'Chief F&A':
-            case 'Ka. Div F&A': return ['FINANCE', 'KEUANGAN & ACCOUNTING'];
-            case 'Ka. Div Retail':
-            case 'Wa. Ka. Div Retail': return ['SPBU', 'LPG PSO', 'LPG NPSO', 'PKSP', 'TRP', 'LOGISTIC', 'OPS'];
-            default: return [];
-        }
+        return RoleManagementService::getDepartmentsForRole($role);
     }
 
     /**

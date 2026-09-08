@@ -43,12 +43,13 @@ return [
             'url' => env('MAIL_URL'),
             'host' => env('MAIL_HOST', '127.0.0.1'),
             'port' => env('MAIL_PORT', 2525),
+            'encryption' => env('MAIL_ENCRYPTION', 'tls'),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
             // Jangan biarkan request upload menunggu SMTP tanpa batas.
             // Jika SMTP tidak tersedia, controller menangani exception dan
             // dokumen tetap dapat diproses tanpa menabrak max_execution_time.
-            'timeout' => (int) env('MAIL_TIMEOUT', 10),
+            'timeout' => (int) env('MAIL_TIMEOUT', 30),
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 

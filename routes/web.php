@@ -57,6 +57,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
         
         // Audit Trail Dokumen Support
         Route::get('/document/{id}', [SupportController::class, 'documentDetail'])->name('document.detail');
+        Route::get('/document/{id}/stream', [SupportController::class, 'streamFile'])->name('document.stream');
+        Route::get('/document/{id}/attachment/{attId}', [SupportController::class, 'streamAttachment'])->name('document.attachment.stream');
         Route::delete('/document/{id}/delete', [SupportController::class, 'destroy'])->name('document.delete');
 
         // Alur Revisi Support
@@ -83,6 +85,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
         
         // Audit Trail Dokumen BU (Show Detail)
         Route::get('/document/{id}', [BusinessUnitController::class, 'documentDetail'])->name('detail');
+        Route::get('/document/{id}/stream', [BusinessUnitController::class, 'streamFile'])->name('document.stream');
+        Route::get('/document/{id}/attachment/{attId}', [BusinessUnitController::class, 'streamAttachment'])->name('document.attachment.stream');
         Route::delete('/document/{id}/delete', [BusinessUnitController::class, 'destroy'])->name('document.delete');
         
         // 🛠️ ALUR REVISI PINTAR
