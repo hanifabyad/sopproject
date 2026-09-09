@@ -9,6 +9,7 @@ use App\Http\Controllers\ReviewerController;
 use App\Http\Controllers\BusinessUnitController;
 use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\EvaluationController;
+use App\Http\Controllers\RoleController;
 
 // ==========================================
 // 🔑 HALAMAN OTENTIKASI
@@ -33,6 +34,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     
     // Kelola Pegawai (CRUD User dengan Role Lengkap)
     Route::resource('users', UserController::class)->except(['show']);
+    // Kelola Master Jabatan / Roles
+    Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+    Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
+    Route::delete('/roles', [RoleController::class, 'destroy'])->name('roles.destroy');
 
     // E-Library Khusus Admin Workspace
     Route::get('/library', [LibraryController::class, 'index'])->name('library.index');

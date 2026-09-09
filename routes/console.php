@@ -53,49 +53,49 @@ Artisan::command('eqms:check-evaluations', function () {
                 $deptName = strtoupper(trim($doc->department));
                 $roles = [];
                 switch ($deptName) {
-                    case 'HC': $roles = ['KA.DEPT.HC']; break;
-                    case 'IT': $roles = ['KA.DEPT.IT']; break;
-                    case 'QMS': $roles = ['KA.DEPT.QMS', 'Management Representative']; break;
-                    case 'HSE': $roles = ['KA.DEPT.HSE']; break;
+                    case 'HC': $roles = ['Ka. Dept. HC', 'KA.DEPT.HC', 'Legal & HC Manager', 'Legal & Human Capital Manager']; break;
+                    case 'IT': $roles = ['Ka. Dept. IT', 'KA.DEPT.IT']; break;
+                    case 'QMS': $roles = ['Ka. Dept. QMS', 'KA.DEPT.QMS', 'Management Representative']; break;
+                    case 'HSE': $roles = ['Ka. Dept. HSE', 'KA.DEPT.HSE']; break;
                     case 'LEGAL':
-                    case 'ADMIN & LEGAL': $roles = ['KA.DEPT.ADMIN & LEGAL']; break;
+                    case 'ADMIN & LEGAL': $roles = ['Ka. Dept. Admin & Legal', 'KA.DEPT.ADMIN & LEGAL', 'Legal & HC Manager']; break;
                     case 'INTERNAL AUDIT':
                     case 'INTERNAL AUDIT & RISK MANAGEMENT': 
-                        $roles = ['KA.DEPT.INTERNAL AUDIT', 'Dept. Internal Audit', 'KA.DEPT.INTERNAL AUDIT & RISK MANAGEMENT']; 
+                        $roles = ['Ka. Dept. Internal Audit', 'KA.DEPT.INTERNAL AUDIT', 'Dept. Internal Audit', 'Ka. Dept. Internal Audit & Risk Management', 'KA.DEPT.INTERNAL AUDIT & RISK MANAGEMENT']; 
                         break;
                     case 'FINANCE':
                     case 'KEUANGAN':
                     case 'F & A': 
-                        $roles = ['KA.DEPT.F & A', 'KA.DEPT.KEUANGAN', 'Chief F&A', 'Ka. Div F&A']; 
+                        $roles = ['Ka. Dept. F & A', 'KA.DEPT.F & A', 'Ka. Dept. Keuangan', 'KA.DEPT.KEUANGAN', 'Chief F&A Holding', 'Chief F&A', 'Ka. Div F&A']; 
                         break;
                     case 'LOGISTIC':
                     case 'OPS': 
-                        $roles = ['KA.DEPT.SALES & MARKETING', 'Ka. Div Retail']; 
+                        $roles = ['Ka. Dept. Sales & Marketing', 'KA.DEPT.SALES & MARKETING', 'Ka. Div Retail']; 
                         break;
                     case 'SPBU': $roles = ['Ka. BU SPBU']; break;
                     case 'LPG PSO':
                     case 'LPG NPSO':
                     case 'PKSP':
                     case 'TRP': 
-                        $roles = ['Ka. BU Gas & SPBE', 'Ka. Div Retail', 'Wa. Ka. Div Retail']; 
+                        $roles = ['Ka. BU Gas & SPBE', 'Ka. BU Gas & SPPBE', 'Ka. Div Retail', 'Wa. Ka. Div Retail']; 
                         break;
                     case 'INMAR (CNGM)': $roles = ['Ka. BU Inmarr']; break;
                     case 'CPT & MHM':
                     case 'SBS':
                     case 'GVI': 
-                        $roles = ['Ka. BU CPT', 'Direktur CPT']; 
+                        $roles = ['Ka. BU CPT', 'Chief BU CPT', 'Direktur CPT', 'Ka. BU SBS', 'Chief F&A SBS', 'Kepala Produksi']; 
                         break;
-                    case 'PROCUREMENT': $roles = ['KA.DEPT.PROCRUTMEN']; break;
+                    case 'PROCUREMENT': $roles = ['Ka. Dept. Procurement', 'KA.DEPT.PROCRUTMEN']; break;
                     case 'WAREHOUSE':
                     case 'ASET':
                     case 'GA': 
-                        $roles = ['KA.DEPT.CORPORATE SEKTARIS', 'Chief of Staff']; 
+                        $roles = ['Ka. Dept. Corporate Seketaris', 'KA.DEPT.CORPORATE SEKTARIS', 'Chief of Staff']; 
                         break;
                     case 'KEUANGAN & ACCOUNTING': 
-                        $roles = ['KA.DEPT.KEUANGAN', 'Chief F&A', 'Ka. Div F&A']; 
+                        $roles = ['Ka. Dept. Keuangan', 'KA.DEPT.KEUANGAN', 'Chief F&A Holding', 'Chief F&A', 'Ka. Div F&A']; 
                         break;
                     default: 
-                        $roles = ["KA.DEPT.{$deptName}", "Ka. BU {$deptName}"]; 
+                        $roles = ["Ka. Dept. {$deptName}", "KA.DEPT.{$deptName}", "Ka. BU {$deptName}"]; 
                         break;
                 }
                 
@@ -397,36 +397,36 @@ if (!function_exists('getEqmsDepartmentUsers')) {
             case 'HC':
             case 'HRD':
             case 'HUMAN CAPITAL':
-                $roles = ['KA.DEPT.HC', 'Staff HC', 'Anggota HC', 'Officer HC'];
+                $roles = ['Ka. Dept. HC', 'KA.DEPT.HC', 'Legal & HC Manager', 'Legal & Human Capital Manager', 'Staff HC', 'Anggota HC', 'Officer HC'];
                 $regexKeywords = ['\bHC\b', '\bHRD\b', '\bHUMAN CAPITAL\b'];
                 break;
 
             case 'IT':
             case 'TEKNOLOGI INFORMASI':
-                $roles = ['KA.DEPT.IT', 'Staff IT', 'Anggota IT', 'Officer IT', 'Programmer', 'IT Support'];
+                $roles = ['Ka. Dept. IT', 'KA.DEPT.IT', 'Staff IT', 'Anggota IT', 'Officer IT', 'Programmer', 'IT Support'];
                 $regexKeywords = ['\bIT\b', '\bTEKNOLOGI INFORMASI\b', '\bINFORMATIKA\b'];
                 break;
 
             case 'QMS':
-                $roles = ['KA.DEPT.QMS', 'Management Representative', 'Staff QMS', 'Anggota QMS', 'Officer QMS'];
+                $roles = ['Ka. Dept. QMS', 'KA.DEPT.QMS', 'Management Representative', 'Staff QMS', 'Anggota QMS', 'Officer QMS'];
                 $regexKeywords = ['\bQMS\b', '\bQUALITY\b', '\bMUTU\b'];
                 break;
 
             case 'HSE':
             case 'K3':
-                $roles = ['KA.DEPT.HSE', 'Staff HSE', 'Anggota HSE', 'Officer HSE'];
+                $roles = ['Ka. Dept. HSE', 'KA.DEPT.HSE', 'Staff HSE', 'Anggota HSE', 'Officer HSE'];
                 $regexKeywords = ['\bHSE\b', '\bK3\b', '\bKESELAMATAN\b'];
                 break;
 
             case 'LEGAL':
             case 'ADMIN & LEGAL':
-                $roles = ['KA.DEPT.ADMIN & LEGAL', 'Staff Legal', 'Anggota Legal', 'Officer Legal'];
+                $roles = ['Ka. Dept. Admin & Legal', 'KA.DEPT.ADMIN & LEGAL', 'Legal & HC Manager', 'Staff Legal', 'Anggota Legal', 'Officer Legal'];
                 $regexKeywords = ['\bLEGAL\b'];
                 break;
 
             case 'INTERNAL AUDIT':
             case 'INTERNAL AUDIT & RISK MANAGEMENT':
-                $roles = ['KA.DEPT.INTERNAL AUDIT', 'Dept. Internal Audit', 'KA.DEPT.INTERNAL AUDIT & RISK MANAGEMENT', 'Staff Audit', 'Auditor'];
+                $roles = ['Ka. Dept. Internal Audit', 'KA.DEPT.INTERNAL AUDIT', 'Dept. Internal Audit', 'Ka. Dept. Internal Audit & Risk Management', 'KA.DEPT.INTERNAL AUDIT & RISK MANAGEMENT', 'Staff Audit', 'Auditor'];
                 $regexKeywords = ['\bAUDIT\b', '\bRISK\b'];
                 break;
 
@@ -435,18 +435,18 @@ if (!function_exists('getEqmsDepartmentUsers')) {
             case 'F & A':
             case 'F&A':
             case 'KEUANGAN & ACCOUNTING':
-                $roles = ['KA.DEPT.F & A', 'KA.DEPT.KEUANGAN', 'Chief F&A', 'Ka. Div F&A', 'Staff Keuangan', 'Staff Finance', 'Accounting'];
+                $roles = ['Ka. Dept. F & A', 'KA.DEPT.F & A', 'Ka. Dept. Keuangan', 'KA.DEPT.KEUANGAN', 'Chief F&A Holding', 'Chief F&A', 'Ka. Div F&A', 'Staff Keuangan', 'Staff Finance', 'Accounting'];
                 $regexKeywords = ['\bFINANCE\b', '\bKEUANGAN\b', '\bF\s*&\s*A\b', '\bACCOUNTING\b'];
                 break;
 
             case 'LOGISTIC':
             case 'OPS':
-                $roles = ['KA.DEPT.SALES & MARKETING', 'Ka. Div Retail', 'Staff Logistik', 'Staff Ops'];
+                $roles = ['Ka. Dept. Sales & Marketing', 'KA.DEPT.SALES & MARKETING', 'Ka. Div Retail', 'Staff Logistik', 'Staff Ops'];
                 $regexKeywords = ['\bLOGISTIC\b', '\bLOGISTIK\b', '\bOPS\b', '\bOPERASIONAL\b'];
                 break;
 
             case 'SPBU':
-                $roles = ['Ka. BU SPBU', 'Ka. Div Retail', 'Wa. Ka. Div Retail', 'Staff SPBU', 'Pengawas SPBU'];
+                $roles = ['Ka. BU SPBU', 'Chief F&A SPBU', 'Ka. Operasional SPBU', 'Ka. Operasional BBM Retail', 'Ka. Div Retail', 'Wa. Ka. Div Retail', 'Staff SPBU', 'Pengawas SPBU'];
                 $regexKeywords = ['\bSPBU\b'];
                 break;
 
@@ -455,40 +455,48 @@ if (!function_exists('getEqmsDepartmentUsers')) {
             case 'PKSP':
             case 'TRP':
             case 'GAS & SPBE':
-                $roles = ['Ka. BU Gas & SPBE', 'Ka. Div Retail', 'Wa. Ka. Div Retail', 'Staff SPBE', 'Staff Gas'];
+                $roles = ['Ka. BU Gas & SPBE', 'Ka. BU Gas & SPPBE', 'Chief F&A Gas', 'Ka. Div Retail', 'Wa. Ka. Div Retail', 'Staff SPBE', 'Staff Gas'];
                 $regexKeywords = ['\bGAS\b', '\bSPBE\b', '\bLPG\b', '\bPKSP\b', '\bTRP\b'];
                 break;
 
             case 'INMAR (CNGM)':
             case 'INMAR':
             case 'CNGM':
-                $roles = ['Ka. BU Inmarr', 'Chief F & A Inmarr', 'Staff Inmar'];
+                $roles = ['Ka. BU Inmarr', 'Chief F & A Inmarr', 'Ka. Operasional Inmarr', 'Staff Inmar'];
                 $regexKeywords = ['\bINMAR\b', '\bINMARR\b', '\bCNGM\b'];
                 break;
 
             case 'CPT & MHM':
             case 'CPT':
+                $roles = ['Ka. BU CPT', 'Chief BU CPT', 'Marine Superintendent', 'Management Representative', 'Ka. Operasional CPT', 'CPT Operasional', 'Ka. Departemen Teknik', 'Service Delivery Manager', 'Ka. QQ', 'Sales Manager', 'Direktur CPT', 'Staff CPT'];
+                $regexKeywords = ['\bCPT\b', '\bMHM\b'];
+                break;
+
             case 'SBS':
+                $roles = ['Ka. BU SBS', 'Chief F&A SBS', 'Kepala Produksi', 'Ka. BU CPT', 'Direktur CPT'];
+                $regexKeywords = ['\bSBS\b'];
+                break;
+
             case 'GVI':
-                $roles = ['Ka. BU CPT', 'Direktur CPT', 'Staff CPT'];
-                $regexKeywords = ['\bCPT\b', '\bMHM\b', '\bSBS\b', '\bGVI\b'];
+                $roles = ['Ka. BU CPT', 'Direktur CPT'];
+                $regexKeywords = ['\bGVI\b'];
                 break;
 
             case 'PROCUREMENT':
             case 'PROCRUTMEN':
-                $roles = ['KA.DEPT.PROCRUTMEN', 'Staff Procurement', 'Staff Pengadaan'];
+                $roles = ['Ka. Dept. Procurement', 'KA.DEPT.PROCRUTMEN', 'Staff Procurement', 'Staff Pengadaan'];
                 $regexKeywords = ['\bPROC\w*\b', '\bPENGADAAN\b'];
                 break;
 
             case 'WAREHOUSE':
             case 'ASET':
             case 'GA':
-                $roles = ['KA.DEPT.CORPORATE SEKTARIS', 'Chief of Staff', 'Staff GA', 'Staff Gudang'];
+                $roles = ['Ka. Dept. Corporate Seketaris', 'KA.DEPT.CORPORATE SEKTARIS', 'Chief of Staff', 'Staff GA', 'Staff Gudang'];
                 $regexKeywords = ['\bWAREHOUSE\b', '\bGUDANG\b', '\bASET\b', '\bGA\b', '\bSEKTARIS\b'];
                 break;
 
             default:
-                $roles = ["KA.DEPT.{$dept}", "Ka. BU {$dept}", "Staff {$dept}", "Anggota {$dept}"];
+                $roles = ["Ka. Dept. {$dept}", "KA.DEPT.{$dept}", "Ka. BU {$dept}", "Staff {$dept}", "Anggota {$dept}"];
                 $regexKeywords = ['\b' . preg_quote($dept, '/') . '\b'];
                 break;
         }

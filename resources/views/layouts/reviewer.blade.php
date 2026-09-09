@@ -705,45 +705,7 @@
                         ->where('status', 'current')
                         ->count();
 
-                    $evalRoleDepts = [];
-                    switch ($reviewerRole) {
-                        case 'KA.DEPT.HC': $evalRoleDepts = ['HC']; break;
-                        case 'KA.DEPT.IT': $evalRoleDepts = ['IT']; break;
-                        case 'KA.DEPT.QMS':
-                        case 'Management Representative': $evalRoleDepts = ['QMS']; break;
-                        case 'KA.DEPT.HSE': $evalRoleDepts = ['HSE']; break;
-                        case 'KA.DEPT.ADMIN & LEGAL': $evalRoleDepts = ['LEGAL', 'ADMIN & LEGAL']; break;
-                        case 'KA.DEPT.INTERNAL AUDIT':
-                        case 'Dept. Internal Audit':
-                        case 'KA.DEPT.INTERNAL AUDIT & RISK MANAGEMENT': $evalRoleDepts = ['INTERNAL AUDIT', 'INTERNAL AUDIT & RISK MANAGEMENT']; break;
-                        case 'KA.DEPT.F & A':
-                        case 'KA.DEPT.KEUANGAN': $evalRoleDepts = ['FINANCE', 'KEUANGAN', 'F & A']; break;
-                        case 'KA.DEPT.SALES & MARKETING': $evalRoleDepts = ['LOGISTIC', 'OPS']; break;
-                        case 'Ka. BU SPBU': $evalRoleDepts = ['SPBU']; break;
-                        case 'Ka. BU Gas & SPBE': $evalRoleDepts = ['LPG PSO', 'LPG NPSO', 'PKSP', 'TRP']; break;
-                        case 'Ka. BU Inmarr':
-                        case 'Chief F & A Inmarr': $evalRoleDepts = ['INMAR (CNGM)']; break;
-                        case 'Ka. BU CPT':
-                        case 'Direktur CPT': $evalRoleDepts = ['CPT & MHM', 'SBS', 'GVI']; break;
-                        case 'KA.DEPT.PROCRUTMEN': $evalRoleDepts = ['PROCUREMENT']; break;
-                        case 'KA.DEPT.CORPORATE SEKTARIS': $evalRoleDepts = ['WAREHOUSE', 'ASET', 'GA']; break;
-                        case 'Chief of Staff': $evalRoleDepts = ['WAREHOUSE', 'ASET', 'GA', 'HC', 'IT', 'QMS', 'HSE']; break;
-                        case 'Chief F&A':
-                        case 'Ka. Div F&A': $evalRoleDepts = ['FINANCE', 'KEUANGAN & ACCOUNTING', 'KEUANGAN', 'F & A']; break;
-                        case 'Ka. Div Retail':
-                        case 'Wa. Ka. Div Retail': $evalRoleDepts = ['SPBU', 'LPG PSO', 'LPG NPSO', 'PKSP', 'TRP', 'LOGISTIC', 'OPS']; break;
-                        case 'Direktur Utama': $evalRoleDepts = ['HC', 'IT', 'QMS', 'HSE', 'LEGAL', 'INTERNAL AUDIT', 'FINANCE', 'LOGISTIC', 'OPS', 'SPBU', 'LPG PSO', 'LPG NPSO', 'PKSP', 'TRP', 'INMAR (CNGM)', 'CPT & MHM', 'SBS', 'GVI', 'PROCUREMENT', 'WAREHOUSE', 'ASET', 'GA']; break;
-                        default:
-                            if (stripos($reviewerRole, 'HC') !== false || stripos($reviewerRole, 'Human') !== false) $evalRoleDepts = ['HC'];
-                            elseif (stripos($reviewerRole, 'IT') !== false) $evalRoleDepts = ['IT'];
-                            elseif (stripos($reviewerRole, 'QMS') !== false) $evalRoleDepts = ['QMS'];
-                            elseif (stripos($reviewerRole, 'HSE') !== false) $evalRoleDepts = ['HSE'];
-                            elseif (stripos($reviewerRole, 'SPBU') !== false) $evalRoleDepts = ['SPBU'];
-                            elseif (stripos($reviewerRole, 'LPG') !== false || stripos($reviewerRole, 'Gas') !== false) $evalRoleDepts = ['LPG PSO', 'LPG NPSO', 'PKSP', 'TRP'];
-                            elseif (stripos($reviewerRole, 'Inmar') !== false) $evalRoleDepts = ['INMAR (CNGM)'];
-                            elseif (stripos($reviewerRole, 'CPT') !== false) $evalRoleDepts = ['CPT & MHM', 'SBS', 'GVI'];
-                            break;
-                    }
+                    $evalRoleDepts = \App\Services\RoleManagementService::getDepartmentsForRole($reviewerRole);
 
                     $evalBadgeQuery = \App\Models\Evaluation::whereHas('document', function ($q) {
                         $q->where('status', 'active');

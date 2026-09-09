@@ -1,4 +1,4 @@
-﻿@extends('layouts.admin')
+@extends('layouts.admin')
 
 @section('title', 'Kelola Akun Pegawai')
 @section('header_title', 'Manajemen Akun & Role Pegawai')
@@ -41,6 +41,9 @@
                     </a>
                 @endif
             </form>
+            
+            <!-- Tombol Kelola Master Jabatan -->
+            <x-interactive-button text="Kelola Jabatan" variant="outline" icon="ph ph-briefcase text-base" href="{{ route('admin.roles.index') }}" class="!text-white !border-white/40 hover:!bg-white/15" />
             
             <!-- Tombol Tambah Pegawai dengan Height Selaras 38px -->
             <x-interactive-button text="Tambah Pegawai" variant="primary" icon="ph ph-user-plus text-base" href="{{ route('admin.users.create') }}" />
@@ -96,8 +99,8 @@
                         </td>
                         
                         <td class="py-2.5 px-4 align-middle">
-                            <span class="px-2.5 py-1 bg-slate-100 text-slate-800 rounded-[2px] text-[10.5px] font-bold border border-slate-200 inline-block">
-                                {{ strtoupper($user->role) }}
+                            <span class="px-2.5 py-1 bg-slate-100 text-slate-800 rounded-[2px] text-[11px] font-bold border border-slate-200 inline-block">
+                                {{ $user->role }}
                             </span>
                         </td>
                         

@@ -56,13 +56,19 @@
                     $roleGroups = $categorizedRoles ?? \App\Services\RoleManagementService::getCategorizedRoles();
                 @endphp
                 <div>
-                    <label class="block text-xs font-bold text-on-surface capitalize tracking-wider mb-2">Jabatan / Role</label>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-xs font-bold text-on-surface capitalize tracking-wider">Jabatan / Role</label>
+                        <a href="{{ route('admin.roles.index') }}" target="_blank" class="text-[11px] text-[#1677B8] hover:underline font-bold flex items-center gap-1">
+                            <i class="ph ph-briefcase"></i> Kelola / Hapus Jabatan
+                        </a>
+                    </div>
                     <select name="role" id="roleSelect" onchange="toggleCustomRole(this.value)" class="w-full bg-sand-50 border border-sand-200 rounded-md p-3 font-semibold text-xs text-on-surface focus:bg-white focus:ring-2 focus:ring-gold-500 outline-none transition-all" required>
                         <option value="">-- Pilih Jabatan Pegawai --</option>
-                        <option value="__custom__" {{ old('role') == '__custom__' ? 'selected' : '' }} class="font-bold text-[#1677B8] bg-blue-50 py-2">✨ + Ketik Jabatan Baru (Kustom)...</option>
+                        <option value="__manage_roles__" class="font-bold text-[#1677B8] bg-blue-50/80 py-1.5">Kelola / Hapus Daftar Jabatan...</option>
+                        <option value="__custom__" {{ old('role') == '__custom__' ? 'selected' : '' }} class="font-bold text-[#1677B8] bg-blue-50/50 py-1.5">+ Ketik Jabatan Baru (Kustom)...</option>
                         @foreach($roleGroups as $categoryName => $roleList)
                             <option disabled class="font-extrabold text-[#1677B8] bg-slate-100 py-2">
-                                ━━━ {{ strtoupper($categoryName) }} ━━━
+                                ━━━ {{ $categoryName }} ━━━
                             </option>
                             @foreach($roleList as $role)
                                 <option value="{{ $role }}" {{ (old('role', $user->role) == $role) ? 'selected' : '' }} class="font-semibold text-slate-800 py-1.5">
@@ -111,6 +117,10 @@
 
 <script>
 function toggleCustomRole(val) {
+    if (val === '__manage_roles__') {
+        window.location.href = "{{ route('admin.roles.index') }}";
+        return;
+    }
     const wrapper = document.getElementById('customRoleWrapper');
     const input = document.getElementById('customRoleInput');
     if (val === '__custom__') {

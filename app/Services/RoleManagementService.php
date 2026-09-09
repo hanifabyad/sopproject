@@ -25,16 +25,33 @@ class RoleManagementService
             'Direktur Utama',
             'Direktur CPT',
             'Chief of Staff',
-            'Management Representative',
-            'Marine Superintendent',
             'Ka. Div Retail',
             'Wa. Ka. Div Retail',
-            'Ka. Div F&A',
-            'Chief F&A',
             'Ka. Div. Komersial',
-            'Legal & Human Capital Manager',
-            'Koordinator Sales & Marketing',
+            'Ka. Div F&A',
+
+            // --- DEPARTEMEN SUPPORT ---
+            'Ka. Dept. QMS',
+            'Ka. Dept. HC',
+            'Legal & HC Manager',
+            'Ka. Dept. Admin & Legal',
+            'Ka. Dept. IT',
+            'Ka. Dept. HSE',
+            'Ka. Dept. Internal Audit',
             'Dept. Internal Audit',
+            'Ka. Dept. Internal Audit & Risk Management',
+            'Ka. Dept. Corporate Seketaris',
+            'Ka. Dept. Procurement',
+            'Ka. Dept. F & A',
+            'Ka. Dept. Keuangan',
+            'Ka. Dept. Pajak',
+            'Ka. Dept. Sales & Marketing',
+
+            // --- DIVISI FINANCE & ACCOUNTING ---
+            'Chief F&A Holding',
+
+            // --- DIVISI RETAIL & KOMERSIAL ---
+            'Koordinator Sales & Marketing',
 
             // --- UNIT BISNIS (BU): SPBU & RETAIL ---
             'Ka. BU SPBU',
@@ -44,7 +61,7 @@ class RoleManagementService
 
             // --- UNIT BISNIS (BU): GAS & SPPBE ---
             'Ka. BU Gas & SPBE',
-            'Ka. BU GAS & SPPBE',
+            'Ka. BU Gas & SPPBE',
             'Chief F&A Gas',
             'Ka. Operasional Batam',
             'Ka. Operasional TBK',
@@ -61,25 +78,24 @@ class RoleManagementService
 
             // --- UNIT BISNIS (BU): CPT ---
             'Ka. BU CPT',
+            'Chief BU CPT',
+            'Marine Superintendent',
+            'Management Representative',
+            'Ka. Operasional CPT',
+            'Ka. Departemen Teknik',
+            'Service Delivery Manager',
+            'Ka. QQ',
+            'Sales Manager',
 
-            // --- DEPARTEMEN SUPPORT ---
-            'KA.DEPT.HC',
-            'KA.DEPT.ADMIN & LEGAL',
-            'KA.DEPT.IT',
-            'KA.DEPT.CORPORATE SEKTARIS',
-            'KA.DEPT.INTERNAL AUDIT & RISK MANAGEMENT',
-            'KA.DEPT.PAJAK',
-            'KA.DEPT.F & A',
-            'KA.DEPT.KEUANGAN',
-            'KA.DEPT.SALES & MARKETING',
-            'KA.DEPT.QMS',
-            'KA.DEPT.HSE',
-            'KA.DEPT.PROCRUTMEN',
-            'KA.DEPT.INTERNAL AUDIT',
+            // --- UNIT BISNIS (BU): SBS ---
+            'Ka. BU SBS',
+            'Chief F&A SBS',
+            'Kepala Produksi',
 
             // --- LAINNYA ---
-            'office',
-            'reviewer'
+            'Karyawan QMS',
+            'Office',
+            'Reviewer'
         ];
     }
 
@@ -140,34 +156,47 @@ class RoleManagementService
         $allRoles = self::getAllRoles();
 
         $categories = [
-            '🏢 Direksi & Pimpinan Eksekutif' => [
+            'Direksi & Pimpinan Eksekutif' => [
                 'Direktur Utama',
                 'Direktur CPT',
                 'Chief of Staff',
-                'Management Representative',
-                'Marine Superintendent',
-                'Legal & Human Capital Manager',
-                'KA DEPT. Legal & HC Manager',
-            ],
-            '📊 Divisi Retail & Komersial' => [
                 'Ka. Div Retail',
                 'Wa. Ka. Div Retail',
                 'Ka. Div. Komersial',
+                'Ka. Div F&A',
+            ],
+            'Departemen Support' => [
+                'Ka. Dept. QMS',
+                'Ka. Dept. HC',
+                'Legal & HC Manager',
+                'Ka. Dept. Admin & Legal',
+                'Ka. Dept. IT',
+                'Ka. Dept. HSE',
+                'Ka. Dept. Internal Audit',
+                'Dept. Internal Audit',
+                'Ka. Dept. Internal Audit & Risk Management',
+                'Ka. Dept. Corporate Seketaris',
+                'Ka. Dept. Procurement',
+                'Ka. Dept. F & A',
+                'Ka. Dept. Keuangan',
+                'Ka. Dept. Pajak',
+                'Ka. Dept. Sales & Marketing',
+            ],
+            'Divisi Finance & Accounting' => [
+                'Chief F&A Holding',
+            ],
+            'Divisi Retail & Komersial' => [
                 'Koordinator Sales & Marketing',
             ],
-            '💰 Divisi Finance & Accounting' => [
-                'Ka. Div F&A',
-                'Chief F&A',
-            ],
-            '⛽ Unit Bisnis: SPBU & Retail BBM' => [
+            'Unit Bisnis: SPBU & Retail BBM' => [
                 'Ka. BU SPBU',
                 'Chief F&A SPBU',
                 'Ka. Operasional SPBU',
                 'Ka. Operasional BBM Retail',
             ],
-            '🔥 Unit Bisnis: Gas & SPPBE' => [
+            'Unit Bisnis: Gas & SPPBE' => [
                 'Ka. BU Gas & SPBE',
-                'Ka. BU GAS & SPPBE',
+                'Ka. BU Gas & SPPBE',
                 'Chief F&A Gas',
                 'Ka. Operasional Batam',
                 'Ka. Operasional TBK',
@@ -177,31 +206,26 @@ class RoleManagementService
                 'Ka. Cab TPI',
                 'Ka. Jakarta',
             ],
-            '🚢 Unit Bisnis: Inmarr / CNGM' => [
+            'Unit Bisnis: Inmarr / CNGM' => [
                 'Ka. BU Inmarr',
                 'Chief F & A Inmarr',
                 'Ka. Operasional Inmarr',
             ],
-            '⚓ Unit Bisnis: CPT (Pelayaran & Maritim)' => [
+            'Unit Bisnis: CPT (Pelayaran & Maritim)' => [
                 'Ka. BU CPT',
-                'CPT Operasional',
-                'CPT Maintenance',
+                'Chief BU CPT',
+                'Marine Superintendent',
+                'Management Representative',
+                'Ka. Operasional CPT',
+                'Ka. Departemen Teknik',
+                'Service Delivery Manager',
+                'Ka. QQ',
+                'Sales Manager',
             ],
-            '🛠️ Departemen Support Kantor Pusat' => [
-                'KA.DEPT.QMS',
-                'KA.DEPT.HC',
-                'KA.DEPT.ADMIN & LEGAL',
-                'KA.DEPT.IT',
-                'KA.DEPT.HSE',
-                'KA.DEPT.INTERNAL AUDIT',
-                'Dept. Internal Audit',
-                'KA.DEPT.INTERNAL AUDIT & RISK MANAGEMENT',
-                'KA.DEPT.CORPORATE SEKTARIS',
-                'KA.DEPT.PROCRUTMEN',
-                'KA.DEPT.F & A',
-                'KA.DEPT.KEUANGAN',
-                'KA.DEPT.PAJAK',
-                'KA.DEPT.SALES & MARKETING',
+            'Unit Bisnis: SBS' => [
+                'Ka. BU SBS',
+                'Chief F&A SBS',
+                'Kepala Produksi',
             ],
         ];
 
@@ -226,18 +250,20 @@ class RoleManagementService
         foreach ($allRoles as $r) {
             $low = strtolower(trim($r));
             if (!isset($assigned[$low])) {
-                if (str_contains($low, 'spbu') || str_contains($low, 'bbm')) {
-                    $result['⛽ Unit Bisnis: SPBU & Retail BBM'][] = $r;
+                if (str_contains($low, 'sbs')) {
+                    $result['Unit Bisnis: SBS'][] = $r;
+                } elseif (str_contains($low, 'spbu') || str_contains($low, 'bbm')) {
+                    $result['Unit Bisnis: SPBU & Retail BBM'][] = $r;
                 } elseif (str_contains($low, 'gas') || str_contains($low, 'lpg') || str_contains($low, 'spbe') || str_contains($low, 'sppbe')) {
-                    $result['🔥 Unit Bisnis: Gas & SPPBE'][] = $r;
+                    $result['Unit Bisnis: Gas & SPPBE'][] = $r;
                 } elseif (str_contains($low, 'inmar') || str_contains($low, 'cng')) {
-                    $result['🚢 Unit Bisnis: Inmarr / CNGM'][] = $r;
+                    $result['Unit Bisnis: Inmarr / CNGM'][] = $r;
                 } elseif (str_contains($low, 'cpt') || str_contains($low, 'marine')) {
-                    $result['⚓ Unit Bisnis: CPT (Pelayaran & Maritim)'][] = $r;
-                } elseif (str_contains($low, 'dept') || str_contains($low, 'audit') || str_contains($low, 'legal') || str_contains($low, 'it') || str_contains($low, 'hc') || str_contains($low, 'qms') || str_contains($low, 'hse')) {
-                    $result['🛠️ Departemen Support Kantor Pusat'][] = $r;
-                } elseif (str_contains($low, 'direktur') || str_contains($low, 'chief') || str_contains($low, 'pimpinan')) {
-                    $result['🏢 Direksi & Pimpinan Eksekutif'][] = $r;
+                    $result['Unit Bisnis: CPT (Pelayaran & Maritim)'][] = $r;
+                } elseif (str_contains($low, 'dept') || str_contains($low, 'audit') || str_contains($low, 'legal') || str_contains($low, 'it') || str_contains($low, 'hc') || str_contains($low, 'qms') || str_contains($low, 'hse') || str_contains($low, 'support')) {
+                    $result['Departemen Support'][] = $r;
+                } elseif (str_contains($low, 'direktur') || str_contains($low, 'chief') || str_contains($low, 'pimpinan') || str_contains($low, 'kadiv') || str_contains($low, 'ka. div')) {
+                    $result['Direksi & Pimpinan Eksekutif'][] = $r;
                 } else {
                     $customGroup[] = $r;
                 }
@@ -246,7 +272,7 @@ class RoleManagementService
         }
 
         if (!empty($customGroup)) {
-            $result['🏷️ Jabatan Kustom / Lainnya'] = $customGroup;
+            $result['Jabatan Kustom / Lainnya'] = $customGroup;
         }
 
         return array_filter($result, fn($list) => !empty($list));
@@ -280,6 +306,46 @@ class RoleManagementService
     }
 
     /**
+     * Hapus jabatan dari file master JSON
+     */
+    public static function deleteRole(string $role): bool
+    {
+        $cleanRole = trim($role);
+        if ($cleanRole === '' || strtolower($cleanRole) === 'admin') {
+            return false;
+        }
+
+        $all = self::getAllRoles();
+        $filtered = array_values(array_filter($all, function ($existing) use ($cleanRole) {
+            return strcasecmp(trim($existing), $cleanRole) !== 0;
+        }));
+
+        return self::saveRolesToJson($filtered);
+    }
+
+    /**
+     * Ambil jumlah user aktif yang menggunakan masing-masing role
+     */
+    public static function getRoleUserCounts(): array
+    {
+        try {
+            $raw = User::groupBy('role')
+                ->selectRaw('role, count(*) as count')
+                ->pluck('count', 'role')
+                ->toArray();
+
+            // Sediakan mapping case-insensitive
+            $counts = [];
+            foreach ($raw as $role => $count) {
+                $counts[strtolower(trim((string)$role))] = (int)$count;
+            }
+            return $counts;
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    /**
      * Simpan daftar role ke file JSON
      */
     public static function saveRolesToJson(array $roles): bool
@@ -307,31 +373,69 @@ class RoleManagementService
         $r = trim($role);
 
         $exactMap = [
+            // Departemen Support
+            'Ka. Dept. HC'                             => ['HC'],
             'KA.DEPT.HC'                               => ['HC'],
+            'Ka. Dept. IT'                             => ['IT'],
             'KA.DEPT.IT'                               => ['IT'],
+            'Ka. Dept. QMS'                            => ['QMS'],
             'KA.DEPT.QMS'                              => ['QMS'],
-            'Management Representative'                => ['QMS'],
+            'Management Representative'                => ['QMS', 'CPT & MHM', 'SBS', 'GVI'],
+            'Ka. Dept. HSE'                            => ['HSE'],
             'KA.DEPT.HSE'                              => ['HSE'],
+            'Ka. Dept. Admin & Legal'                  => ['LEGAL', 'ADMIN & LEGAL'],
             'KA.DEPT.ADMIN & LEGAL'                    => ['LEGAL', 'ADMIN & LEGAL'],
-            'KA.DEPT.INTERNAL AUDIT'                   => ['INTERNAL AUDIT', 'INTERNAL AUDIT & RISK MANAGEMENT'],
-            'Dept. Internal Audit'                     => ['INTERNAL AUDIT', 'INTERNAL AUDIT & RISK MANAGEMENT'],
-            'KA.DEPT.INTERNAL AUDIT & RISK MANAGEMENT' => ['INTERNAL AUDIT', 'INTERNAL AUDIT & RISK MANAGEMENT'],
-            'KA.DEPT.F & A'                            => ['FINANCE', 'KEUANGAN', 'F & A'],
-            'KA.DEPT.KEUANGAN'                         => ['FINANCE', 'KEUANGAN', 'F & A'],
-            'KA.DEPT.PAJAK'                            => ['FINANCE', 'KEUANGAN', 'F & A'],
-            'Chief F&A'                                => ['FINANCE', 'KEUANGAN & ACCOUNTING', 'KEUANGAN', 'F & A'],
-            'Ka. Div F&A'                              => ['FINANCE', 'KEUANGAN & ACCOUNTING', 'KEUANGAN', 'F & A'],
-            'KA.DEPT.SALES & MARKETING'                => ['LOGISTIC', 'OPS'],
-            'Koordinator Sales & Marketing'            => ['LOGISTIC', 'OPS'],
-            'KA.DEPT.PROCRUTMEN'                       => ['PROCUREMENT'],
-            'KA.DEPT.CORPORATE SEKTARIS'               => ['WAREHOUSE', 'ASET', 'GA'],
-            'Chief of Staff'                           => ['WAREHOUSE', 'ASET', 'GA', 'HC', 'IT', 'QMS', 'HSE'],
+            'Legal & HC Manager'                       => ['HC', 'LEGAL', 'ADMIN & LEGAL'],
             'Legal & Human Capital Manager'            => ['HC', 'LEGAL', 'ADMIN & LEGAL'],
             'KA DEPT. Legal & HC Manager'              => ['HC', 'LEGAL', 'ADMIN & LEGAL'],
             'KA.DEPT.LEGAL & HC MANAGER'              => ['HC', 'LEGAL', 'ADMIN & LEGAL'],
             'HC Manager'                               => ['HC'],
+            'Ka. Dept. Internal Audit'                 => ['INTERNAL AUDIT', 'INTERNAL AUDIT & RISK MANAGEMENT'],
+            'KA.DEPT.INTERNAL AUDIT'                   => ['INTERNAL AUDIT', 'INTERNAL AUDIT & RISK MANAGEMENT'],
+            'Dept. Internal Audit'                     => ['INTERNAL AUDIT', 'INTERNAL AUDIT & RISK MANAGEMENT'],
+            'Ka. Dept. Internal Audit & Risk Management' => ['INTERNAL AUDIT', 'INTERNAL AUDIT & RISK MANAGEMENT'],
+            'KA.DEPT.INTERNAL AUDIT & RISK MANAGEMENT' => ['INTERNAL AUDIT', 'INTERNAL AUDIT & RISK MANAGEMENT'],
+            'Ka. Dept. F & A'                          => ['FINANCE', 'KEUANGAN', 'F & A'],
+            'KA.DEPT.F & A'                            => ['FINANCE', 'KEUANGAN', 'F & A'],
+            'Ka. Dept. Keuangan'                       => ['FINANCE', 'KEUANGAN', 'F & A'],
+            'KA.DEPT.KEUANGAN'                         => ['FINANCE', 'KEUANGAN', 'F & A'],
+            'Ka. Dept. Pajak'                          => ['FINANCE', 'KEUANGAN', 'F & A'],
+            'KA.DEPT.PAJAK'                            => ['FINANCE', 'KEUANGAN', 'F & A'],
+            'Ka. Dept. Sales & Marketing'              => ['LOGISTIC', 'OPS'],
+            'KA.DEPT.SALES & MARKETING'                => ['LOGISTIC', 'OPS'],
+            'Koordinator Sales & Marketing'            => ['LOGISTIC', 'OPS'],
+            'Ka. Dept. Procurement'                    => ['PROCUREMENT'],
+            'KA.DEPT.PROCRUTMEN'                       => ['PROCUREMENT'],
+            'Ka. Dept. Corporate Seketaris'            => ['WAREHOUSE', 'ASET', 'GA'],
+            'KA.DEPT.CORPORATE SEKTARIS'               => ['WAREHOUSE', 'ASET', 'GA'],
+
+            // Direksi & Divisi
+            'Chief of Staff'                           => ['WAREHOUSE', 'ASET', 'GA', 'HC', 'IT', 'QMS', 'HSE'],
+            'Chief F&A Holding'                        => ['FINANCE', 'KEUANGAN & ACCOUNTING', 'KEUANGAN', 'F & A'],
+            'Chief F&A'                                => ['FINANCE', 'KEUANGAN & ACCOUNTING', 'KEUANGAN', 'F & A'],
+            'Ka. Div F&A'                              => ['FINANCE', 'KEUANGAN & ACCOUNTING', 'KEUANGAN', 'F & A'],
+            'Ka. Div Retail'                           => ['SPBU', 'LPG PSO', 'LPG NPSO', 'PKSP', 'TRP', 'LOGISTIC', 'OPS'],
+            'Wa. Ka. Div Retail'                       => ['SPBU', 'LPG PSO', 'LPG NPSO', 'PKSP', 'TRP', 'LOGISTIC', 'OPS'],
+            'Ka. Div. Komersial'                       => ['CPT & MHM', 'SBS', 'GVI', 'LOGISTIC', 'OPS'],
+            'Direktur Utama'                           => ['HC', 'IT', 'QMS', 'HSE', 'LEGAL', 'INTERNAL AUDIT', 'FINANCE', 'LOGISTIC', 'OPS', 'SPBU', 'LPG PSO', 'LPG NPSO', 'PKSP', 'TRP', 'INMAR (CNGM)', 'CPT & MHM', 'SBS', 'GVI', 'PROCUREMENT', 'WAREHOUSE', 'ASET', 'GA'],
+            'Direktur CPT'                             => ['CPT & MHM', 'SBS', 'GVI'],
+
+            // Marine & CPT
             'Marine Superintendent'                    => ['CPT & MHM', 'SBS', 'GVI', 'OPS'],
-            
+            'Ka. BU CPT'                               => ['CPT & MHM', 'SBS', 'GVI'],
+            'Chief BU CPT'                             => ['CPT & MHM', 'SBS', 'GVI'],
+            'Ka. Operasional CPT'                      => ['CPT & MHM', 'SBS', 'GVI', 'OPS'],
+            'CPT Operasional'                          => ['CPT & MHM', 'SBS', 'GVI', 'OPS'],
+            'Ka. Departemen Teknik'                    => ['CPT & MHM', 'SBS', 'GVI'],
+            'Service Delivery Manager'                 => ['CPT & MHM', 'SBS', 'GVI', 'OPS'],
+            'Ka. QQ'                                   => ['CPT & MHM', 'SBS', 'GVI', 'QMS'],
+            'Sales Manager'                            => ['CPT & MHM', 'SBS', 'GVI', 'OPS'],
+
+            // SBS
+            'Ka. BU SBS'                               => ['SBS', 'CPT & MHM', 'GVI'],
+            'Chief F&A SBS'                            => ['SBS', 'CPT & MHM', 'GVI', 'FINANCE', 'KEUANGAN'],
+            'Kepala Produksi'                          => ['SBS', 'CPT & MHM', 'GVI', 'OPS'],
+
             // BU SPBU & Retail
             'Ka. BU SPBU'                              => ['SPBU'],
             'Chief F&A SPBU'                           => ['SPBU', 'FINANCE', 'KEUANGAN'],
@@ -340,6 +444,7 @@ class RoleManagementService
 
             // BU Gas & SPPBE
             'Ka. BU Gas & SPBE'                        => ['LPG PSO', 'LPG NPSO', 'PKSP', 'TRP'],
+            'Ka. BU Gas & SPPBE'                       => ['LPG PSO', 'LPG NPSO', 'PKSP', 'TRP'],
             'Ka. BU GAS & SPPBE'                       => ['LPG PSO', 'LPG NPSO', 'PKSP', 'TRP'],
             'Chief F&A Gas'                            => ['LPG PSO', 'LPG NPSO', 'PKSP', 'TRP', 'FINANCE', 'KEUANGAN'],
             'Ka. Operasional Batam'                    => ['LPG PSO', 'LPG NPSO', 'PKSP', 'TRP'],
@@ -354,17 +459,6 @@ class RoleManagementService
             'Ka. BU Inmarr'                            => ['INMAR (CNGM)'],
             'Chief F & A Inmarr'                       => ['INMAR (CNGM)', 'FINANCE', 'KEUANGAN'],
             'Ka. Operasional Inmarr'                   => ['INMAR (CNGM)'],
-
-            // BU CPT
-            'Ka. BU CPT'                               => ['CPT & MHM', 'SBS', 'GVI'],
-            'Direktur CPT'                             => ['CPT & MHM', 'SBS', 'GVI'],
-
-            // Divisi Retail
-            'Ka. Div Retail'                           => ['SPBU', 'LPG PSO', 'LPG NPSO', 'PKSP', 'TRP', 'LOGISTIC', 'OPS'],
-            'Wa. Ka. Div Retail'                       => ['SPBU', 'LPG PSO', 'LPG NPSO', 'PKSP', 'TRP', 'LOGISTIC', 'OPS'],
-
-            // Direktur Utama
-            'Direktur Utama'                           => ['HC', 'IT', 'QMS', 'HSE', 'LEGAL', 'INTERNAL AUDIT', 'FINANCE', 'LOGISTIC', 'OPS', 'SPBU', 'LPG PSO', 'LPG NPSO', 'PKSP', 'TRP', 'INMAR (CNGM)', 'CPT & MHM', 'SBS', 'GVI', 'PROCUREMENT', 'WAREHOUSE', 'ASET', 'GA'],
         ];
 
         // Case-insensitive exact search

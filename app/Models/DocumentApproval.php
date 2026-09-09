@@ -37,9 +37,11 @@ class DocumentApproval extends Model
         $role = is_string($user) ? $user : ($user->role ?? '');
 
         $mapping = [
+            'Ka. Dept. QMS'        => ['stage' => 'creator',  'signature_slot' => 'sig01'],
             'KA.DEPT.QMS'          => ['stage' => 'creator',  'signature_slot' => 'sig01'],
             'Chief of Staff'       => ['stage' => 'reviewer', 'signature_slot' => 'sig02'],
             'Ka. BU Gas & SPBE'    => ['stage' => 'reviewer', 'signature_slot' => 'sig03'],
+            'Chief F&A Holding'    => ['stage' => 'reviewer', 'signature_slot' => 'sig04'],
             'Chief F&A'            => ['stage' => 'reviewer', 'signature_slot' => 'sig04'],
             'Ka. Div Retail'       => ['stage' => 'reviewer', 'signature_slot' => 'sig05'],
             'Wa. Ka. Div Retail'   => ['stage' => 'reviewer', 'signature_slot' => 'sig06'],
