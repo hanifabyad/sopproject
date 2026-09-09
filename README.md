@@ -88,7 +88,7 @@ Buka file `.env` dan atur parameter produksi penting:
 APP_NAME="e-QMS PT PKM Group"
 APP_ENV=production
 APP_DEBUG=false
-APP_URL=https://eqms.pkmgroup.com
+APP_URL=https://edocs.pkmgroup.co.id
 
 DB_CONNECTION=mysql
 DB_HOST=db
@@ -251,11 +251,20 @@ php artisan db:seed --class=LibraryFolderSeeder --force
 ```
 
 ### 6. Konfigurasi Nginx Web Server
-Buat file konfigurasi `/etc/nginx/sites-available/eqms`:
-```nginx
+
+#### 📂 Opsi A: Salin Langsung dari Repositori (Paling Praktis & Bebas Typo)
+Berkas konfigurasi siap pakai sudah tersedia di dalam folder repositori: [`deploy/nginx/edocs.conf`](file:///var/www/eqms/deploy/nginx/edocs.conf). Anda cukup menyalinnya langsung:
+```bash
+sudo cp /var/www/eqms/deploy/nginx/edocs.conf /etc/nginx/sites-available/eqms
+```
+
+#### ⚡ Opsi B: Buat Manual dengan 1 Perintah Terminal
+Salin seluruh blok perintah di bawah ini dan tempelkan (paste) langsung ke terminal server Anda:
+```bash
+sudo bash -c 'cat << "EOF" > /etc/nginx/sites-available/eqms
 server {
     listen 80;
-    server_name eqms.pkmgroup.com;
+    server_name edocs.pkmgroup.co.id;
     root /var/www/eqms/public;
 
     index index.php index.html;
@@ -282,13 +291,28 @@ server {
         deny all;
     }
 }
+EOF'
 ```
-Aktifkan konfigurasi:
-```bash
-sudo ln -s /etc/nginx/sites-available/eqms /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
-```
+
+---
+
+#### 🚀 3 Langkah Wajib untuk Mengaktifkan Konfigurasi Nginx:
+Setelah berkas `/etc/nginx/sites-available/eqms` dibuat, **wajib jalankan 3 langkah berikut secara berurutan**:
+
+1. **Langkah 1: Aktifkan Virtual Host (Symlink ke `sites-enabled`)**
+   ```bash
+   sudo ln -s /etc/nginx/sites-available/eqms /etc/nginx/sites-enabled/
+   ```
+2. **Langkah 2: Uji Validitas Sintaks Konfigurasi Nginx**
+   ```bash
+   sudo nginx -t
+   ```
+   *(Pastikan output menampilkan: `syntax is ok` dan `test is successful`).*
+3. **Langkah 3: Muat Ulang Layanan Nginx**
+   ```bash
+   sudo systemctl reload nginx
+   ```
+
 
 ### 7. Konfigurasi Supervisor untuk Queue Worker
 Email notifikasi approval, magic login, dan pengesahan dokumen diproses di antrean background (*asynchronous*). Wajib menjalankan queue worker via Supervisor.
