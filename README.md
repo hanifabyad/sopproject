@@ -408,42 +408,131 @@ Lakukan pengecekan checklist berikut sebelum menyerahkan sistem ke pengguna oper
 
 ---
 
-## 🛠️ Pemecahan Masalah (Troubleshooting)
+## 🛠️ Pemecahan Masalah (Troubleshooting) & Panduan Hosting
 
-### 1. Error: 403 Forbidden saat Membuka Preview Dokumen PDF di Hosting
-* **Penyebab:** Symlink public storage diblokir oleh web server shared hosting / cPanel.
-* **Solusi:** Sistem sudah dilengkapi fitur **Secure Controller Streaming**. Pastikan Anda menggunakan route bawaan `admin.BU.document.stream` atau `admin.support.document.stream` yang otomatis digunakan di halaman detail. Jalankan juga:
-  ```bash
-  php artisan optimize:clear
-  ```
+Berikut adalah rangkuman solusi untuk **4 kendala yang paling sering ditemui saat deployment ke server hosting**:
 
-### 2. Error: Email Timeout / SMTP Connection Failed
-* **Penyebab:** Port 465 diblokir firewall hosting, atau queue worker tidak aktif.
-* **Solusi:**
-  1. Pastikan di `.env` menggunakan:
-     ```ini
+---
+
+### 1. 🚫 Error 403 Forbidden saat Membuka Preview Dokumen PDF
+* **Gejala:** Tampilan preview dokumen PDF di browser kosong, error `403 Forbidden`, atau dokumen tidak dapat diakses pengguna.
+* **Penyebab:**
+  1. Web server (Nginx / Apache / cPanel) memblokir direct symlink public folder `storage/`.
+  2. Permission folder `storage/` atau berkas PDF tidak dapat dibaca oleh proses web server (`www-data` / cPanel user).
+* **Solusi & Langkah Perbaikan:**
+  1. **Pastikan Permission Folder Benar:**
+     ```bash
+     chmod -R 775 storage bootstrap/cache
+     chown -R www-data:www-data storage bootstrap/cache   # (Sesuaikan www-data dengan user web server Anda)
+     ```
+  2. **Buat Symlink Storage (Jika Belum):**
+     ```bash
+     php artisan storage:link
+     ```
+  3. **Gunakan Secure Controller Streaming:**
+     Sistem e-QMS sudah dilengkapi controller streaming bawaan (`response()->file()`) untuk mengalirkan file PDF secara langsung tanpa bergantung pada symlink web server. Pastikan aplikasi telah dibersihkan cache-nya:
+     ```bash
+     php artisan optimize:clear
+     ```
+
+---
+
+### 2. 📄 Error PDF 1.5++ Not Compatible / Compression Error
+* **Gejala:** Muncul pesan error:
+  > *"This document probably uses a compression technique which is not supported by the free parser shipped with FPDI"*  
+  atau  
+  > *"Gagal memproses PDF: Format kompresi PDF tidak didukung dan QPDF gagal menormalisasi file"*
+* **Penyebab:** Library PHP (FPDI/FPDF) secara bawaan hanya mendukung format PDF versi 1.4 ke bawah. Seluruh file PDF modern (versi 1.5, 1.6, 1.7 buatan Canva, Microsoft Word, Adobe Acrobat) menggunakan kompresi *Object Streams* / *Cross-Reference Streams*, sehingga memerlukan binary sistem operasi **QPDF** untuk normalisasi otomatis sebelum proses stempel digital.
+* **Solusi & Langkah Perbaikan:**
+  1. **Install Package QPDF di Server Hosting:**
+     - **Ubuntu / Debian:**
+       ```bash
+       sudo apt update && sudo apt install -y qpdf
+       ```
+     - **CentOS / RHEL / AlmaLinux / Rocky Linux:**
+       ```bash
+       sudo dnf install -y qpdf
+       # atau: sudo yum install -y qpdf
+       ```
+  2. **Periksa Path Executable QPDF:**
+     ```bash
+     which qpdf
+     # Output standarnya: /usr/bin/qpdf
+     ```
+  3. **Pastikan Path QPDF Didaftarkan di File `.env` Hosting:**
+     ```env
+     QPDF_BINARY_PATH=/usr/bin/qpdf
+     ```
+  4. **Segarkan Cache Konfigurasi:**
+     ```bash
+     php artisan config:clear
+     ```
+
+---
+
+### 3. 👔 Tidak Bisa Menambah / Mengelola Jabatan (Role Baru Hilang di Hosting)
+* **Gejala:** Jabatan baru yang diinput via form tidak tersimpan, tidak muncul di dropdown pilihan user, atau menu kelola jabatan tidak dapat diakses.
+* **Penyebab:**
+  1. Berkas JSON master jabatan `storage/app/company_roles.json` belum diizinkan oleh Git sehingga tidak terbawa saat `git push` / `git pull`.
+  2. Folder `storage/app/` di hosting tidak memiliki izin tulis (*write permission*).
+  3. Migrasi sinkronisasi akun dan jabatan di database hosting belum dijalankan.
+* **Solusi & Langkah Perbaikan:**
+  1. **Beri Hak Tulis (Write Permission) pada Storage App:**
+     ```bash
+     chmod -R 775 storage/app
+     ```
+  2. **Jalankan Migrasi Sinkronisasi Database:**
+     ```bash
+     php artisan migrate
+     ```
+     *(Migrasi `2026_09_09_000001_sync_roles_and_clean_users` otomatis merapikan seluruh jabatan menjadi Title Case, menyelaraskan nama role resmi, dan membersihkan user tidak aktif).*
+  3. **Gunakan Halaman Manajemen Jabatan Admin:**
+     Admin dapat mengelola, menambah, dan menghapus master jabatan kapan saja melalui URL:
+     `https://<domain-anda>/admin/roles` (atau klik tombol **Kelola Jabatan** di halaman Pegawai / Akun).
+
+---
+
+### 4. ✉️ Email Notifikasi Tidak Terkirim (SMTP Error / Timeout)
+* **Gejala:** Surat persetujuan SOP, notifikasi review, atau revisi tidak pernah masuk ke inbox email pengguna, atau halaman submit mengalami *loading* lama (timeout).
+* **Penyebab:**
+  1. Firewall hosting memblokir port 465 (SSL).
+  2. Menggunakan password login akun Google biasa (bukan **Google App Password** 16 digit).
+  3. Mode antrean email diatur ke database (`QUEUE_CONNECTION=database`), tetapi proses daemon queue worker tidak aktif di server hosting sehingga email mengendap di antrean.
+* **Solusi & Langkah Perbaikan:**
+  1. **Gunakan Port 587 (TLS/STARTTLS) di File `.env` Hosting:**
+     ```env
+     MAIL_MAILER=smtp
+     MAIL_HOST=smtp.gmail.com
      MAIL_PORT=587
+     MAIL_USERNAME=e.qms2026@gmail.com
+     MAIL_PASSWORD=nwzmgcytqpxpmuko
      MAIL_ENCRYPTION=tls
+     MAIL_FROM_ADDRESS="e.qms2026@gmail.com"
+     MAIL_FROM_NAME="e-QMS PT PKM Group"
      MAIL_TIMEOUT=30
      ```
-  2. Jika di cPanel/shared hosting tanpa background worker daemon, gunakan:
-     ```ini
+     *(Catatan: `MAIL_PASSWORD` wajib menggunakan **16 karakter App Password** yang dibuat melalui menu Google Account -> Security -> 2-Step Verification -> App Passwords).*
+  2. **Atur Queue Connection ke Synchronous (Jika Tanpa Daemon Queue):**
+     Jika server hosting tidak menjalankan supervisor / background daemon, ubah antrean agar dikirim langsung secara real-time:
+     ```env
      QUEUE_CONNECTION=sync
      ```
+  3. **Segarkan Cache Konfigurasi:**
+     ```bash
+     php artisan config:clear
+     ```
 
-### 3. Error: *"QPDF failed to normalize file"* atau Stempel Digital Tidak Muncul
-* **Penyebab:** Binary QPDF belum terpasang atau path di `.env` salah.
-* **Solusi:** 
-  ```bash
-  which qpdf
-  # Pastikan di .env: QPDF_BINARY_PATH=/usr/bin/qpdf
-  ```
+---
 
-### 4. Membersihkan Seluruh Cache Aplikasi (Setelah Update Kode)
+### 5. 🧹 Membersihkan & Memperbarui Seluruh Cache Aplikasi (Setiap Selesai Update)
+Jalankan perintah ini setiap kali selesai melakukan `git pull` di server hosting:
 ```bash
 php artisan optimize:clear
-php artisan optimize
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
 ```
+
 
 ---
 
